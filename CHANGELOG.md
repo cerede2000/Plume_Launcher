@@ -17,7 +17,7 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 ## 1.4
 
 ### Smaller
-- **12% smaller.** Plume is now 365 KB, down from 413 KB.
+- **8% smaller.** Plume is now 381 KB, down from 413 KB, and it has more features.
 
 ### New
 - A key on the remote can open Android settings or the network settings. Select **Plume settings → Remote keys**, pick a key, then **Android settings** or **Network settings**.
