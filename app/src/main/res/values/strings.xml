@@ -1,5 +1,5 @@
 <resources>
-    <string name="override_desc">Opens Plume whenever the Google TV home screen appears, so the Home button lands here.</string>
+    <string name="override_desc">Opens Plume whenever the Google TV home screen appears, so the Home button lands here. Also taps Force stop in Settings, behind a cover, when you ask Plume to stop apps.</string>
     <string name="delete_photo">Delete \"%1$s\"?</string>
     <string name="photo_added">Added \"%1$s\". Send another, or press Done.</string>
     <string name="n_of_m">%1$d of %2$d</string>
@@ -217,4 +217,12 @@
     <string name="no_channels">No channels found</string>
     <string name="add_to_row">Add to row</string>
     <string name="all_in_row">All apps are in the row</string>
+    <string name="section_memory">Memory</string>
+    <string name="stop_homes">Stop other home screens</string>
+    <string name="stop_apps">Apps to stop</string>
+    <string name="stop_now">Stop running apps</string>
+    <string name="freeing_memory">Freeing memory…</string>
+    <string name="freed_result">%1$d apps stopped · %2$d MB freed</string>
+    <string name="freed_none">Nothing to stop</string>
+    <string name="stop_needs_service">Turn \"Plume: Home button\" off and on again in Accessibility settings, then try again</string>
 </resources>
