@@ -17,17 +17,20 @@ import android.view.KeyEvent
 object Remap {
     class Entry(val short: String, val long: String)
 
-    /** Set while the settings page waits for a key to change; called on the service's thread. */
-    @Volatile
+    /** Set while the settings page waits for a key to change. */
     var learn: ((KeyEvent) -> Unit)? = null
 
-    private var map: HashMap<String, Entry>? = null
+    /** The key whose press was just taken to be learned: its repeats and its release are swallowed too. */
+    var pending: String? = null
+
+    private var map: LinkedHashMap<String, Entry>? = null
 
     // Keys that move around Plume or leave it: never learned, never changed, so a remote can't be locked out.
     private val KEEP = intArrayOf(
         KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
         KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER, KeyEvent.KEYCODE_BACK,
-        KeyEvent.KEYCODE_HOME, KeyEvent.KEYCODE_POWER,
+        KeyEvent.KEYCODE_HOME, KeyEvent.KEYCODE_POWER, KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_TAB,
+        KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BUTTON_SELECT,
     )
 
     val MEDIA = linkedMapOf(
@@ -50,9 +53,10 @@ object Remap {
     /** A key's identity: its Android code, or its scan code for keys Android has no code for. */
     fun id(e: KeyEvent) = if (e.keyCode != KeyEvent.KEYCODE_UNKNOWN) "k${e.keyCode}" else "s${e.scanCode}"
 
-    fun kept(e: KeyEvent) = e.keyCode in KEEP
+    /** Also keys with no code at all, which would all share one identity. */
+    fun kept(e: KeyEvent) = e.keyCode in KEEP || (e.keyCode == KeyEvent.KEYCODE_UNKNOWN && e.scanCode == 0)
 
-    fun all(c: Context): HashMap<String, Entry> = map ?: HashMap<String, Entry>().also { m ->
+    fun all(c: Context): LinkedHashMap<String, Entry> = map ?: LinkedHashMap<String, Entry>().also { m ->
         for (line in c.getSharedPreferences("home", Context.MODE_PRIVATE).getString("keymap", "")!!.lines()) {
             val p = line.split('\t')
             if (p.size == 3) m[p[0]] = Entry(p[1], p[2])

@@ -183,7 +183,7 @@
     <!-- Remote keys: change what a button on the remote does -->
     <string name="section_keys">Remote keys</string>
     <string name="key_add">Add a key</string>
-    <string name="key_press_prompt">Press the key to change on your remote. Back and the arrows can\'t be changed. A key set here stops doing its usual job.</string>
+    <string name="key_press_prompt">Press the key to change on your remote. Back, OK and the arrows can\'t be changed. A key set here stops doing its usual job.</string>
     <string name="key_short">Press</string>
     <string name="key_long">Hold</string>
     <string name="key_unset">Not set</string>

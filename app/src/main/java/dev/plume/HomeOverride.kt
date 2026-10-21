@@ -35,11 +35,19 @@ class HomeOverride : AccessibilityService() {
     /** Keys the user changed in Plume settings (see [Remap]); any other key goes on to the system untouched. */
     private fun remap(e: KeyEvent): Boolean {
         if (Remap.kept(e)) return false
-        Remap.learn?.let { learn ->
-            if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0) learn(e)
+        val id = Remap.id(e)
+        if (id == Remap.pending) { // the key just learned: its repeats and release never reach anyone
+            if (e.action == KeyEvent.ACTION_UP) Remap.pending = null
             return true
         }
-        val m = Remap.all(this)[Remap.id(e)] ?: return false
+        Remap.learn?.let { learn ->
+            if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0) {
+                Remap.pending = id
+                learn(e)
+            }
+            return true
+        }
+        val m = Remap.all(this)[id] ?: return false
         // Decided on release, like Home: this TV's remote doesn't reliably send key repeats.
         if (e.action == KeyEvent.ACTION_UP && !e.isCanceled) {
             val action = if (e.eventTime - e.downTime >= LONG_PRESS_MS && m.long.isNotEmpty()) m.long else m.short

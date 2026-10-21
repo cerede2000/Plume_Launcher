@@ -332,6 +332,7 @@ class MainActivity : Activity() {
 
     override fun onStop() {
         unlockedUntil = 0L // leaving the home screen locks it again (onPause would also fire for permission dialogs)
+        Remap.learn = null // never keep swallowing keys for a page that's no longer on screen
         if (homeTest != 0) leftDuringTest = true
         super.onStop()
     }
@@ -766,7 +767,7 @@ class MainActivity : Activity() {
     // Settings > Remote keys: press a key on the remote to pick it, then choose what it does. The work is done by
     // the Home key service (see Remap), which is why the page asks for it to be on.
 
-    private fun keysSummary() = resources.getQuantityString(R.plurals.n_keys, Remap.all(this).size, Remap.all(this).size)
+    private fun keysSummary() = Remap.all(this).size.let { resources.getQuantityString(R.plurals.n_keys, it, it) }
 
     private fun pickKeys(focus: Int = 0) {
         val keys = Remap.all(this).entries.toList()
@@ -783,7 +784,10 @@ class MainActivity : Activity() {
             maxLines = 5
             setPadding(dp(14), dp(10), dp(14), dp(10))
         }
-        Remap.learn = { e -> ui.post { Remap.learn = null; keyPage(Remap.id(e)) } }
+        Remap.learn = { e ->
+            val id = Remap.id(e) // read now: the framework recycles the event as soon as the service returns
+            ui.post { Remap.learn = null; keyPage(id) }
+        }
         showPage(getString(R.string.key_add), emptyList(), top = hint) { Remap.learn = null; pickKeys() }
         pageExit = { Remap.learn = null }
     }
@@ -820,8 +824,7 @@ class MainActivity : Activity() {
     }
 
     private fun pickApp(id: String, hold: Boolean, now: String) {
-        val list = sortedApps().filter { !it.offline || it.pkg.startsWith(HDMI) } // HDMI ports count with or without a signal
-        showPage(getString(R.string.key_open_app), list.map { a ->
+        showPage(getString(R.string.key_open_app), sortedApps().map { a -> // HDMI ports count with or without a signal
             val action = if (a.pkg.startsWith(HDMI)) "hdmi:" + a.pkg.removePrefix(HDMI) else "app:" + a.pkg
             page(a.label, if (action == now) CHOSEN else "") { setAction(id, hold, action) }
         }) { pickAction(id, hold) }

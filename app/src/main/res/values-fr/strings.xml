@@ -184,7 +184,7 @@
     <!-- Touches de la télécommande : changer l'action d'un bouton -->
     <string name="section_keys">Touches de la télécommande</string>
     <string name="key_add">Ajouter une touche</string>
-    <string name="key_press_prompt">Appuyez sur la touche à modifier sur votre télécommande. Retour et les flèches ne sont pas modifiables. Une touche réglée ici ne fait plus son action habituelle.</string>
+    <string name="key_press_prompt">Appuyez sur la touche à modifier sur votre télécommande. Retour, OK et les flèches ne sont pas modifiables. Une touche réglée ici ne fait plus son action habituelle.</string>
     <string name="key_short">Appui</string>
     <string name="key_long">Appui long</string>
     <string name="key_unset">Non défini</string>
