@@ -41,7 +41,11 @@ class ContinueWatchingTest {
             watchKey(0, 1_791_237_906_401) to "moonfin/clochette", // another app, in milliseconds
         )
         val shown = newestPerApp(rows, 3) { it.substringBefore('/') }
-        assertEquals(listOf("wholphin/ncis", "wholphin/descendants", "wholphin/coquin", "moonfin/clochette"), shown)
+        // What was started leads, three per app; the suggestions follow, as the rest.
+        assertEquals(
+            listOf("wholphin/ncis", "wholphin/descendants", "wholphin/coquin", "moonfin/clochette", "wholphin/suggestion-a", "wholphin/suggestion-b"),
+            shown,
+        )
     }
 
     @Test fun suggestionsStillShowWhenAnAppHasNothingStarted() {
