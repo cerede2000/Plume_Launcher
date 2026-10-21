@@ -209,4 +209,5 @@
         <item quantity="other">%d touches</item>
     </plurals>
     <string name="bing_daily">Image Bing du jour</string>
+    <string name="banner">Bannière</string>
 </resources>
