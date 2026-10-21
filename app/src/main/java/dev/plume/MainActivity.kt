@@ -1589,9 +1589,22 @@ class MainActivity : Activity() {
         } catch (e: Exception) {
             null
         } ?: return null
-        if (banner.intrinsicWidth in 1 until rowTileWidth()) return null
+        val w = rowTileWidth()
+        if (banner.intrinsicWidth in 1 until w) return null
+        // Drawn once, centre-cropped, at the tile's exact size: a row of banners then costs ~80 KB each, not the
+        // banner's own size, and the full-size banner isn't kept.
+        val h = w * 9 / 16
+        val bw = banner.intrinsicWidth.takeIf { it > 0 } ?: w
+        val bh = banner.intrinsicHeight.takeIf { it > 0 } ?: h
+        val scale = maxOf(w.toFloat() / bw, h.toFloat() / bh)
+        val dw = (bw * scale).toInt()
+        val dh = (bh * scale).toInt()
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        (banner as? BitmapDrawable)?.isFilterBitmap = true
+        banner.setBounds((w - dw) / 2, (h - dh) / 2, (w - dw) / 2 + dw, (h - dh) / 2 + dh)
+        banner.draw(Canvas(bmp))
         val col = FrameLayout(this).apply {
-            addView(ImageView(context).apply { setImageDrawable(banner); scaleType = ImageView.ScaleType.CENTER_CROP }, MATCH_PARENT, MATCH_PARENT)
+            addView(ImageView(context).apply { setImageBitmap(bmp); scaleType = ImageView.ScaleType.FIT_XY }, MATCH_PARENT, MATCH_PARENT)
             tag = a.pkg
             setOnClickListener { launch(a) }
         }
