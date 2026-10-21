@@ -223,4 +223,6 @@
     <string name="freed_result">%1$d apps stopped · %2$d MB freed</string>
     <string name="freed_none">Nothing to stop</string>
     <string name="stop_needs_service">Turn \"Plume: Home button\" off and on again in Accessibility settings, then try again</string>
+    <string name="act_settings">Android settings</string>
+    <string name="act_network">Network settings</string>
 </resources>

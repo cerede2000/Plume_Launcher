@@ -15,6 +15,7 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 
 ## Unreleased
 
+- A key on the remote can open Android settings or the network settings. Select **Plume settings → Remote keys**, pick a key, then **Android settings** or **Network settings**.
 - All apps opens under the apps row. Select the tile at the right end of the row, or the grid icon in the top bar. Push Left on the first app to reach that tile at once. The row moves up and Continue Watching steps aside. It shows the apps that are not in the row. Hold OK on one to move it or add it to the row. The row and All apps share one order.
 - Plume can end other apps to free memory. Plume ends the Google TV home screen each time it starts. Select **Plume settings → Memory** to turn that off, to pick more apps, or to stop the running apps now. A key on the remote can do the same: select **Plume settings → Remote keys**. A black screen shows the progress and the memory freed while Plume taps Force stop in Settings for each app. Push Back to cancel. This needs **Plume: Home button** turned on in Accessibility settings. Turn it off and on again once after an update.
 - The cards row can show one row for each channel. Select **Plume settings → Continue Watching → Cards row → One row per channel**. Push Down on a card to see the next channel. Push Up to go back.
