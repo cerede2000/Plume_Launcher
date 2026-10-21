@@ -3,7 +3,7 @@ name: Build
 
 on:
   push:
-    branches: [integration]
+    branches: [integration, 'feat/**']
   workflow_dispatch:
 
 concurrency:
@@ -26,6 +26,17 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # A stable signing key, so a new build installs over the old one and keeps Plume's settings.
+      - name: Signing key
+        env:
+          KS: ${{ secrets.PLUME_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.PLUME_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KS" ]; then
+            echo "$KS" | base64 -d > "$RUNNER_TEMP/plume.p12"
+            printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=plume\nkeyPassword=%s\n' "$RUNNER_TEMP/plume.p12" "$KS_PASS" "$KS_PASS" > keystore.properties
+          fi
+
       - name: Unit tests and release APK
         run: ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleRelease
 
@@ -42,6 +53,8 @@ jobs:
           cp app/build/outputs/apk/release/*.apk "$name"
           echo "name=$name" >> "$GITHUB_OUTPUT"
           ls -l "$name"
+          echo "APK bytes: $(stat -c %s "$name")"
+          "$(ls -d "$ANDROID_HOME"/build-tools/*/ | tail -1)apksigner" verify --print-certs "$name" | grep -E "certificate SHA-256|Signer #1 certificate DN"
 
       - uses: actions/upload-artifact@v4
         with:
