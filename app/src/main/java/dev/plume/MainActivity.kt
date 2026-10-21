@@ -664,7 +664,7 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.root).setBackgroundColor(ground)
         // All apps shows under the apps row over a veil: clear at the top, the background colour towards the bottom.
         allApps.background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-            intArrayOf((ground and 0xFFFFFF) or 0x59000000, (ground and 0xFFFFFF) or 0xD9000000.toInt())).apply { setDither(true) }
+            intArrayOf(ground and 0xFFFFFF, (ground and 0xFFFFFF) or 0xCC000000.toInt())).apply { setDither(true) }
         for (id in intArrayOf(R.id.clock, R.id.date, R.id.appsTitle, R.id.watchTitle, R.id.allAppsTitle, R.id.rowLabel, R.id.weather)) {
             findViewById<TextView>(id).setTextColor(fg)
         }
@@ -2015,27 +2015,22 @@ class MainActivity : Activity() {
         }
     }
 
-    /** Hold OK on an app in All apps: Move (OK places it; the row follows the same order), Add to or Remove from the row, App info. */
+    /** Hold OK on an app in All apps: Move (OK places it), Add to the row, App info. */
     private fun drawerMenu(v: View) {
         val pkg = v.tag as String
         if (locked()) return holdMenu(v, listOf(
             getString(R.string.open) to { v.performClick(); Unit },
             getString(R.string.unlock_to_edit) to { unlock { v.requestFocus(); drawerMenu(v) } },
         ))
-        val offline = apps.any { it.pkg == pkg && it.offline }
-        val onRow = inRow(pkg, offline, rowHiddenSet(), pinnedInputs())
         holdMenu(v, listOfNotNull(
             getString(R.string.move) to { startEdit(grab = v, once = true, box = allAppsGrid) },
-            if (onRow) getString(R.string.remove_from_row) to {
-                prefs.edit().putStringSet("row_hidden", if (offline) rowHiddenSet() else rowHiddenSet() + pkg)
-                    .putStringSet("inputs_pinned", pinnedInputs() - pkg).apply()
-                renderApps()
-                Toast.makeText(this, getString(R.string.removed_from_row), Toast.LENGTH_SHORT).show()
-            } else getString(R.string.add_to_row) to {
+            getString(R.string.add_to_row) to { // it leaves this list and joins the row
+                val at = allAppsGrid.indexOfChild(v)
                 val edit = prefs.edit().putStringSet("row_hidden", rowHiddenSet() - pkg)
                 if (pkg.startsWith(HDMI)) edit.putStringSet("inputs_pinned", pinnedInputs() + pkg)
                 edit.apply()
                 renderApps()
+                if (apps.all { inRow(it.pkg, it.offline, rowHiddenSet(), pinnedInputs()) }) closeAllApps() else fillDrawer(at)
             },
             if (pkg.startsWith(HDMI)) null else getString(R.string.app_info) to {
                 openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null))
@@ -2059,6 +2054,7 @@ class MainActivity : Activity() {
                 prefs.edit().putStringSet("row_hidden", if (offline) rowHiddenSet() else rowHiddenSet() + pkg)
                     .putStringSet("inputs_pinned", pinnedInputs() - pkg).apply()
                 renderApps()
+                if (allApps.visibility == View.VISIBLE) fillDrawer(allAppsGrid.childCount)
                 appRow.getChildAt(minOf(i, appRow.childCount - 1))?.requestFocus()
                 Toast.makeText(this, getString(R.string.removed_from_row), Toast.LENGTH_SHORT).show()
             },
@@ -2235,18 +2231,33 @@ class MainActivity : Activity() {
      * All apps open under the apps row, which moves up beside the clock and top bar; Continue Watching steps aside.
      * Same eight columns as the row, in the same order: moving an app here moves it in the row too.
      */
-    private fun openAllApps(from: View? = null) {
-        drawerFrom = from ?: findViewById<View>(R.id.allAppsButton)
+    /** The apps that are not in the row; the ones in it are one key away. Rebuilt when one moves between the two. */
+    private fun fillDrawer(focusAt: Int = 0) {
         allAppsGrid.removeAllViews()
         val gap = dp(GRID_GAP)
         val width = rowTileWidth()
-        for ((n, a) in sortedApps().withIndex()) {
+        val hidden = rowHiddenSet()
+        val pinned = pinnedInputs()
+        val others = sortedApps().filter { !inRow(it.pkg, it.offline, hidden, pinned) }
+        for ((n, a) in others.withIndex()) {
             allAppsGrid.addView(appTile(a), GridLayout.LayoutParams().apply { // holding OK here opens the menu (see onHold)
                 this.width = width
                 height = dp(76)
                 setMargins(0, 0, if (n % ROW_TILES == ROW_TILES - 1) 0 else gap, gap)
             })
         }
+        allAppsGrid.getChildAt(minOf(focusAt, allAppsGrid.childCount - 1))?.requestFocus()
+    }
+
+    private fun openAllApps(from: View? = null) {
+        val hidden = rowHiddenSet()
+        val pinned = pinnedInputs()
+        if (apps.all { inRow(it.pkg, it.offline, hidden, pinned) }) {
+            Toast.makeText(this, getString(R.string.all_in_row), Toast.LENGTH_SHORT).show()
+            return
+        }
+        drawerFrom = from ?: findViewById<View>(R.id.allAppsButton)
+        fillDrawer()
         (topSpacer.layoutParams as LinearLayout.LayoutParams).weight = 0f
         (allApps.layoutParams as LinearLayout.LayoutParams).weight = 1f
         (findViewById<View>(R.id.cardsSpacer).layoutParams as LinearLayout.LayoutParams).weight = 0f
@@ -2255,7 +2266,7 @@ class MainActivity : Activity() {
         allApps.visibility = View.VISIBLE
         allApps.scrollTo(0, 0)
         findViewById<View>(R.id.content).requestLayout()
-        allAppsGrid.getChildAt(0)?.requestFocus()
+        allAppsGrid.getChildAt(0)?.requestFocus() // only a shown view takes focus
     }
 
     private fun closeAllApps() {

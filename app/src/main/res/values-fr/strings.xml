@@ -216,4 +216,5 @@
     <string name="channels_row">Chaînes</string>
     <string name="no_channels">Aucune chaîne trouvée</string>
     <string name="add_to_row">Ajouter à la ligne</string>
+    <string name="all_in_row">Toutes les applis sont dans la ligne</string>
 </resources>
