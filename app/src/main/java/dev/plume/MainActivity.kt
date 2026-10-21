@@ -2912,7 +2912,7 @@ class MainActivity : Activity() {
     private fun windowPosters(center: Int) {
         for (i in 0 until watchRow.childCount) {
             val img = ((watchRow.getChildAt(i) as? ViewGroup)?.getChildAt(0) as? ViewGroup)?.getChildAt(0) as? ImageView ?: continue
-            if (i in center - 1..center + 4) {
+            if (i in center - 3..center + 4) { // four cards show at once: with focus on the last one, the three before it are still on screen
                 if (img.drawable == null) loadPoster(img, img.tag as? String)
             } else if (img.drawable != null && img.tag !in noPoster) img.setImageDrawable(null) // a placeholder costs nothing to keep
         }
