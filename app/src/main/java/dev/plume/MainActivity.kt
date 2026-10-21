@@ -717,30 +717,52 @@ class MainActivity : Activity() {
         else -> choice.substringAfter(':').substringBeforeLast('.').let { n -> WALLPAPER_NAMES[n]?.let { getString(it) } ?: n }
     }
 
-    private fun loadWallpaper() {
+    private var wallpaperGen = 0 // the newest request: an older one stops before it costs a picture's memory
+    private var wallpaperKey: String? = null // what the view shows now
+
+    /** [force]: the same choice shows another picture (next photo of a folder, fade switched). */
+    private fun loadWallpaper(force: Boolean = false) {
         val view = findViewById<ImageView>(R.id.wallpaper)
         val choice = currentWallpaper()
+        val gen = ++wallpaperGen
         if (choice.startsWith("plain:")) { // the root's ground colour shows through
             view.setImageDrawable(null)
+            wallpaperKey = null
             return
         }
+        // A picture is 8 MB at 1080p. Asking twice for the same thing costs nothing, and a request overtaken by a newer
+        // one is dropped before it is decoded.
+        val key = "$choice|$dark|${wallpaperFade()}|" + (if (choice == Bing.CHOICE) Bing.file(this).lastModified() else 0)
+        if (!force && key == wallpaperKey && view.drawable != null) return
+        wallpaperKey = key
         val fallback = defaultWallpaper(dark)
         io.execute {
+            if (gen != wallpaperGen) return@execute
+            var shown = choice
             val bmp = try {
                 decodeWallpaper(choice)
             } catch (e: Exception) {
                 null
             } catch (e: OutOfMemoryError) { // a picture on a TV short of memory: show the default instead of crashing
                 null
-            } ?: decodeWallpaper(fallback)
+            } ?: decodeWallpaper(fallback).also { shown = fallback }
+            val tail = BUNDLED_TAILS[shown.removePrefix("res:")] ?: 0 // what shows under a bundled wallpaper kept to its top 70%
             ui.post {
-                val old = view.drawable
+                if (gen != wallpaperGen) return@post bmp?.recycle().let {}
+                if (bmp == null) wallpaperKey = null
+                view.setBackgroundColor(tail)
+                val old = (view.drawable as? BitmapDrawable)?.bitmap
                 if (old == null || bmp == null) return@post view.setImageBitmap(bmp)
                 // Soft change from one photo to the next; then drop the old one so only one stays in memory.
-                val fade = TransitionDrawable(arrayOf(old, BitmapDrawable(resources, bmp))).apply { isCrossFadeEnabled = true }
+                val fade = TransitionDrawable(arrayOf(view.drawable, BitmapDrawable(resources, bmp))).apply { isCrossFadeEnabled = true }
                 view.setImageDrawable(fade)
                 fade.startTransition(800)
-                ui.postDelayed({ if (view.drawable === fade) view.setImageBitmap(bmp) }, 900)
+                ui.postDelayed({
+                    if (view.drawable !== fade) return@postDelayed
+                    view.setImageBitmap(bmp)
+                    // Freed now, not whenever the garbage collector gets to it: it is 8 MB. A moment later, so that no frame still draws it.
+                    ui.postDelayed({ old.recycle() }, 300)
+                }, 900)
             }
         }
     }
@@ -838,7 +860,7 @@ class MainActivity : Activity() {
 
     private fun nextPhoto() {
         prefs.edit().remove(photoKey()).putLong(photoAtKey(), System.currentTimeMillis()).apply()
-        loadWallpaper()
+        loadWallpaper(force = true)
     }
 
     /** The folder's photo on show now, or the next one in this round's shuffle. Runs on the io thread. */
@@ -897,7 +919,7 @@ class MainActivity : Activity() {
                             if (prefs.getString("wp_light", null) == choice) remove("wp_light")
                             if (prefs.getString("wp_dark", null) == choice) remove("wp_dark")
                         }.apply()
-                        loadWallpaper()
+                        loadWallpaper(force = true)
                         pickWallpaper(forDark)
                     },
                 )) { removeWallpaper(own, forDark) }
@@ -2847,6 +2869,8 @@ class MainActivity : Activity() {
             "Rockies (day)" to R.string.wp_rockies_day, "Rockies (dusk)" to R.string.wp_rockies_dusk,
             "Pure black" to R.string.wp_pure_black, "Soft white" to R.string.wp_soft_white,
         )
+        /** The colour each bundled wallpaper ends in. They are kept to the top 70% (a flat colour is all that's below). */
+        val BUNDLED_TAILS = mapOf("Rockies (day)" to 0xFFEFF2F3.toInt(), "Rockies (dusk)" to 0xFF0E1013.toInt())
         val BUNDLED_WALLPAPERS = linkedMapOf(
             "Rockies (day)" to R.drawable.wallpaper,
             "Rockies (dusk)" to R.drawable.wallpaper_dark,
