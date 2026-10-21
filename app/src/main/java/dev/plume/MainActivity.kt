@@ -23,6 +23,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.graphics.ColorMatrix
@@ -2768,9 +2769,29 @@ class MainActivity : Activity() {
         refreshWatchNext()
     }
 
-    /** Small source-app mark for the details line: black logo when we have one, else greyscale icon. */
+    /** The app's own icon cut round, for the details line when the icon style isn't monochrome. Tiny, kept per app. */
+    private val roundIcons = HashMap<String, Bitmap>()
+
+    private fun roundIcon(pkg: String): Drawable? = try {
+        BitmapDrawable(resources, roundIcons.getOrPut(pkg) {
+            val size = dp(12) * 2 // drawn at twice the size it is shown at, so the edge stays smooth
+            val icon = packageManager.getApplicationIcon(pkg)
+            Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also { bmp ->
+                val canvas = Canvas(bmp)
+                canvas.clipPath(Path().apply { addCircle(size / 2f, size / 2f, size / 2f, Path.Direction.CW) })
+                // An adaptive icon's layers are 108dp with the symbol in the middle 72: draw at 1.5x to show just that.
+                if (icon is AdaptiveIconDrawable) icon.setBounds(-size / 4, -size / 4, size * 5 / 4, size * 5 / 4) else icon.setBounds(0, 0, size, size)
+                icon.draw(canvas)
+            }
+        })
+    } catch (e: PackageManager.NameNotFoundException) {
+        null
+    }
+
+    /** Small source-app mark for the details line: its round colour icon in colour and banner styles, else the black logo when we have one, else the greyscale icon. */
     private fun sourceIcon(pkg: String?): Drawable? {
         if (pkg == null) return null
+        if (colourIcons()) roundIcon(pkg)?.let { return it }
         LOGOS[pkg]?.takeIf { !it.second }?.let { return getDrawable(it.first)!!.mutate().apply { setTint(fg) } }
         return try {
             packageManager.getApplicationIcon(pkg).mutate().apply { colorFilter = GREYSCALE }
