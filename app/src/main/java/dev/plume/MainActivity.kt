@@ -652,7 +652,7 @@ class MainActivity : Activity() {
     private fun wallpaperChoices(forDark: Boolean): List<Pair<String, String>> =
         listOf(plainWallpaper(forDark).let { wallpaperName(it) to it }) +
             BUNDLED_WALLPAPERS.keys.map { wallpaperName("res:$it") to "res:$it" } +
-            (wallpaperName(DailyWallpaper.CHOICE) to DailyWallpaper.CHOICE) +
+            DailyWallpaper.SOURCES.map { wallpaperName(it.choice) to it.choice } +
             (wallpaperDir()?.listFiles { f -> f.extension.lowercase() in setOf("jpg", "jpeg", "png", "webp") }
                 ?.sortedBy { it.name }?.map { it.nameWithoutExtension to "file:${it.name}" } ?: emptyList()) +
             listOfNotNull(currentWallpaper(forDark).takeIf { it.startsWith("folder:") }?.let { wallpaperName(it) to it })
@@ -668,10 +668,13 @@ class MainActivity : Activity() {
     /** Fade your own photos into the background at the bottom. Bundled wallpapers have it baked in either way. */
     private fun wallpaperFade() = prefs.getBoolean("wp_fade", true)
 
-    private fun wallpaperName(choice: String) = when {
-        choice == DailyWallpaper.CHOICE -> getString(R.string.bing_daily) + (prefs.getString("daily_title", null)?.let { " · $it" } ?: "")
-        choice.startsWith("folder:") -> getString(R.string.folder_name, choice.substringAfter(':').substringAfter(':'))
-        else -> choice.substringAfter(':').substringBeforeLast('.').let { n -> WALLPAPER_NAMES[n]?.let { getString(it) } ?: n }
+    private fun wallpaperName(choice: String): String {
+        val source = DailyWallpaper.sourceOf(choice)
+        return when {
+            source != null -> getString(source.name) + (prefs.getString(source.pref("title"), null)?.let { " · $it" } ?: "")
+            choice.startsWith("folder:") -> getString(R.string.folder_name, choice.substringAfter(':').substringAfter(':'))
+            else -> choice.substringAfter(':').substringBeforeLast('.').let { n -> WALLPAPER_NAMES[n]?.let { getString(it) } ?: n }
+        }
     }
 
     private fun loadWallpaper() {
@@ -706,8 +709,11 @@ class MainActivity : Activity() {
         }
         // fitWallpaper's bitmap is mutable: the fades are painted onto it.
         val bmp = when {
-            choice == DailyWallpaper.CHOICE -> DailyWallpaper.size(resources.displayMetrics.widthPixels).let { (w, h) ->
-                fitWallpaper(w, h) { DailyWallpaper.file(this).inputStream() }
+            choice.startsWith("daily:") -> {
+                val source = DailyWallpaper.sourceOf(choice) ?: return null
+                DailyWallpaper.size(resources.displayMetrics.widthPixels).let { (w, h) ->
+                    fitWallpaper(w, h) { DailyWallpaper.file(this, source).inputStream() }
+                }
             }
             choice.startsWith("folder:") -> {
                 val uri = ContentUris.withAppendedId(PHOTOS, folderPhoto(choice) ?: return null)
@@ -718,6 +724,8 @@ class MainActivity : Activity() {
                 fitWallpaper { file.inputStream() }
             }
         } ?: return null
+        // Pictures from the internet are often bright daylight, which fights true black: dim them in dark mode.
+        if (dark && choice.startsWith("daily:")) Canvas(bmp).drawColor(Color.argb(DARK_DIM, 0, 0, 0))
         // Same fade as the bundled ones: clear above 28% height, into the background colour by 50%.
         val h = bmp.height.toFloat()
         val base = ground and 0x00FFFFFF
@@ -750,43 +758,47 @@ class MainActivity : Activity() {
     private fun setWallpaper(forDark: Boolean, choice: String) {
         prefs.edit().putString(if (forDark) "wp_dark" else "wp_light", choice)
             .remove(photoKey(forDark)).putLong(photoAtKey(forDark), System.currentTimeMillis()).apply()
-        if (choice == DailyWallpaper.CHOICE) refreshDaily(force = true) else dropDailyIfUnused()
+        dropDailyIfUnused()
+        if (choice.startsWith("daily:")) refreshDaily(force = true)
         if (forDark == dark) loadWallpaper()
     }
 
-    // ---------- Bing picture of the day ----------
-    // The picture is looked up from the home screen at most once a day (and at most hourly after a failure), only
-    // while a theme uses it. Offline, yesterday's picture stays. Switching to any other wallpaper deletes it.
+    // ---------- wallpapers from the internet (see WallpaperSource) ----------
+    // A source's picture is looked up from the home screen at most once a day (and at most hourly after a failure),
+    // only while a theme uses it. Offline, yesterday's picture stays. Switching to any other wallpaper deletes it.
 
     @Volatile private var dailyBusy = false
 
-    private fun dailyOn() = currentWallpaper(false) == DailyWallpaper.CHOICE || currentWallpaper(true) == DailyWallpaper.CHOICE
+    private fun usedSources() = DailyWallpaper.SOURCES.filter { it.choice == currentWallpaper(false) || it.choice == currentWallpaper(true) }
 
     private fun refreshDaily(force: Boolean = false) {
-        if (!dailyOn() || dailyBusy) return
+        if (dailyBusy) return
         val today = LocalDate.now().toEpochDay()
         val now = System.currentTimeMillis()
-        if (!force && (prefs.getLong("daily_day", 0) == today || now - prefs.getLong("daily_try", 0) < 3_600_000L)) return
+        val due = usedSources().filter { force || (prefs.getLong(it.pref("day"), 0) != today && now - prefs.getLong(it.pref("try"), 0) >= 3_600_000L) }
+        if (due.isEmpty()) return
         dailyBusy = true
-        prefs.edit().putLong("daily_try", now).apply()
+        prefs.edit().apply { due.forEach { putLong(it.pref("try"), now) } }.apply()
         io.execute {
-            try {
-                val got = DailyWallpaper.refresh(this, resources.displayMetrics.widthPixels, prefs.getString("daily_hash", null))
-                prefs.edit().putLong("daily_day", today).apply {
-                    if (got != null) putString("daily_hash", got.first).putString("daily_title", got.second)
+            for (s in due) try {
+                val got = DailyWallpaper.refresh(this, s, resources.displayMetrics.widthPixels, prefs.getString(s.pref("hash"), null))
+                prefs.edit().putLong(s.pref("day"), today).apply {
+                    if (got != null) putString(s.pref("hash"), got.token).putString(s.pref("title"), got.title)
                 }.apply()
-                if (got != null) ui.post { if (currentWallpaper() == DailyWallpaper.CHOICE) loadWallpaper() }
+                if (got != null) ui.post { if (currentWallpaper() == s.choice) loadWallpaper() }
             } catch (e: Exception) {
-                android.util.Log.w("Plume", "Bing picture failed ($e)")
+                android.util.Log.w("Plume", "${s.id} picture failed ($e)")
             }
             dailyBusy = false
         }
     }
 
+    /** A source no theme uses any more keeps nothing: its picture and its preferences go. */
     private fun dropDailyIfUnused() {
-        if (dailyOn()) return
-        DailyWallpaper.file(this).delete()
-        prefs.edit().remove("daily_hash").remove("daily_title").remove("daily_day").remove("daily_try").apply()
+        for (s in DailyWallpaper.SOURCES - usedSources().toSet()) {
+            DailyWallpaper.file(this, s).delete()
+            prefs.edit().remove(s.pref("hash")).remove(s.pref("title")).remove(s.pref("day")).remove(s.pref("try")).apply()
+        }
     }
 
     // ---------- folder wallpapers ----------
@@ -2847,6 +2859,7 @@ class MainActivity : Activity() {
         const val HELP_URL = "https://github.com/aradhyas8/Plume_Launcher#home-button-on-android-13-and-newer"
         const val TOGGLE_ON = "\u0000on" // row values drawn as a switch instead of text
         const val TOGGLE_OFF = "\u0000off"
+        const val DARK_DIM = 115 // alpha of the black laid over internet pictures in dark mode (45%)
         const val PIN_TRIES = 5 // wrong PINs before a 30 s wait
         const val UNLOCKED_MS = 5 * 60_000L
         const val MEDIA_REQUEST = 3
