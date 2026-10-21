@@ -925,7 +925,8 @@ class MainActivity : Activity() {
                 pickApp(id, hold, now)
             },
         ) + Remap.MEDIA.map { (k, v) -> row("media:$k", getString(v.second)) } +
-            Remap.SYS.map { (k, v) -> row("sys:$k", getString(v.second)) } + row("stop", getString(R.string.stop_now))
+            Remap.SYS.map { (k, v) -> row("sys:$k", getString(v.second)) } +
+            Remap.OPEN.map { (k, v) -> row("open:$k", getString(v.second)) } + row("stop", getString(R.string.stop_now))
         showPage(getString(if (hold) R.string.key_long else R.string.key_short), rows) { keyPage(id, if (hold) 1 else 0) }
     }
 

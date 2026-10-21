@@ -6,12 +6,13 @@ import android.content.Intent
 import android.media.AudioManager
 import android.media.tv.TvContract
 import android.media.tv.TvInputManager
+import android.provider.Settings
 import android.view.KeyEvent
 
 /**
  * Remote key remapping. Plume's Home key service already sees every key before any app does, so a key mapped
  * here is handled there: [Entry.short] runs on a press and [Entry.long] on a hold ("" when unset). An action is
- * "none" (swallow the key), "app:<package>", "hdmi:<input id>", "media:<name>", "sys:<name>" or "stop" (see [Stop]).
+ * "none" (swallow the key), "app:<package>", "hdmi:<input id>", "media:<name>", "sys:<name>", "open:<place>" (Android's Settings) or "stop" (see [Stop]).
  * Kept in one preference string ("home"/"keymap", a line per key) and in memory only once a key is pressed.
  */
 object Remap {
@@ -48,6 +49,12 @@ object Remap {
         "notifications" to (AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS to R.string.act_notifications),
         "quick" to (AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS to R.string.act_quick),
         "power" to (AccessibilityService.GLOBAL_ACTION_POWER_DIALOG to R.string.act_power),
+    )
+
+    /** Places in Android's Settings that a key can open, though Settings is not in the apps list. */
+    val OPEN = linkedMapOf(
+        "settings" to (Settings.ACTION_SETTINGS to R.string.act_settings),
+        "network" to (Settings.ACTION_WIFI_SETTINGS to R.string.act_network),
     )
 
     /** A key's identity: its Android code, or its scan code for keys Android has no code for. */
@@ -87,6 +94,7 @@ object Remap {
                 }
                 "sys" -> SYS[arg]?.let { (code, _) -> s.performGlobalAction(code) }
                 "stop" -> Stop.all(s)
+                "open" -> OPEN[arg]?.let { (action, _) -> s.startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
             }
         } catch (e: Exception) {
             // An app that's gone, or an input that's unplugged: the key just does nothing.
@@ -119,6 +127,7 @@ object Remap {
             "media" -> MEDIA[arg]?.let { c.getString(it.second) } ?: arg
             "sys" -> SYS[arg]?.let { c.getString(it.second) } ?: arg
             "stop" -> c.getString(R.string.stop_now)
+            "open" -> OPEN[arg]?.let { c.getString(it.second) } ?: arg
             else -> action
         }
     }

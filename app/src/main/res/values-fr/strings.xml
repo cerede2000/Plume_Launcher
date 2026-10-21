@@ -226,4 +226,6 @@
     <string name="freed_result">%1$d applis arrêtées · %2$d Mo libérés</string>
     <string name="freed_none">Rien à arrêter</string>
     <string name="stop_needs_service">Désactivez puis réactivez « Plume : bouton Accueil » dans les paramètres d\'accessibilité, puis réessayez</string>
+    <string name="act_settings">Paramètres Android</string>
+    <string name="act_network">Paramètres réseau</string>
 </resources>
