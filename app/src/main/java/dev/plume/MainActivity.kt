@@ -1505,7 +1505,10 @@ class MainActivity : Activity() {
             val name = label(title, 14f).apply { if (dark) setTextColor(DARK_TEXT_2) }
             addView(name, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
             val shown = if (value == TOGGLE_ON || value == TOGGLE_OFF) null else label(value, 13f).apply { secondary(0.6f) }
-            if (shown == null) addView(switch(value == TOGGLE_ON), LinearLayout.LayoutParams(dp(36), dp(20))) else addView(shown)
+            if (shown == null) addView(switch(value == TOGGLE_ON), LinearLayout.LayoutParams(dp(36), dp(20)))
+            else addView(shown, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                if (value.isNotEmpty()) marginStart = dp(16) // room between a long title and its value
+            })
             setOnClickListener { action() }
             setOnFocusChangeListener { _, focused ->
                 // Focus: a lit rimCard in dark (and the title brightens), a white pill in light.
@@ -2170,7 +2173,7 @@ class MainActivity : Activity() {
     private fun showSources(anchor: View) {
         if (sources.isEmpty()) return
         popupMenu(anchor, below = true) { dismiss ->
-            sources.map { src ->
+            sources.sortedBy { it.label.lowercase() }.map { src ->
                 settingsRow(src.label, if (src.offline) getString(R.string.no_signal) else "") { dismiss(); launch(src) }.also { row ->
                     (row as LinearLayout).addView(ImageView(this).apply {
                         setImageDrawable(src.icon)
