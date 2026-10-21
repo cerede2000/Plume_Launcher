@@ -710,14 +710,17 @@ class MainActivity : Activity() {
         }
         val fallback = defaultWallpaper(dark)
         io.execute {
+            var shown = choice
             val bmp = try {
                 decodeWallpaper(choice)
             } catch (e: Exception) {
                 null
             } catch (e: OutOfMemoryError) { // a 4K picture on a TV short of memory: show the default instead of crashing
                 null
-            } ?: decodeWallpaper(fallback)
+            } ?: decodeWallpaper(fallback).also { shown = fallback }
+            val tail = BUNDLED_TAILS[shown.removePrefix("res:")] ?: 0 // what shows under a bundled wallpaper kept to its top 70%
             ui.post {
+                view.setBackgroundColor(tail)
                 val old = view.drawable
                 if (old == null || bmp == null) return@post view.setImageBitmap(bmp)
                 // Soft change from one photo to the next; then drop the old one so only one stays in memory.
@@ -755,11 +758,9 @@ class MainActivity : Activity() {
         // Same fade as the bundled ones: clear above 28% height, into the background colour by 50%.
         val h = bmp.height.toFloat()
         val base = ground and 0x00FFFFFF
-        // Clear above 28%, 90% background by 50%, all background by 66%: below that there is nothing left to show.
         if (wallpaperFade()) Canvas(bmp).drawRect(0f, 0f, bmp.width.toFloat(), h, Paint().apply {
             isDither = true
-            shader = LinearGradient(0f, h * 0.28f, 0f, h * 0.66f, intArrayOf(base, base or 0xE6000000.toInt(), base or 0xFF000000.toInt()),
-                floatArrayOf(0f, 0.58f, 1f), Shader.TileMode.CLAMP)
+            shader = LinearGradient(0f, h * 0.28f, 0f, h * 0.5f, base, base or 0xE6000000.toInt(), Shader.TileMode.CLAMP)
         })
         // Photos rarely have the bundled ones' empty sky: a soft veil behind the clock and top-bar icons keeps them readable.
         // Strong over the clock and icons (top ~20%), gone by 30% so the photo still shows above the apps.
@@ -768,9 +769,6 @@ class MainActivity : Activity() {
             shader = LinearGradient(0f, 0f, 0f, h * 0.3f, intArrayOf(base or 0xC0000000.toInt(), base or 0xA0000000.toInt(), base),
                 floatArrayOf(0f, 0.6f, 1f), Shader.TileMode.CLAMP)
         })
-        // The rest is the background colour, which the view shows by itself: keep the top 70%, 30% less memory. The
-        // bundled wallpapers are stored that way. Without the fade there is no such end to cut at, so it all stays.
-        if (wallpaperFade()) return Bitmap.createBitmap(bmp, 0, 0, bmp.width, (h * 0.7f).toInt()).also { bmp.recycle() }
         return bmp
     }
 
@@ -3138,6 +3136,8 @@ class MainActivity : Activity() {
             "Rockies (day)" to R.string.wp_rockies_day, "Rockies (dusk)" to R.string.wp_rockies_dusk,
             "Pure black" to R.string.wp_pure_black, "Soft white" to R.string.wp_soft_white,
         )
+        /** The colour each bundled wallpaper ends in. They are kept to the top 70% (a flat colour is all that's below). */
+        val BUNDLED_TAILS = mapOf("Rockies (day)" to 0xFFEFF2F3.toInt(), "Rockies (dusk)" to 0xFF0E1013.toInt())
         val BUNDLED_WALLPAPERS = linkedMapOf(
             "Rockies (day)" to R.drawable.wallpaper,
             "Rockies (dusk)" to R.drawable.wallpaper_dark,
