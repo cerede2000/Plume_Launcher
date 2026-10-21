@@ -229,4 +229,6 @@
     <string name="stop_needs_service">Désactivez puis réactivez « Plume : bouton Accueil » dans les paramètres d\'accessibilité, puis réessayez</string>
     <string name="act_settings">Paramètres Android</string>
     <string name="act_network">Paramètres réseau</string>
+    <string name="sources">Sources</string>
+    <string name="no_signal">Pas de signal</string>
 </resources>

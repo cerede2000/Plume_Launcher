@@ -164,9 +164,8 @@ internal fun hdmiIcon(name: String, named: Boolean): String {
 /** Soundbars and AV receivers name themselves over CEC too, but there's nothing to switch to. */
 internal fun isAudioDevice(name: String) = name.lowercase().let { n -> AUDIO_WORDS.any { it in n } }
 
-/** A plain HDMI port (no CEC name) is in the home row only while it has a signal, unless it was pinned by hand. */
-internal fun inRow(pkg: String, offline: Boolean, hidden: Set<String>, pinned: Set<String>) =
-    pkg !in hidden && (!offline || pkg in pinned)
+/** An app is in the home row unless it was taken out; it stays in All apps either way. */
+internal fun inRow(pkg: String, hidden: Set<String>) = pkg !in hidden
 
 /** Allowed to start an activity from the background because the Home button service is bound. */
 class Updated : BroadcastReceiver() {
@@ -177,7 +176,7 @@ class Updated : BroadcastReceiver() {
 
 class MainActivity : Activity() {
 
-    /** [offline]: an HDMI port with no signal right now (see inRow). */
+    /** [offline]: an HDMI port with no signal right now (the Sources list says so). */
     private class App(val pkg: String, val label: String, val launch: Intent, val icon: Drawable, val offline: Boolean = false)
     private class Prog(val title: String, val sub: String, val progress: Int, val image: String?, val intent: String?, val pkg: String?)
 
@@ -199,6 +198,7 @@ class MainActivity : Activity() {
 
     // Kept across activity rebuilds (theme switch), so the new home screen shows its apps at once.
     private var apps = APPS ?: emptyList()
+    private var sources = SOURCES ?: emptyList() // HDMI ports and the devices on them: the Sources list, not the apps
     private var appsDirty = APPS == null
     private var watchKey: String? = null
     private var cardSources: List<CardSource> = listOf(CardSource("cw", "", null)) // what the card row can show, see refreshWatchNext
@@ -270,12 +270,14 @@ class MainActivity : Activity() {
         topSpacer = findViewById(R.id.topSpacer)
         allAppsGrid = findViewById(R.id.allAppsGrid)
         wifi = findViewById(R.id.wifi)
+        findViewById<View>(R.id.sourcesButton).visibility = if (sources.isEmpty()) View.GONE else View.VISIBLE
         applyTheme()
         loadWallpaper()
 
-        // Top bar: network, All apps, Android settings, launcher settings. Round, lit on focus.
+        // Top bar: network, Sources, All apps, Android settings, launcher settings. Round, lit on focus.
         for ((id, action) in listOf<Pair<Int, () -> Unit>>(
             R.id.wifi to { openSettings(Settings.ACTION_WIFI_SETTINGS) },
+            R.id.sourcesButton to { showSources(findViewById(R.id.sourcesButton)) },
             R.id.allAppsButton to { openAllApps() },
             R.id.systemSettings to { openSettings(Settings.ACTION_SETTINGS) },
             R.id.launcherSettings to { unlock { openLauncherSettings() } },
@@ -940,7 +942,7 @@ class MainActivity : Activity() {
     }
 
     private fun pickApp(id: String, hold: Boolean, now: String) {
-        showPage(getString(R.string.key_open_app), sortedApps().map { a -> // HDMI ports count with or without a signal
+        showPage(getString(R.string.key_open_app), (sortedApps() + sources).map { a -> // HDMI ports count with or without a signal
             val action = if (a.pkg.startsWith(HDMI)) "hdmi:" + a.pkg.removePrefix(HDMI) else "app:" + a.pkg
             page(a.label, if (action == now) CHOSEN else "") { setAction(id, hold, action) }
         }) { pickAction(id, hold) }
@@ -1567,9 +1569,13 @@ class MainActivity : Activity() {
             } catch (e: Exception) {
                 return@execute
             }
+            val inputs = hdmiInputs()
             ui.post {
                 apps = list
                 APPS = list
+                sources = inputs
+                SOURCES = inputs
+                findViewById<View>(R.id.sourcesButton).visibility = if (inputs.isEmpty()) View.GONE else View.VISIBLE
                 renderApps()
             }
         }
@@ -1589,13 +1595,13 @@ class MainActivity : Activity() {
                         .setComponent(ComponentName(a.packageName, a.name)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                     a.loadIcon(pm),
                 )
-            } + hdmiInputs()
+            }
     }
 
     /**
-     * One tile per HDMI port, keyed by the port's input id. A device that names itself over CEC (the PS5 shows up
-     * as "PlayStation 5") takes over its port's tile; it's listed while asleep too, and opening the tile wakes it.
-     * A port without one is a tile named as in TV settings ("HDMI 2"), in the row only while it has a signal.
+     * One entry per HDMI port, keyed by the port's input id. A device that names itself over CEC (the PS5 shows up
+     * as "PlayStation 5") takes over its port's entry; it's listed while asleep too, and opening it wakes it.
+     * A port without one is named as in TV settings ("HDMI 2") and says so when it has no signal.
      */
     private fun hdmiInputs(): List<App> = try {
         val tv = getSystemService(TvInputManager::class.java)
@@ -1625,9 +1631,6 @@ class MainActivity : Activity() {
         override fun onInputStateChanged(id: String, state: Int) = refreshApps()
     }
 
-    /** HDMI ports pinned to the row by hand: shown with or without a signal (some TVs never report one). */
-    private fun pinnedInputs() = prefs.getStringSet("inputs_pinned", emptySet())!!
-
     private fun sortedApps(): List<App> {
         // Streaming apps first by default, then alphabetical; manual order or usage overrides.
         val byDefault = compareBy<App> { DEFAULT_ORDER.indexOf(it.pkg).let { i -> if (i < 0) Int.MAX_VALUE else i } }
@@ -1636,10 +1639,7 @@ class MainActivity : Activity() {
             return apps.sortedWith(compareByDescending<App> { prefs.getInt("n_" + it.pkg, 0) }.then(byDefault))
         }
         val order = prefs.getString("order", "")!!.split(',')
-        // A console not yet placed by hand goes first, so it's visible without scrolling.
-        return apps.sortedWith(compareBy<App> {
-            order.indexOf(it.pkg).let { i -> if (i >= 0) i else if (it.pkg.startsWith(HDMI)) -1 else Int.MAX_VALUE }
-        }.then(byDefault))
+        return apps.sortedWith(compareBy<App> { order.indexOf(it.pkg).let { i -> if (i >= 0) i else Int.MAX_VALUE } }.then(byDefault))
     }
 
     /**
@@ -1683,8 +1683,7 @@ class MainActivity : Activity() {
         if (moreFocused) moreTile?.requestFocus()
         appRow.removeAllViews()
         val hidden = rowHiddenSet()
-        val pinned = pinnedInputs()
-        val tiles = sortedApps().filter { inRow(it.pkg, it.offline, hidden, pinned) }.map { appTile(it, labeled = false) }
+        val tiles = sortedApps().filter { inRow(it.pkg, hidden) }.map { appTile(it, labeled = false) }
         if (tiles.isEmpty()) return showNames()
         tiles.forEachIndexed { i, t ->
             t.id = View.generateViewId()
@@ -1723,7 +1722,6 @@ class MainActivity : Activity() {
      * tile, or it would be upscaled and soft (4K); null then, and the tile shows the app's mark as usual.
      */
     private fun bannerTile(a: App): View? {
-        if (a.pkg.startsWith(HDMI)) return null
         val banner = try {
             packageManager.getActivityBanner(a.launch)
         } catch (e: Exception) {
@@ -1762,8 +1760,6 @@ class MainActivity : Activity() {
         val colour = colourIcons()
         val t = when {
             custom != null -> tile(name, custom, false, a.pkg) { launch(a) }
-            a.pkg.startsWith(HDMI) -> tile(name, a.icon, true, a.pkg,
-                tint = BRAND_COLOURS[hdmiIcon(a.label, true)]?.takeIf { colour }) { launch(a) }
             logo != null -> tile(name.takeIf { !logo.second }, getDrawable(logo.first)!!, true, a.pkg,
                 wordmarkInset = if (!logo.second) null else dp(if (labeled) 28 else 14),
                 tint = BRAND_COLOURS[a.pkg]?.takeIf { colour }) { launch(a) }
@@ -2083,17 +2079,15 @@ class MainActivity : Activity() {
             getString(R.string.open) to { v.performClick(); Unit },
             getString(R.string.unlock_to_edit) to { unlock { v.requestFocus(); drawerMenu(v) } },
         ))
-        holdMenu(v, listOfNotNull(
+        holdMenu(v, listOf(
             getString(R.string.move) to { startEdit(grab = v, once = true, box = allAppsGrid) },
             getString(R.string.add_to_row) to { // it leaves this list and joins the row
                 val at = allAppsGrid.indexOfChild(v)
-                val edit = prefs.edit().putStringSet("row_hidden", rowHiddenSet() - pkg)
-                if (pkg.startsWith(HDMI)) edit.putStringSet("inputs_pinned", pinnedInputs() + pkg)
-                edit.apply()
+                prefs.edit().putStringSet("row_hidden", rowHiddenSet() - pkg).apply()
                 renderApps()
-                if (apps.all { inRow(it.pkg, it.offline, rowHiddenSet(), pinnedInputs()) }) closeAllApps() else fillDrawer(at)
+                if (apps.all { inRow(it.pkg, rowHiddenSet()) }) closeAllApps() else fillDrawer(at)
             },
-            if (pkg.startsWith(HDMI)) null else getString(R.string.app_info) to {
+            getString(R.string.app_info) to {
                 openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null))
             },
         ))
@@ -2106,20 +2100,17 @@ class MainActivity : Activity() {
             getString(R.string.open) to { v.performClick(); Unit },
             getString(R.string.unlock_to_edit) to { unlock { v.requestFocus(); appMenu(v) } },
         ))
-        holdMenu(v, listOfNotNull(
+        holdMenu(v, listOf(
             getString(R.string.move) to { startEdit(grab = v, once = true) },
             getString(R.string.remove_from_row) to {
                 val i = appRow.indexOfChild(v)
-                // A port with no signal just unpins: hiding it would keep out whatever gets plugged in there later.
-                val offline = apps.any { it.pkg == pkg && it.offline }
-                prefs.edit().putStringSet("row_hidden", if (offline) rowHiddenSet() else rowHiddenSet() + pkg)
-                    .putStringSet("inputs_pinned", pinnedInputs() - pkg).apply()
+                prefs.edit().putStringSet("row_hidden", rowHiddenSet() + pkg).apply()
                 renderApps()
                 if (allApps.visibility == View.VISIBLE) fillDrawer(allAppsGrid.childCount)
                 appRow.getChildAt(minOf(i, appRow.childCount - 1))?.requestFocus()
                 Toast.makeText(this, getString(R.string.removed_from_row), Toast.LENGTH_SHORT).show()
             },
-            if (pkg.startsWith(HDMI)) null else getString(R.string.app_info) to {
+            getString(R.string.app_info) to {
                 openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null))
             },
         ))
@@ -2140,8 +2131,8 @@ class MainActivity : Activity() {
         ))
     }
 
-    /** A small Plume-styled menu just above [anchor]; Back closes it. */
-    private fun holdMenu(anchor: View, items: List<Pair<String, () -> Unit>>) {
+    /** A small Plume-styled menu just above [anchor] (under it when [below]); Back closes it. [rows] builds its rows. */
+    private fun popupMenu(anchor: View, below: Boolean = false, rows: (dismiss: () -> Unit) -> List<View>) {
         val list = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(6), dp(6), dp(6), dp(6))
@@ -2152,11 +2143,11 @@ class MainActivity : Activity() {
             elevation = if (dark) 0f else dp(8).toFloat()
         }
         val menu = PopupWindow(list, LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT, true)
-        items.forEachIndexed { i, (name, action) ->
-            list.addView(settingsRow(name, "") { menu.dismiss(); action() }, LinearLayout.LayoutParams(MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+        rows { menu.dismiss() }.forEachIndexed { i, row ->
+            list.addView(row, LinearLayout.LayoutParams(MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
                 if (i > 0) topMargin = dp(2)
             })
-            list.getChildAt(i).minimumHeight = dp(40)
+            row.minimumHeight = dp(40)
         }
         // As wide as the longest item, never narrower than the tile or card it opens from.
         // A very long translation wraps onto two lines instead of stretching across the screen.
@@ -2167,8 +2158,27 @@ class MainActivity : Activity() {
         menu.elevation = if (dark) 0f else dp(8).toFloat()
         // Over the anchor's left edge, but kept inside the row's 48 dp side margin near the right of the screen.
         val x = minOf(at[0], resources.displayMetrics.widthPixels - dp(48) - menu.width)
-        menu.showAtLocation(anchor, Gravity.NO_GRAVITY, x, maxOf(dp(8), at[1] - list.measuredHeight - dp(8)))
+        val y = if (below) at[1] + anchor.height + dp(8) else maxOf(dp(8), at[1] - list.measuredHeight - dp(8))
+        menu.showAtLocation(anchor, Gravity.NO_GRAVITY, x, y)
         list.getChildAt(0).requestFocus()
+    }
+
+    private fun holdMenu(anchor: View, items: List<Pair<String, () -> Unit>>) =
+        popupMenu(anchor) { dismiss -> items.map { (name, action) -> settingsRow(name, "") { dismiss(); action() } } }
+
+    /** The TV's inputs under the Sources icon, as on any TV: the logo of what is plugged in, its name, no signal if none. */
+    private fun showSources(anchor: View) {
+        if (sources.isEmpty()) return
+        popupMenu(anchor, below = true) { dismiss ->
+            sources.map { src ->
+                settingsRow(src.label, if (src.offline) getString(R.string.no_signal) else "") { dismiss(); launch(src) }.also { row ->
+                    (row as LinearLayout).addView(ImageView(this).apply {
+                        setImageDrawable(src.icon)
+                        setColorFilter(if (dark) DARK_TEXT_2 else fg)
+                    }, 0, LinearLayout.LayoutParams(dp(20), dp(20)).apply { marginEnd = dp(12) })
+                }
+            }
+        }
     }
 
     private fun appTileCount() = appRow.childCount
@@ -2258,9 +2268,7 @@ class MainActivity : Activity() {
     private fun rowHiddenSet() = prefs.getStringSet("row_hidden", emptySet())!!
 
     private fun pickRowApps() {
-        // An HDMI port without a signal can't show in the row, so it's pinned from All apps instead.
-        val list = sortedApps().filter { !it.offline || it.pkg in pinnedInputs() }
-        toggles(getString(R.string.apps_in_row), list.map { it.label to it.pkg }, "row_hidden", getString(R.string.shown), getString(R.string.hidden)) {
+        toggles(getString(R.string.apps_in_row), sortedApps().map { it.label to it.pkg }, "row_hidden", getString(R.string.shown), getString(R.string.hidden)) {
             renderApps()
             renderSettings(R.string.apps_in_row)
         }
@@ -2305,8 +2313,7 @@ class MainActivity : Activity() {
         val gap = dp(GRID_GAP)
         val width = rowTileWidth()
         val hidden = rowHiddenSet()
-        val pinned = pinnedInputs()
-        val others = sortedApps().filter { !inRow(it.pkg, it.offline, hidden, pinned) }
+        val others = sortedApps().filter { !inRow(it.pkg, hidden) }
         for ((n, a) in others.withIndex()) {
             allAppsGrid.addView(appTile(a), GridLayout.LayoutParams().apply { // holding OK here opens the menu (see onHold)
                 this.width = width
@@ -2319,8 +2326,7 @@ class MainActivity : Activity() {
 
     private fun openAllApps(from: View? = null) {
         val hidden = rowHiddenSet()
-        val pinned = pinnedInputs()
-        if (apps.all { inRow(it.pkg, it.offline, hidden, pinned) }) {
+        if (apps.all { inRow(it.pkg, hidden) }) {
             Toast.makeText(this, getString(R.string.all_in_row), Toast.LENGTH_SHORT).show()
             return
         }
@@ -3395,6 +3401,7 @@ class MainActivity : Activity() {
         val GREYSCALE = ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(0f) })
         val DECELERATE = android.view.animation.DecelerateInterpolator(1.5f)
         @Volatile var APPS: List<App>? = null
+        @Volatile var SOURCES: List<App>? = null
         /** Mono marks made by glyph(), by package; null = icon has no usable symbol. Main thread only. */
         val GLYPHS = HashMap<String, Bitmap?>()
         /** accent() colours by package; null = no clear colour. Main thread only. */
