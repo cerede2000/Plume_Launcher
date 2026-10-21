@@ -1593,7 +1593,9 @@ class MainActivity : Activity() {
     private fun renderApps() {
         val focusedTag = currentFocus?.tag
         // Rebuilds can happen in the background (an app or HDMI device added); only take focus if the row had it.
-        val takeFocus = currentFocus == null || currentFocus?.parent === appRow
+        // First fill after a cold start: Android already gave the default focus to the top bar's first icon.
+        val firstFill = appRow.childCount == 0 && currentFocus?.parent === wifi.parent
+        val takeFocus = currentFocus == null || currentFocus?.parent === appRow || firstFill
         val gap = dp(GRID_GAP)
         val width = rowTileWidth()
         val tileH = if (iconStyle() == "banner") width * 9 / 16 else dp(76) // 16:9 like a banner
