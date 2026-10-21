@@ -229,4 +229,8 @@
     <string name="act_network">Network settings</string>
     <string name="sources">Sources</string>
     <string name="no_signal">No signal</string>
+    <string name="in_row">In the row</string>
+    <string name="input_added">Added to the row.</string>
+    <string name="input_removed">Removed from the row.</string>
+    <string name="sources_hint">Hold OK on an input to add it to the row or take it out.</string>
 </resources>

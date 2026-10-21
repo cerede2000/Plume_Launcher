@@ -231,4 +231,8 @@
     <string name="act_network">Paramètres réseau</string>
     <string name="sources">Sources</string>
     <string name="no_signal">Pas de signal</string>
+    <string name="in_row">Dans la ligne</string>
+    <string name="input_added">Ajoutée à la ligne.</string>
+    <string name="input_removed">Retirée de la ligne.</string>
+    <string name="sources_hint">Maintenez OK sur une entrée pour l\'ajouter à la ligne ou l\'en retirer.</string>
 </resources>

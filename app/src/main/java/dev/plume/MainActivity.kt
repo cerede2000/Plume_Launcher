@@ -942,7 +942,7 @@ class MainActivity : Activity() {
     }
 
     private fun pickApp(id: String, hold: Boolean, now: String) {
-        showPage(getString(R.string.key_open_app), (sortedApps() + sources).map { a -> // HDMI ports count with or without a signal
+        showPage(getString(R.string.key_open_app), (sortedApps() + sources).distinctBy { it.pkg }.map { a -> // HDMI ports count with or without a signal
             val action = if (a.pkg.startsWith(HDMI)) "hdmi:" + a.pkg.removePrefix(HDMI) else "app:" + a.pkg
             page(a.label, if (action == now) CHOSEN else "") { setAction(id, hold, action) }
         }) { pickAction(id, hold) }
@@ -1634,15 +1634,32 @@ class MainActivity : Activity() {
         override fun onInputStateChanged(id: String, state: Int) = refreshApps()
     }
 
+    /** HDMI inputs pinned to the home row by hand (hold OK in the Sources list): shown with or without a signal. */
+    private fun pinnedInputs() = prefs.getStringSet("inputs_pinned", emptySet())!!
+
+    /** The apps, and the inputs pinned to the row: the entries the row and All apps are made of. */
+    private fun listed(): List<App> = apps + sources.filter { it.pkg in pinnedInputs() }
+
+    private fun togglePin(src: App) {
+        val pinned = pinnedInputs()
+        val on = src.pkg !in pinned
+        prefs.edit().putStringSet("inputs_pinned", if (on) pinned + src.pkg else pinned - src.pkg).apply()
+        renderApps()
+        Toast.makeText(this, getString(if (on) R.string.input_added else R.string.input_removed), Toast.LENGTH_SHORT).show()
+    }
+
     private fun sortedApps(): List<App> {
         // Streaming apps first by default, then alphabetical; manual order or usage overrides.
         val byDefault = compareBy<App> { DEFAULT_ORDER.indexOf(it.pkg).let { i -> if (i < 0) Int.MAX_VALUE else i } }
             .thenBy { it.label.lowercase() }
         if (prefs.getString("sort", "manual") == "usage") {
-            return apps.sortedWith(compareByDescending<App> { prefs.getInt("n_" + it.pkg, 0) }.then(byDefault))
+            return listed().sortedWith(compareByDescending<App> { prefs.getInt("n_" + it.pkg, 0) }.then(byDefault))
         }
         val order = prefs.getString("order", "")!!.split(',')
-        return apps.sortedWith(compareBy<App> { order.indexOf(it.pkg).let { i -> if (i >= 0) i else Int.MAX_VALUE } }.then(byDefault))
+        // An input just pinned goes first, so it is visible without scrolling.
+        return listed().sortedWith(compareBy<App> {
+            order.indexOf(it.pkg).let { i -> if (i >= 0) i else if (it.pkg.startsWith(HDMI)) -1 else Int.MAX_VALUE }
+        }.then(byDefault))
     }
 
     /**
@@ -1725,6 +1742,7 @@ class MainActivity : Activity() {
      * tile, or it would be upscaled and soft (4K); null then, and the tile shows the app's mark as usual.
      */
     private fun bannerTile(a: App): View? {
+        if (a.pkg.startsWith(HDMI)) return null
         val banner = try {
             packageManager.getActivityBanner(a.launch)
         } catch (e: Exception) {
@@ -1763,6 +1781,8 @@ class MainActivity : Activity() {
         val colour = colourIcons()
         val t = when {
             custom != null -> tile(name, custom, false, a.pkg) { launch(a) }
+            a.pkg.startsWith(HDMI) -> tile(name, a.icon, true, a.pkg,
+                tint = BRAND_COLOURS[hdmiIcon(a.label, true)]?.takeIf { colour }) { launch(a) }
             logo != null -> tile(name.takeIf { !logo.second }, getDrawable(logo.first)!!, true, a.pkg,
                 wordmarkInset = if (!logo.second) null else dp(if (labeled) 28 else 14),
                 tint = BRAND_COLOURS[a.pkg]?.takeIf { colour }) { launch(a) }
@@ -2103,17 +2123,19 @@ class MainActivity : Activity() {
             getString(R.string.open) to { v.performClick(); Unit },
             getString(R.string.unlock_to_edit) to { unlock { v.requestFocus(); appMenu(v) } },
         ))
-        holdMenu(v, listOf(
+        holdMenu(v, listOfNotNull(
             getString(R.string.move) to { startEdit(grab = v, once = true) },
             getString(R.string.remove_from_row) to {
                 val i = appRow.indexOfChild(v)
-                prefs.edit().putStringSet("row_hidden", rowHiddenSet() + pkg).apply()
+                // An input just unpins: it is in the Sources list anyway, so there is nothing to hide.
+                if (pkg.startsWith(HDMI)) prefs.edit().putStringSet("inputs_pinned", pinnedInputs() - pkg).apply()
+                else prefs.edit().putStringSet("row_hidden", rowHiddenSet() + pkg).apply()
                 renderApps()
                 if (allApps.visibility == View.VISIBLE) fillDrawer(allAppsGrid.childCount)
                 appRow.getChildAt(minOf(i, appRow.childCount - 1))?.requestFocus()
                 Toast.makeText(this, getString(R.string.removed_from_row), Toast.LENGTH_SHORT).show()
             },
-            getString(R.string.app_info) to {
+            if (pkg.startsWith(HDMI)) null else getString(R.string.app_info) to {
                 openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null))
             },
         ))
@@ -2173,13 +2195,22 @@ class MainActivity : Activity() {
     private fun showSources(anchor: View) {
         if (sources.isEmpty()) return
         popupMenu(anchor, below = true) { dismiss ->
+            val pinned = pinnedInputs()
             sources.sortedBy { it.label.lowercase() }.map { src ->
-                settingsRow(src.label, if (src.offline) getString(R.string.no_signal) else "") { dismiss(); launch(src) }.also { row ->
+                val state = listOfNotNull(
+                    if (src.offline) getString(R.string.no_signal) else null,
+                    if (src.pkg in pinned) getString(R.string.in_row) else null,
+                ).joinToString(" · ")
+                settingsRow(src.label, state) { dismiss(); launch(src) }.also { row ->
                     (row as LinearLayout).addView(ImageView(this).apply {
                         setImageDrawable(src.icon)
                         setColorFilter(if (dark) DARK_TEXT_2 else fg)
                     }, 0, LinearLayout.LayoutParams(dp(20), dp(20)).apply { marginEnd = dp(12) })
+                    row.setOnLongClickListener { dismiss(); unlock { togglePin(src) }; true } // hold OK: in or out of the home row
                 }
+            } + label(getString(R.string.sources_hint), 12f).apply {
+                secondary(0.6f)
+                setPadding(dp(14), dp(8), dp(14), dp(4))
             }
         }
     }
@@ -2271,7 +2302,7 @@ class MainActivity : Activity() {
     private fun rowHiddenSet() = prefs.getStringSet("row_hidden", emptySet())!!
 
     private fun pickRowApps() {
-        toggles(getString(R.string.apps_in_row), sortedApps().map { it.label to it.pkg }, "row_hidden", getString(R.string.shown), getString(R.string.hidden)) {
+        toggles(getString(R.string.apps_in_row), sortedApps().filter { !it.pkg.startsWith(HDMI) }.map { it.label to it.pkg }, "row_hidden", getString(R.string.shown), getString(R.string.hidden)) {
             renderApps()
             renderSettings(R.string.apps_in_row)
         }

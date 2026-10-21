@@ -26,7 +26,7 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 - The cards row can show one row for each channel. Select **Plume settings → Continue Watching → Cards row → One row per channel**. Push Down on a card to see the next channel. Push Up to go back.
 - You can use the Bing picture of the day as the wallpaper. Select **Plume settings → Appearance → Light mode wallpaper** or **Dark mode wallpaper**, then select **Bing picture of the day**. Plume gets a new picture once a day and keeps only one. On a 4K screen the picture is 4K. In dark mode, Plume makes the picture darker.
 - Continue Watching shows what you are watching before the next-episode suggestions. Some apps give the time in seconds. Plume now reads it correctly.
-- **Sources list.** Select the Sources icon in the top bar. A list of the TV inputs opens under it. Your PS5, Xbox or Nintendo Switch shows with its logo. A port with no signal says so.
+- **Sources list.** Select the Sources icon in the top bar. A list of the TV inputs opens under it. Your PS5, Xbox or Nintendo Switch shows with its logo. A port with no signal says so. Hold OK on an input to put it in the apps row.
 - **More Continue Watching.** The limit of 3 shows for each app is gone. Each app keeps 3 places at the front.
 - **What's new card.** After an update, a card shows the highlights. Select **See all changes** to read everything.
 
