@@ -208,4 +208,8 @@
     </plurals>
     <string name="bing_daily">Bing picture of the day</string>
     <string name="banner">Banner</string>
+    <string name="cards_mode">Cards row</string>
+    <string name="cards_one">One row</string>
+    <string name="channels_row">Channels</string>
+    <string name="no_channels">No channels found</string>
 </resources>

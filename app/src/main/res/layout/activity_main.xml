@@ -179,6 +179,13 @@
             </LinearLayout>
         </dev.plume.SnapScrollView>
 
+        <!-- Weight 0 normally; 1 when the cards row is hidden, so the apps row centres. -->
+        <View
+            android:id="@+id/cardsSpacer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0" />
+
         <TextView
             android:id="@+id/watchTitle"
             android:layout_width="wrap_content"
