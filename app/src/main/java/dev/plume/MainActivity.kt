@@ -2777,9 +2777,9 @@ class MainActivity : Activity() {
     /** The app's own icon cut round, for the details line when the icon style isn't monochrome. Tiny, kept per app. */
     private val roundIcons = HashMap<String, Bitmap>()
 
-    private fun roundIcon(pkg: String, shown: Int = dp(12)): Drawable? = try {
-        BitmapDrawable(resources, roundIcons.getOrPut("$pkg/$shown") {
-            val size = shown * 2 // drawn at twice the size it is shown at, so the edge stays smooth
+    private fun roundIcon(pkg: String, shown: Int = dp(12), scale: Int = 2): Drawable? = try {
+        BitmapDrawable(resources, roundIcons.getOrPut("$pkg/$shown/$scale") {
+            val size = shown * scale // twice the size it is shown at by default, so the edge stays smooth when scaled down
             val icon = packageManager.getApplicationIcon(pkg)
             Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also { bmp ->
                 val canvas = Canvas(bmp)
@@ -2914,7 +2914,7 @@ class MainActivity : Activity() {
             val img = ((watchRow.getChildAt(i) as? ViewGroup)?.getChildAt(0) as? ViewGroup)?.getChildAt(0) as? ImageView ?: continue
             if (i in center - 1..center + 4) {
                 if (img.drawable == null) loadPoster(img, img.tag as? String)
-            } else if (img.drawable != null) img.setImageDrawable(null)
+            } else if (img.drawable != null && img.tag !in noPoster) img.setImageDrawable(null) // a placeholder costs nothing to keep
         }
     }
 
@@ -2945,7 +2945,7 @@ class MainActivity : Activity() {
     private fun posterPlaceholder(v: ImageView, pkg: String?) {
         v.setBackgroundColor(if (dark) 0xFF1C1C1E.toInt() else 0xFFCDD2D8.toInt())
         v.scaleType = ImageView.ScaleType.CENTER
-        v.setImageDrawable(pkg?.let { roundIcon(it, dp(48)) })
+        v.setImageDrawable(pkg?.let { roundIcon(it, dp(40), 1) }) // shown as it is, centred
     }
 
     private fun loadPoster(v: ImageView, uri: String?) {
