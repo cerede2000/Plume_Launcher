@@ -1892,6 +1892,17 @@ class MainActivity : Activity() {
             return true
         }
         if (editing && editKey(e, confirm)) return true
+        // One row per channel: Down on a card shows the next channel's row, Up the one before (Up on the first goes to the apps).
+        if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0 && cardsMode() == "stack" && settingsScrim.visibility != View.VISIBLE &&
+            allApps.visibility != View.VISIBLE && currentFocus?.getTag(R.id.watchRow) is Prog &&
+            (e.keyCode == KeyEvent.KEYCODE_DPAD_DOWN || e.keyCode == KeyEvent.KEYCODE_DPAD_UP)
+        ) {
+            val d = if (e.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) 1 else -1
+            if (cardSources.indexOfFirst { it.key == cardCurrent.key } + d in cardSources.indices) {
+                cycleSource(d, page = true)
+                return true
+            }
+        }
         if (e.action == KeyEvent.ACTION_DOWN && settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE) {
             currentFocus?.let { homeNav(it, e.keyCode) }?.let { it.requestFocus(); return true }
         }
@@ -2599,12 +2610,21 @@ class MainActivity : Activity() {
             } catch (e: Exception) {
                 listOf(CardSource("cw", "", null))
             }
-            val current = sources.firstOrNull { it.key == prefs.getString("cards_src", "cw") } ?: sources[0]
-            val list = try {
-                if (current.channel == null) queryWatchNext() else queryChannel(current.channel)
+            fun fetch(s: CardSource) = try {
+                if (s.channel == null) queryWatchNext() else queryChannel(s.channel)
             } catch (e: Exception) {
                 emptyList()
             }
+            var at = sources.indexOfFirst { it.key == prefs.getString("cards_src", "cw") }.coerceAtLeast(0)
+            var list = fetch(sources[at])
+            if (cardsMode() == "stack") { // one row per channel: a channel with nothing in it is passed over
+                val step = if (pageDir < 0) -1 else 1
+                val from = sources.indexOfFirst { it.key == cardCurrent.key }
+                while (list.isEmpty() && at + step in sources.indices) list = fetch(sources[at + step].also { at += step })
+                if (list.isEmpty() && pageDir != 0 && from >= 0) list = fetch(sources[from].also { at = from }) // nothing further: stay
+                if (sources[at].key != prefs.getString("cards_src", "cw")) prefs.edit().putString("cards_src", sources[at].key).apply()
+            }
+            val current = sources[at]
             ui.post {
                 cardSources = sources
                 cardCurrent = current
@@ -2655,7 +2675,10 @@ class MainActivity : Activity() {
         readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), prefs.getStringSet("hidden_watch", emptySet())!!, "weight DESC")
             .map { it.second }.take(CHANNEL_CARDS).also { list -> publishingPkgs = publishingPkgs + list.mapNotNull { it.pkg } }
 
-    private fun cycleSource(d: Int) {
+    private var pageDir = 0 // set while a row is being swapped for the next one down (+1) or up (-1)
+
+    private fun cycleSource(d: Int, page: Boolean = false) {
+        pageDir = if (page) d else 0
         val keys = cardSources.map { it.key }
         prefs.edit().putString("cards_src", keys[((keys.indexOf(cardCurrent.key) + d) % keys.size + keys.size) % keys.size]).apply()
         watchKey = null
@@ -2663,7 +2686,13 @@ class MainActivity : Activity() {
     }
 
     private fun showCardTitle(focused: Boolean) {
-        watchTitle.text = if (focused && cardSources.size > 1) "‹  ${cardCurrent.title}  ›" else cardCurrent.title
+        val at = cardSources.indexOfFirst { it.key == cardCurrent.key }
+        watchTitle.text = when {
+            cardsMode() == "stack" && cardSources.size > 1 -> // arrows tell where the other rows are
+                cardCurrent.title + "  " + (if (at > 0) "↑" else "") + (if (at < cardSources.size - 1) "↓" else "")
+            focused && cardSources.size > 1 -> "‹  ${cardCurrent.title}  ›"
+            else -> cardCurrent.title
+        }
     }
 
     private fun pickChannels() {
@@ -2845,7 +2874,16 @@ class MainActivity : Activity() {
         watchTitle.visibility = visible
         watchScroll.visibility = visible
         showCardTitle(watchTitle.isFocused)
-        watchTitle.isFocusable = cardSources.size > 1
+        watchTitle.isFocusable = cardSources.size > 1 && cardsMode() == "one"
+        val dir = pageDir.also { pageDir = 0 }
+        if (dir != 0) for (v in arrayOf<View>(watchTitle, watchScroll)) { // the new row slides in from where it was reached
+            v.translationY = dir * dp(40).toFloat()
+            v.animate().translationY(0f).setDuration(220).start()
+        }
+        if (dir != 0) {
+            watchScroll.alpha = 0f
+            watchScroll.animate().alpha(1f).setDuration(220).start()
+        }
         // With no cards row at all the apps row sits in the middle of the space, not on the bottom of it.
         (findViewById<View>(R.id.cardsSpacer).layoutParams as LinearLayout.LayoutParams).weight = if (cardsMode() == "off") 1f else 0f
         findViewById<View>(R.id.cardsSpacer).requestLayout()
@@ -3146,7 +3184,7 @@ class MainActivity : Activity() {
         const val ROW_TILES = 8
         const val CHANNEL_CARDS = 30 // cards shown from one home channel
         /** The cards row setting -> its name. */
-        val CARDS_MODES = linkedMapOf("one" to R.string.cards_one, "off" to R.string.hidden)
+        val CARDS_MODES = linkedMapOf("one" to R.string.cards_one, "stack" to R.string.cards_stack, "off" to R.string.hidden)
         /** Icon style setting -> its name. */
         val ICON_STYLES = linkedMapOf("mono" to R.string.monochrome, "colour" to R.string.colour, "banner" to R.string.banner)
         const val GRID_GAP = 16 // dp; shared by the apps row and the cards so their columns line up

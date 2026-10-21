@@ -210,6 +210,7 @@
     <string name="banner">Banner</string>
     <string name="cards_mode">Cards row</string>
     <string name="cards_one">One row</string>
+    <string name="cards_stack">One row per channel</string>
     <string name="channels_row">Channels</string>
     <string name="no_channels">No channels found</string>
 </resources>

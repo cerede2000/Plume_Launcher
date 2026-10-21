@@ -212,6 +212,7 @@
     <string name="banner">Bannière</string>
     <string name="cards_mode">Rangée de cartes</string>
     <string name="cards_one">Une rangée</string>
+    <string name="cards_stack">Une rangée par chaîne</string>
     <string name="channels_row">Chaînes</string>
     <string name="no_channels">Aucune chaîne trouvée</string>
 </resources>
