@@ -37,6 +37,7 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 - Plume shows in the app list on Xiaomi TVs. It also shows in other launchers that show only phone apps.
 - **App animations.** An app opens out of the tile you press, and the row settles when you come back. It works for the app tiles, for Continue watching and for **All apps**. To turn it off, select **Plume settings → Wallpaper & theme → App animations**.
 - **Home returns to your app.** Press Home in an app. The home screen shows the tile of that app in focus, not the first tile. Press Home on the home screen to go back to the first tile.
+- **Memory.** Plume can end other apps to free memory. Plume ends the Google TV home screen each time it starts. Select **Plume settings → Memory** to turn that off, to pick more apps, or to stop the running apps now. A key on the remote can do the same: select **Plume settings → Remote & Home button → Remote keys**. A black screen shows the progress and the memory freed while Plume taps Force stop in Settings for each app.
 
 ## 1.5
 

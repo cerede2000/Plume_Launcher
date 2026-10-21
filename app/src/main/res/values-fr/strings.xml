@@ -1,5 +1,5 @@
 <resources>
-    <string name="override_desc">Ouvre Plume dès que l\'écran d\'accueil Google TV apparaît, pour que le bouton Accueil arrive ici.</string>
+    <string name="override_desc">Ouvre Plume dès que l\'écran d\'accueil Google TV apparaît, pour que le bouton Accueil arrive ici. Appuie aussi sur Forcer l\'arrêt dans les paramètres, derrière un écran, quand vous demandez à Plume d\'arrêter des applis.</string>
     <string name="delete_photo">Supprimer « %1$s » ?</string>
     <string name="photo_added">« %1$s » ajoutée. Envoyez-en une autre ou appuyez sur Terminé.</string>
     <string name="n_of_m">%1$d sur %2$d</string>
@@ -240,4 +240,13 @@
     <string name="watch_next">À suivre (Android TV)</string>
     <string name="bottom_row">Rangée du bas</string>
     <string name="automatic">Automatique</string>
+    <string name="help_memory">Libérer la mémoire : arrêter les autres accueils, les applis choisies, ou toutes les applis en cours avec une touche.</string>
+    <string name="section_memory">Mémoire</string>
+    <string name="stop_homes">Arrêter les autres accueils</string>
+    <string name="stop_apps">Applis à arrêter</string>
+    <string name="stop_now">Arrêter les applis en cours</string>
+    <string name="freeing_memory">Libération de la mémoire…</string>
+    <string name="freed_result">%1$d applis arrêtées · %2$d Mo libérés</string>
+    <string name="freed_none">Rien à arrêter</string>
+    <string name="stop_needs_service">Désactivez puis réactivez « Plume : bouton Accueil » dans les paramètres d\'accessibilité, puis réessayez</string>
 </resources>

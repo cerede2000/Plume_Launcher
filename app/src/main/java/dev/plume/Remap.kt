@@ -13,7 +13,7 @@ import android.view.KeyEvent
 /**
  * Remote key remapping. Plume's Home key service already sees every key before any app does, so a key mapped
  * here is handled there: [Entry.short] runs on a press and [Entry.long] on a hold ("" when unset). An action is
- * "none" (swallow the key), "app:<package>", "hdmi:<input id>", "media:<name>", "sys:<name>" or "open:<place>" (Android's Settings).
+ * "none" (swallow the key), "app:<package>", "hdmi:<input id>", "media:<name>", "sys:<name>", "open:<place>" (Android's Settings) or "stop" (see [Stop]).
  * Kept in one preference string ("home"/"keymap", a line per key) and in memory only once a key is pressed.
  */
 object Remap {
@@ -118,6 +118,7 @@ object Remap {
                 }
                 "sys" -> SYS[arg]?.let { (code, _) -> s.performGlobalAction(code) }
                 "open" -> OPEN[arg]?.let { (action, _) -> s.startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                "stop" -> Stop.all(s)
             }
         } catch (e: Exception) {
             // An app that's gone, or an input that's unplugged: the key just does nothing.
@@ -150,6 +151,7 @@ object Remap {
             "media" -> MEDIA[arg]?.let { c.getString(it.second) } ?: arg
             "sys" -> SYS[arg]?.let { c.getString(it.second) } ?: arg
             "open" -> OPEN[arg]?.let { c.getString(it.second) } ?: arg
+            "stop" -> c.getString(R.string.stop_now)
             else -> action
         }
     }

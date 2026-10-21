@@ -400,6 +400,7 @@ class MainActivity : Activity() {
         // Only rebuild what changed, so focus stays where it was when returning from an app.
         if (appsDirty) refreshApps() else if (appRow.childCount == 0) renderApps()
         refreshWatchNext()
+        stopAtStart()
         showWeather()
         ui.removeCallbacks(weatherTick)
         ui.post(weatherTick)
@@ -1177,7 +1178,8 @@ class MainActivity : Activity() {
             },
         ) + Remap.MEDIA.map { (k, v) -> row("media:$k", getString(v.second)) } +
             Remap.SYS.map { (k, v) -> row("sys:$k", getString(v.second)) } +
-            Remap.OPEN.map { (k, v) -> row("open:$k", getString(v.second)) }
+            Remap.OPEN.map { (k, v) -> row("open:$k", getString(v.second)) } +
+            row("stop", getString(R.string.stop_now))
         showPage(getString(if (hold) R.string.key_long else R.string.key_short), rows) { keyPage(id, if (hold) 1 else 0) }
     }
 
@@ -1187,6 +1189,38 @@ class MainActivity : Activity() {
             val action = if (a.pkg.startsWith(HDMI)) "hdmi:" + a.pkg.removePrefix(HDMI) else "app:" + a.pkg
             page(a.label, if (action == now) CHOSEN else "") { setAction(id, hold, action) }
         }) { pickAction(id, hold) }
+    }
+
+    // ---------- memory: stop other apps (see Stop) ----------
+
+    private fun stopOn() = prefs.getStringSet("stop_on", emptySet())!!
+
+    /** The other home screens (on by default) and the apps picked in settings are ended when Plume starts, once per run. */
+    private fun stopHomes() = prefs.getBoolean("stop_homes", true)
+
+    private fun stopAtStart(tries: Int = 4) {
+        if (stopDone) return
+        val homes = stopHomes()
+        val picked = stopOn()
+        if (!homes && picked.isEmpty()) return
+        // The Home service binds a little after Plume at boot: ask again in a few seconds if it isn't there yet.
+        if (Stop.stop(this, (if (homes) Stop.homes(this) else emptyList()) + picked)) stopDone = true
+        else if (tries > 0) ui.postDelayed({ stopAtStart(tries - 1) }, 6_000L)
+    }
+
+    private fun pickStop(focus: Int = 0) {
+        val on = stopOn()
+        io.execute {
+            val list = Stop.candidates(this)
+            ui.post {
+                showPage(getString(R.string.stop_apps), list.mapIndexed { i, (name, pkg) ->
+                    page(name, getString(if (pkg in on) R.string.on else R.string.off)) {
+                        prefs.edit().putStringSet("stop_on", if (pkg in on) on - pkg else on + pkg).apply()
+                        pickStop(i)
+                    }
+                }, focus) { renderSettings(R.string.stop_apps) }
+            }
+        }
     }
 
     /** While the home screen shows, a folder wallpaper moves on to its next photo when its time is up. */
@@ -1532,6 +1566,15 @@ class MainActivity : Activity() {
                 notesUnseen() -> getString(R.string.whats_new_title, myVersion())
                 else -> getString(R.string.up_to_date_row, myVersion())
             }) { showUpdates() },
+            R.string.stop_homes to Triple(getString(R.string.stop_homes), toggle(stopHomes())) {
+                prefs.edit().putBoolean("stop_homes", !stopHomes()).apply()
+                renderSettings(R.string.stop_homes)
+            },
+            R.string.stop_apps to Triple(getString(R.string.stop_apps), stopOn().size.let { if (it == 0) getString(R.string.off) else "$it" }) { pickStop() },
+            R.string.stop_now to Triple(getString(R.string.stop_now), "") {
+                closeLauncherSettings()
+                if (!Stop.all(this)) Toast.makeText(this, getString(R.string.stop_needs_service), Toast.LENGTH_LONG).show()
+            },
             R.string.lock_layout to Triple(getString(R.string.lock_layout), toggle(lockOn())) {
                 if (!lockOn()) return@Triple setLock()
                 prefs.edit().remove("lock_pin").apply()
@@ -1568,6 +1611,7 @@ class MainActivity : Activity() {
             Triple(R.string.section_remote_home, on(homeServiceOn() || isDefaultHome()),
                 listOf(R.string.home_button, R.string.smooth_volume, R.string.default_launcher, R.string.setup_home, R.string.section_keys)),
             Triple(R.string.section_lock, on(lockOn()), listOf(R.string.lock_layout)),
+            Triple(R.string.section_memory, on(stopHomes() || stopOn().isNotEmpty()), listOf(R.string.stop_homes, R.string.stop_apps, R.string.stop_now)),
         )
         val section = sections.firstOrNull { at in it.third }
         if (section != null) {
@@ -4006,6 +4050,7 @@ class MainActivity : Activity() {
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
     private companion object {
+        var stopDone = false // the apps to end at start were handed over, for this run of Plume
         const val TV_LISTINGS = "android.permission.READ_TV_LISTINGS"
         const val WRITE_SECURE = "android.permission.WRITE_SECURE_SETTINGS"
         const val ROLE_REQUEST = 2
@@ -4028,14 +4073,14 @@ class MainActivity : Activity() {
             R.string.section_appearance to R.drawable.ic_wallpaper, R.string.section_clock_weather to R.drawable.ic_clock,
             R.string.section_app_row to R.drawable.ic_apps, R.string.bottom_row to R.drawable.ic_shows,
             R.string.section_screensaver to R.drawable.ic_screensaver, R.string.section_remote_home to R.drawable.ic_remote,
-            R.string.section_lock to R.drawable.ic_lock,
+            R.string.section_lock to R.drawable.ic_lock, R.string.section_memory to R.drawable.ic_memory,
         )
         /** The help line shown at the bottom of Plume settings while a row is selected. */
         val ROW_HELP = mapOf(
             R.string.section_appearance to R.string.help_appearance, R.string.section_clock_weather to R.string.help_clock_weather,
             R.string.section_app_row to R.string.help_apps_row, R.string.bottom_row to R.string.help_shows_row,
             R.string.section_screensaver to R.string.help_screensaver, R.string.section_remote_home to R.string.help_remote_home,
-            R.string.section_lock to R.string.help_lock,
+            R.string.section_lock to R.string.help_lock, R.string.section_memory to R.string.help_memory,
             R.string.fade_top to R.string.help_fade_top, R.string.fade_bottom to R.string.help_fade_bottom, R.string.weather_location to R.string.help_location,
             R.string.edit_apps_row to R.string.help_rearrange, R.string.apps_in_row to R.string.help_choose_apps,
             R.string.sort_apps to R.string.help_order, R.string.icon_style to R.string.help_icon_style,
