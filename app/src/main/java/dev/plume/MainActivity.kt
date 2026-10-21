@@ -181,7 +181,13 @@ class MainActivity : Activity() {
     private class App(val pkg: String, val label: String, val launch: Intent, val icon: Drawable, val offline: Boolean = false)
     private class Prog(val title: String, val sub: String, val progress: Int, val image: String?, val intent: String?, val pkg: String?)
 
-    private val prefs by lazy { getSharedPreferences("home", MODE_PRIVATE) }
+    private val prefs by lazy {
+        getSharedPreferences("home", MODE_PRIVATE).also { p ->
+            // The choice was "daily:bing" in builds before 1.4; the picture was in daily_bing.jpg.
+            for (k in arrayOf("wp_light", "wp_dark")) if (p.getString(k, null) == "daily:bing") p.edit().putString(k, Bing.CHOICE).apply()
+            File(filesDir, "daily_bing.jpg").delete()
+        }
+    }
     private val io = Executors.newSingleThreadExecutor()
     // Posters get their own threads: one slow image server must not hold up the rest (or the row data).
     private val posterIo = Executors.newFixedThreadPool(3)
@@ -333,8 +339,8 @@ class MainActivity : Activity() {
         // Gallery chosen but its paintings missing (updated from a version that bundled them): fetch them.
         if (galleryOn() && photoScreensaver() == null && !paintingsReady(this)) downloadPaintings {}
         checkUpdate(force = false)
-        DailyWallpaper.onChanged = dailyChanged
-        refreshDaily()
+        Bing.onChanged = bingChanged
+        Bing.refresh(applicationContext, prefs, resources.displayMetrics.widthPixels)
         ui.post { updateBadge() } // after layout, so the icon has its size
     }
 
@@ -381,7 +387,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
-        if (DailyWallpaper.onChanged === dailyChanged) DailyWallpaper.onChanged = null
+        if (Bing.onChanged === bingChanged) Bing.onChanged = null
         unregisterReceiver(packageReceiver)
         applicationContext.getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(net)
         getSystemService(TvInputManager::class.java)?.unregisterCallback(inputCallback)
@@ -718,7 +724,7 @@ class MainActivity : Activity() {
     private fun wallpaperChoices(forDark: Boolean): List<Pair<String, String>> =
         listOf(plainWallpaper(forDark).let { wallpaperName(it) to it }) +
             BUNDLED_WALLPAPERS.keys.map { wallpaperName("res:$it") to "res:$it" } +
-            DailyWallpaper.SOURCES.map { wallpaperName(it.choice) to it.choice } +
+            (wallpaperName(Bing.CHOICE) to Bing.CHOICE) +
             (wallpaperDir()?.listFiles { f -> f.extension.lowercase() in setOf("jpg", "jpeg", "png", "webp") }
                 ?.sortedBy { it.name }?.map { it.nameWithoutExtension to "file:${it.name}" } ?: emptyList()) +
             listOfNotNull(currentWallpaper(forDark).takeIf { it.startsWith("folder:") }?.let { wallpaperName(it) to it })
@@ -734,13 +740,10 @@ class MainActivity : Activity() {
     /** Fade your own photos into the background at the bottom. Bundled wallpapers have it baked in either way. */
     private fun wallpaperFade() = prefs.getBoolean("wp_fade", true)
 
-    private fun wallpaperName(choice: String): String {
-        val source = DailyWallpaper.sourceOf(choice)
-        return when {
-            source != null -> getString(source.name) + (prefs.getString(source.pref("title"), null)?.takeIf { it.isNotEmpty() }?.let { " · $it" } ?: "")
-            choice.startsWith("folder:") -> getString(R.string.folder_name, choice.substringAfter(':').substringAfter(':'))
-            else -> choice.substringAfter(':').substringBeforeLast('.').let { n -> WALLPAPER_NAMES[n]?.let { getString(it) } ?: n }
-        }
+    private fun wallpaperName(choice: String) = when {
+        choice == Bing.CHOICE -> getString(R.string.bing_daily)
+        choice.startsWith("folder:") -> getString(R.string.folder_name, choice.substringAfter(':').substringAfter(':'))
+        else -> choice.substringAfter(':').substringBeforeLast('.').let { n -> WALLPAPER_NAMES[n]?.let { getString(it) } ?: n }
     }
 
     private var wallpaperGen = 0 // the newest request: an older one stops before it costs a picture's memory
@@ -758,7 +761,7 @@ class MainActivity : Activity() {
         }
         // A picture is 8 MB at 1080p. Asking twice for the same thing costs nothing, and a request overtaken by a newer
         // one is dropped before it is decoded.
-        val key = "$choice|$dark|${wallpaperFade()}|" + (DailyWallpaper.sourceOf(choice)?.let { DailyWallpaper.file(this, it).lastModified() } ?: 0)
+        val key = "$choice|$dark|${wallpaperFade()}|" + (if (choice == Bing.CHOICE) Bing.file(this).lastModified() else 0)
         if (!force && key == wallpaperKey && view.drawable != null) return
         wallpaperKey = key
         val fallback = defaultWallpaper(dark)
@@ -799,11 +802,8 @@ class MainActivity : Activity() {
         }
         // fitWallpaper's bitmap is mutable: the fades are painted onto it.
         val bmp = when {
-            choice.startsWith("daily:") -> {
-                val source = DailyWallpaper.sourceOf(choice) ?: return null
-                DailyWallpaper.size(resources.displayMetrics.widthPixels).let { (w, h) ->
-                    fitWallpaper(w, h) { DailyWallpaper.file(this, source).inputStream() }
-                }
+            choice == Bing.CHOICE -> Bing.wallpaperSize(resources.displayMetrics.widthPixels).let { (w, h) ->
+                fitWallpaper(w, h) { Bing.file(this).inputStream() }
             }
             choice.startsWith("folder:") -> {
                 val uri = ContentUris.withAppendedId(PHOTOS, folderPhoto(choice) ?: return null)
@@ -814,8 +814,8 @@ class MainActivity : Activity() {
                 fitWallpaper { file.inputStream() }
             }
         } ?: return null
-        // Pictures from the internet are often bright daylight, which fights true black: dim them in dark mode.
-        if (dark && choice.startsWith("daily:")) Canvas(bmp).drawColor(Color.argb(DARK_DIM, 0, 0, 0))
+        // Bing's pictures are often bright daylight, which fights true black: dim them in dark mode.
+        if (dark && choice == Bing.CHOICE) Canvas(bmp).drawColor(Color.argb(DARK_DIM, 0, 0, 0))
         // Same fade as the bundled ones: clear above 28% height, into the background colour by 50%.
         val h = bmp.height.toFloat()
         val base = ground and 0x00FFFFFF
@@ -850,28 +850,12 @@ class MainActivity : Activity() {
     private fun setWallpaper(forDark: Boolean, choice: String) {
         prefs.edit().putString(if (forDark) "wp_dark" else "wp_light", choice)
             .remove(photoKey(forDark)).putLong(photoAtKey(forDark), System.currentTimeMillis()).apply()
-        DailyWallpaper.dropUnused(applicationContext, prefs)
-        if (choice.startsWith("daily:")) refreshDaily(force = true)
+        Bing.dropIfUnused(applicationContext, prefs) // choosing another wallpaper deletes the Bing picture at once
+        if (choice == Bing.CHOICE) Bing.refresh(applicationContext, prefs, resources.displayMetrics.widthPixels, force = true)
         if (forDark == dark) loadWallpaper()
     }
 
-    // ---------- wallpapers from the internet (see WallpaperSource) ----------
-    // A source's picture is looked up from the home screen at most once a day (a minute apart while there is no
-    // picture yet, an hour after a failure), only while a theme uses it. Offline, yesterday's picture stays.
-    // Switching to any other wallpaper deletes it. The work lives in DailyWallpaper, not in this activity.
-
-    private val dailyChanged: () -> Unit = { if (currentWallpaper().startsWith("daily:")) loadWallpaper() }
-
-    private fun refreshDaily(force: Boolean = false) {
-        val today = LocalDate.now().toEpochDay()
-        val now = System.currentTimeMillis()
-        for (s in DailyWallpaper.used(prefs)) {
-            val retry = if (DailyWallpaper.file(this, s).exists()) 3_600_000L else 60_000L
-            if (!force && (prefs.getLong(s.pref("day"), 0) == today || now - prefs.getLong(s.pref("try"), 0) < retry)) continue
-            prefs.edit().putLong(s.pref("try"), now).apply()
-            DailyWallpaper.schedule(applicationContext, prefs, s, resources.displayMetrics.widthPixels, today)
-        }
-    }
+    private val bingChanged: () -> Unit = { if (currentWallpaper() == Bing.CHOICE) loadWallpaper() }
 
     // ---------- folder wallpapers ----------
 
@@ -3365,7 +3349,7 @@ class MainActivity : Activity() {
         const val HELP_URL = "https://github.com/aradhyas8/Plume_Launcher#home-button-on-android-13-and-newer"
         const val TOGGLE_ON = "\u0000on" // row values drawn as a switch instead of text
         const val TOGGLE_OFF = "\u0000off"
-        const val DARK_DIM = 115 // alpha of the black laid over internet pictures in dark mode (45%)
+        const val DARK_DIM = 115 // alpha of the black laid over the Bing picture in dark mode (45%)
         const val PIN_TRIES = 5 // wrong PINs before a 30 s wait
         const val UNLOCKED_MS = 5 * 60_000L
         const val MEDIA_REQUEST = 3
