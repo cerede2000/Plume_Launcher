@@ -2211,6 +2211,8 @@ class MainActivity : Activity() {
             } + label(getString(R.string.sources_hint), 12f).apply {
                 secondary(0.6f)
                 setPadding(dp(14), dp(8), dp(14), dp(4))
+                isSingleLine = false // short, and it wraps rather than widen the list
+                maxWidth = dp(180)
             }
         }
     }

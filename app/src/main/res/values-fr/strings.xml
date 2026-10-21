@@ -234,5 +234,5 @@
     <string name="in_row">Dans la ligne</string>
     <string name="input_added">Ajoutée à la ligne.</string>
     <string name="input_removed">Retirée de la ligne.</string>
-    <string name="sources_hint">Maintenez OK sur une entrée pour l\'ajouter à la ligne ou l\'en retirer.</string>
+    <string name="sources_hint">Maintenez OK pour épingler une entrée à la ligne.</string>
 </resources>
