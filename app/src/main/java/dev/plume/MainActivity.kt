@@ -298,6 +298,7 @@ class MainActivity : Activity() {
         // Gallery chosen but its paintings missing (updated from a version that bundled them): fetch them.
         if (galleryOn() && photoScreensaver() == null && !paintingsReady(this)) downloadPaintings {}
         checkUpdate(force = false)
+        DailyWallpaper.onChanged = dailyChanged
         refreshDaily()
         ui.post { updateBadge() } // after layout, so the icon has its size
     }
@@ -345,6 +346,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        if (DailyWallpaper.onChanged === dailyChanged) DailyWallpaper.onChanged = null
         unregisterReceiver(packageReceiver)
         applicationContext.getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(net)
         getSystemService(TvInputManager::class.java)?.unregisterCallback(inputCallback)
@@ -671,7 +673,7 @@ class MainActivity : Activity() {
     private fun wallpaperName(choice: String): String {
         val source = DailyWallpaper.sourceOf(choice)
         return when {
-            source != null -> getString(source.name) + (prefs.getString(source.pref("title"), null)?.let { " · $it" } ?: "")
+            source != null -> getString(source.name) + (prefs.getString(source.pref("title"), null)?.takeIf { it.isNotEmpty() }?.let { " · $it" } ?: "")
             choice.startsWith("folder:") -> getString(R.string.folder_name, choice.substringAfter(':').substringAfter(':'))
             else -> choice.substringAfter(':').substringBeforeLast('.').let { n -> WALLPAPER_NAMES[n]?.let { getString(it) } ?: n }
         }
@@ -689,6 +691,8 @@ class MainActivity : Activity() {
             val bmp = try {
                 decodeWallpaper(choice)
             } catch (e: Exception) {
+                null
+            } catch (e: OutOfMemoryError) { // a 4K picture on a TV short of memory: show the default instead of crashing
                 null
             } ?: decodeWallpaper(fallback)
             ui.post {
@@ -758,46 +762,26 @@ class MainActivity : Activity() {
     private fun setWallpaper(forDark: Boolean, choice: String) {
         prefs.edit().putString(if (forDark) "wp_dark" else "wp_light", choice)
             .remove(photoKey(forDark)).putLong(photoAtKey(forDark), System.currentTimeMillis()).apply()
-        dropDailyIfUnused()
+        DailyWallpaper.dropUnused(applicationContext, prefs)
         if (choice.startsWith("daily:")) refreshDaily(force = true)
         if (forDark == dark) loadWallpaper()
     }
 
     // ---------- wallpapers from the internet (see WallpaperSource) ----------
-    // A source's picture is looked up from the home screen at most once a day (and at most hourly after a failure),
-    // only while a theme uses it. Offline, yesterday's picture stays. Switching to any other wallpaper deletes it.
+    // A source's picture is looked up from the home screen at most once a day (a minute apart while there is no
+    // picture yet, an hour after a failure), only while a theme uses it. Offline, yesterday's picture stays.
+    // Switching to any other wallpaper deletes it. The work lives in DailyWallpaper, not in this activity.
 
-    @Volatile private var dailyBusy = false
-
-    private fun usedSources() = DailyWallpaper.SOURCES.filter { it.choice == currentWallpaper(false) || it.choice == currentWallpaper(true) }
+    private val dailyChanged: () -> Unit = { if (currentWallpaper().startsWith("daily:")) loadWallpaper() }
 
     private fun refreshDaily(force: Boolean = false) {
-        if (dailyBusy) return
         val today = LocalDate.now().toEpochDay()
         val now = System.currentTimeMillis()
-        val due = usedSources().filter { force || (prefs.getLong(it.pref("day"), 0) != today && now - prefs.getLong(it.pref("try"), 0) >= 3_600_000L) }
-        if (due.isEmpty()) return
-        dailyBusy = true
-        prefs.edit().apply { due.forEach { putLong(it.pref("try"), now) } }.apply()
-        io.execute {
-            for (s in due) try {
-                val got = DailyWallpaper.refresh(this, s, resources.displayMetrics.widthPixels, prefs.getString(s.pref("hash"), null))
-                prefs.edit().putLong(s.pref("day"), today).apply {
-                    if (got != null) putString(s.pref("hash"), got.token).putString(s.pref("title"), got.title)
-                }.apply()
-                if (got != null) ui.post { if (currentWallpaper() == s.choice) loadWallpaper() }
-            } catch (e: Exception) {
-                android.util.Log.w("Plume", "${s.id} picture failed ($e)")
-            }
-            dailyBusy = false
-        }
-    }
-
-    /** A source no theme uses any more keeps nothing: its picture and its preferences go. */
-    private fun dropDailyIfUnused() {
-        for (s in DailyWallpaper.SOURCES - usedSources().toSet()) {
-            DailyWallpaper.file(this, s).delete()
-            prefs.edit().remove(s.pref("hash")).remove(s.pref("title")).remove(s.pref("day")).remove(s.pref("try")).apply()
+        for (s in DailyWallpaper.used(prefs)) {
+            val retry = if (DailyWallpaper.file(this, s).exists()) 3_600_000L else 60_000L
+            if (!force && (prefs.getLong(s.pref("day"), 0) == today || now - prefs.getLong(s.pref("try"), 0) < retry)) continue
+            prefs.edit().putLong(s.pref("try"), now).apply()
+            DailyWallpaper.schedule(applicationContext, prefs, s, resources.displayMetrics.widthPixels, today)
         }
     }
 

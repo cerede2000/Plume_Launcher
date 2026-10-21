@@ -167,10 +167,11 @@ internal fun fitWallpaper(wallW: Int = WALL_W, wallH: Int = WALL_H, open: () -> 
     val cropW = minOf(w, h * 16 / 9)
     var sample = 1
     while (cropW / (sample * 2) >= wallW) sample *= 2
-    val decoded = open().use { BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample }) } ?: return null
+    val decoded = open().use { BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample; inMutable = true }) } ?: return null
     val upright = if (rotation == 0) decoded else
         Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, Matrix().apply { postRotate(rotation.toFloat()) }, true)
             .also { decoded.recycle() }
+    if (upright.width == wallW && upright.height == wallH && upright.isMutable) return upright // already the right size: no second bitmap
     val cw = minOf(upright.width, upright.height * 16 / 9)
     val ch = cw * 9 / 16
     val left = (upright.width - cw) / 2
