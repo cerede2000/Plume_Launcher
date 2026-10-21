@@ -1541,6 +1541,12 @@ class MainActivity : Activity() {
         val gap = dp(GRID_GAP)
         val width = rowTileWidth()
         val tileH = if (iconStyle() == "banner") width * 9 / 16 else dp(76) // 16:9 like a banner
+        // The row sits on the bottom of its space. A banner row is shorter, so lift it by half the difference: its
+        // centre stays where the card row's is, between the clock and Continue Watching.
+        findViewById<View>(R.id.appScroll).apply {
+            (layoutParams as LinearLayout.LayoutParams).bottomMargin = dp(-24) + (dp(76) - tileH) / 2
+            requestLayout()
+        }
         appRow.removeAllViews()
         val hidden = rowHiddenSet()
         val pinned = pinnedInputs()
