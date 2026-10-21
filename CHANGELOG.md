@@ -16,6 +16,7 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 ## Unreleased
 
 - All apps opens under the apps row. Select the tile at the right end of the row, or the grid icon in the top bar. Push Left on the first app to reach that tile at once. The row moves up and Continue Watching steps aside. It shows the apps that are not in the row. Hold OK on one to move it or add it to the row. The row and All apps share one order.
+- Plume can end other apps to free memory. Select **Plume settings → Memory**. Turn on **Stop other home screens** to end the Google TV home screen each time Plume shows. Select **Apps to stop** to pick more apps. Select **Stop running apps** to end them now. Some apps start again by themselves. A key on the remote can do the same: select **Plume settings → Remote keys**.
 - The cards row can show one row for each channel. Select **Plume settings → Continue Watching → Cards row → One row per channel**. Push Down on a card to see the next channel. Push Up to go back.
 - You can use the Bing picture of the day as the wallpaper. Select **Plume settings → Appearance → Light mode wallpaper** or **Dark mode wallpaper**, then select **Bing picture of the day**. Plume gets a new picture once a day and keeps only one. On a 4K screen the picture is 4K. In dark mode, Plume makes the picture darker.
 - Continue Watching shows what you are watching before the next-episode suggestions. Some apps give the time in seconds. Plume now reads it correctly.

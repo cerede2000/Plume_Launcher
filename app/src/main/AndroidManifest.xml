@@ -12,6 +12,8 @@
     <!-- Folder wallpapers: asked for only when someone picks "Choose a folder on this TV". -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <!-- Memory: ends other apps' background processes, see Stop. An ordinary permission, nothing to grant. -->
+    <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
     <!-- Granted once over adb (pm grant dev.plume android.permission.WRITE_SECURE_SETTINGS) so the app can
          re-enable its Home service: Android drops it from the enabled list whenever the app is force-stopped. -->
     <uses-permission
@@ -25,6 +27,10 @@
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
         </intent>
     </queries>
 

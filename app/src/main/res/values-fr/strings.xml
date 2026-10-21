@@ -217,4 +217,9 @@
     <string name="no_channels">Aucune chaîne trouvée</string>
     <string name="add_to_row">Ajouter à la ligne</string>
     <string name="all_in_row">Toutes les applis sont dans la ligne</string>
+    <string name="section_memory">Mémoire</string>
+    <string name="stop_homes">Arrêter les autres accueils</string>
+    <string name="stop_apps">Applis à arrêter</string>
+    <string name="stop_now">Arrêter les applis en cours</string>
+    <string name="apps_stopped">Applis en arrière-plan arrêtées</string>
 </resources>

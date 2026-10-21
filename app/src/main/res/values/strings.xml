@@ -215,4 +215,9 @@
     <string name="no_channels">No channels found</string>
     <string name="add_to_row">Add to row</string>
     <string name="all_in_row">All apps are in the row</string>
+    <string name="section_memory">Memory</string>
+    <string name="stop_homes">Stop other home screens</string>
+    <string name="stop_apps">Apps to stop</string>
+    <string name="stop_now">Stop running apps</string>
+    <string name="apps_stopped">Background apps stopped</string>
 </resources>
