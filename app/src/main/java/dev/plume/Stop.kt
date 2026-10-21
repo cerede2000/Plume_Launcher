@@ -1,15 +1,17 @@
 package dev.plume
 
-import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 
 /**
- * Ends other apps' background processes to free memory. An app can't force-stop another one (that is a system
- * permission), but KILL_BACKGROUND_PROCESSES, an ordinary permission, ends what Android would end itself when memory
- * runs low. What plays or shows is left alone, and some apps start again by themselves a little later.
+ * Ends other apps to free memory. Android 14 lets an app end only itself (ending others takes a system-only
+ * permission), so the work is done the way a person would: [HomeOverride] opens each app's page in Settings and
+ * taps Force stop, behind a cover that shows the progress. See [HomeOverride.stopApps].
  */
 object Stop {
+    private val NAME = Regex("[A-Za-z0-9._]+")
+
     private fun others(c: Context, vararg categories: String): List<String> = categories.flatMap { cat ->
         c.packageManager.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(cat), 0).map { it.activityInfo.packageName }
     }.filter { it != c.packageName }.distinct()
@@ -27,10 +29,19 @@ object Stop {
         name to p
     }.sortedBy { it.first.lowercase() }
 
-    fun kill(c: Context, pkgs: Collection<String>) {
-        val am = c.getSystemService(ActivityManager::class.java)
-        for (p in pkgs) if (p != c.packageName) am.killBackgroundProcesses(p)
+    /** An app already ended stays ended until someone opens it, so it is left alone. */
+    private fun stopped(c: Context, pkg: String) = try {
+        c.packageManager.getApplicationInfo(pkg, 0).flags and ApplicationInfo.FLAG_STOPPED != 0
+    } catch (e: Exception) {
+        true
     }
 
-    fun all(c: Context) = kill(c, candidates(c).map { it.second })
+    /** Hands [pkgs] to the service that does the tapping. False when that service is off or can't read Settings yet. */
+    fun stop(c: Context, pkgs: Collection<String>): Boolean {
+        val service = HomeOverride.running?.takeIf { it.canTap() } ?: return false
+        service.stopApps(pkgs.filter { it != c.packageName && NAME.matches(it) && !stopped(c, it) }.distinct())
+        return true
+    }
+
+    fun all(c: Context) = stop(c, candidates(c).map { it.second })
 }

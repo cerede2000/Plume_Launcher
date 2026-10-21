@@ -930,17 +930,19 @@ class MainActivity : Activity() {
 
     // ---------- memory: stop other apps (see Stop) ----------
 
-    private var stoppedAt = 0L
     private fun stopOn() = prefs.getStringSet("stop_on", emptySet())!!
 
-    /** Whenever the home screen comes back (at most every 30 s): end the other home screens and the apps picked in settings. */
-    private fun stopAtStart() {
-        val now = System.currentTimeMillis()
-        if (now - stoppedAt < 30_000L) return
-        stoppedAt = now
-        val homes = prefs.getBoolean("stop_homes", false)
+    /** The other home screens (on by default) and the apps picked in settings are ended when Plume starts, once per run. */
+    private fun stopHomes() = prefs.getBoolean("stop_homes", true)
+
+    private fun stopAtStart(tries: Int = 4) {
+        if (stopDone) return
+        val homes = stopHomes()
         val picked = stopOn()
-        if (homes || picked.isNotEmpty()) io.execute { Stop.kill(this, (if (homes) Stop.homes(this) else emptyList()) + picked) }
+        if (!homes && picked.isEmpty()) return
+        // The Home service binds a little after Plume at boot: ask again in a few seconds if it isn't there yet.
+        if (Stop.stop(this, (if (homes) Stop.homes(this) else emptyList()) + picked)) stopDone = true
+        else if (tries > 0) ui.postDelayed({ stopAtStart(tries - 1) }, 6_000L)
     }
 
     private fun pickStop(focus: Int = 0) {
@@ -1255,16 +1257,14 @@ class MainActivity : Activity() {
                 notesUnseen() -> getString(R.string.whats_new_title, myVersion())
                 else -> getString(R.string.up_to_date_row, myVersion())
             }) { showUpdates() },
-            R.string.stop_homes to Triple(getString(R.string.stop_homes), toggle(prefs.getBoolean("stop_homes", false))) {
-                prefs.edit().putBoolean("stop_homes", !prefs.getBoolean("stop_homes", false)).apply()
-                stoppedAt = 0L
-                stopAtStart()
+            R.string.stop_homes to Triple(getString(R.string.stop_homes), toggle(stopHomes())) {
+                prefs.edit().putBoolean("stop_homes", !stopHomes()).apply()
                 renderSettings(R.string.stop_homes)
             },
             R.string.stop_apps to Triple(getString(R.string.stop_apps), stopOn().size.let { if (it == 0) getString(R.string.off) else "$it" }) { pickStop() },
             R.string.stop_now to Triple(getString(R.string.stop_now), "") {
-                io.execute { Stop.all(this) }
-                Toast.makeText(this, getString(R.string.apps_stopped), Toast.LENGTH_SHORT).show()
+                closeLauncherSettings()
+                if (!Stop.all(this)) Toast.makeText(this, getString(R.string.stop_needs_service), Toast.LENGTH_LONG).show()
             },
             R.string.lock_layout to Triple(getString(R.string.lock_layout), toggle(lockOn())) {
                 if (!lockOn()) return@Triple setLock()
@@ -1284,7 +1284,7 @@ class MainActivity : Activity() {
                 listOf(R.string.weather, R.string.weather_units, R.string.weather_location)),
             Triple(R.string.section_screensaver, rows[R.string.screensaver]!!.second, listOf(R.string.screensaver, R.string.test_screensaver, R.string.screensaver_timing)),
             Triple(R.string.section_home, on(homeServiceOn() || isDefaultHome()), listOf(R.string.setup_home, R.string.home_button, R.string.default_launcher)),
-            Triple(R.string.section_memory, on(prefs.getBoolean("stop_homes", false) || stopOn().isNotEmpty()), listOf(R.string.stop_homes, R.string.stop_apps, R.string.stop_now)),
+            Triple(R.string.section_memory, on(stopHomes() || stopOn().isNotEmpty()), listOf(R.string.stop_homes, R.string.stop_apps, R.string.stop_now)),
         )
         val section = sections.firstOrNull { at in it.third }
         if (section != null) {
@@ -3286,6 +3286,7 @@ class MainActivity : Activity() {
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
     private companion object {
+        var stopDone = false // the apps to end at start were handed over, for this run of Plume
         const val TV_LISTINGS = "android.permission.READ_TV_LISTINGS"
         const val WRITE_SECURE = "android.permission.WRITE_SECURE_SETTINGS"
         const val ROLE_REQUEST = 2
