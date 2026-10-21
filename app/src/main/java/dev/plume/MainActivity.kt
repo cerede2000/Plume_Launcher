@@ -183,7 +183,7 @@ class MainActivity : Activity() {
     private val posterIo = Executors.newFixedThreadPool(3)
     private val loading = java.util.Collections.synchronizedSet(HashSet<String>())
     private val ui = Handler(Looper.getMainLooper())
-    private val posters = object : LruCache<String, Bitmap>(3 * 1024 * 1024) {
+    private val posters = object : LruCache<String, Bitmap>(2 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
 
@@ -2566,6 +2566,7 @@ class MainActivity : Activity() {
     // ---------- continue watching (Android TV Watch Next) ----------
 
     private fun refreshWatchNext() {
+        noPoster.clear()
         if (cardsMode() == "off" || checkSelfPermission(TV_LISTINGS) != PackageManager.PERMISSION_GRANTED) {
             showWatchNext(emptyList())
             return
@@ -2776,9 +2777,9 @@ class MainActivity : Activity() {
     /** The app's own icon cut round, for the details line when the icon style isn't monochrome. Tiny, kept per app. */
     private val roundIcons = HashMap<String, Bitmap>()
 
-    private fun roundIcon(pkg: String): Drawable? = try {
-        BitmapDrawable(resources, roundIcons.getOrPut(pkg) {
-            val size = dp(12) * 2 // drawn at twice the size it is shown at, so the edge stays smooth
+    private fun roundIcon(pkg: String, shown: Int = dp(12)): Drawable? = try {
+        BitmapDrawable(resources, roundIcons.getOrPut("$pkg/$shown") {
+            val size = shown * 2 // drawn at twice the size it is shown at, so the edge stays smooth
             val icon = packageManager.getApplicationIcon(pkg)
             Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also { bmp ->
                 val canvas = Canvas(bmp)
@@ -2900,6 +2901,7 @@ class MainActivity : Activity() {
             })
         }
         img.tag = p.image // loaded by windowPosters, only while the card is near the one in focus
+        img.setTag(R.id.watchTitle, p.pkg) // the app whose icon stands in when the source has no picture
         return col
     }
 
@@ -2910,7 +2912,7 @@ class MainActivity : Activity() {
     private fun windowPosters(center: Int) {
         for (i in 0 until watchRow.childCount) {
             val img = ((watchRow.getChildAt(i) as? ViewGroup)?.getChildAt(0) as? ViewGroup)?.getChildAt(0) as? ImageView ?: continue
-            if (i in center - 2..center + 5) {
+            if (i in center - 1..center + 4) {
                 if (img.drawable == null) loadPoster(img, img.tag as? String)
             } else if (img.drawable != null) img.setImageDrawable(null)
         }
@@ -2936,22 +2938,46 @@ class MainActivity : Activity() {
         }
     }
 
+    /** Pictures the source doesn't have (a 404): not asked for again until the list is next refreshed. */
+    private val noPoster = java.util.Collections.synchronizedSet(HashSet<String>())
+
+    /** What a card shows while it has no picture, or when its source has none: the app's round icon on the card colour. */
+    private fun posterPlaceholder(v: ImageView, pkg: String?) {
+        v.setBackgroundColor(if (dark) 0xFF1C1C1E.toInt() else 0xFFCDD2D8.toInt())
+        v.scaleType = ImageView.ScaleType.CENTER
+        v.setImageDrawable(pkg?.let { roundIcon(it, dp(48)) })
+    }
+
     private fun loadPoster(v: ImageView, uri: String?) {
         if (uri == null) return
-        posters.get(uri)?.let { v.setImageBitmap(it); return }
+        if (uri in noPoster) return posterPlaceholder(v, v.getTag(R.id.watchTitle) as? String)
+        posters.get(uri)?.let {
+            v.scaleType = ImageView.ScaleType.CENTER_CROP
+            v.setImageBitmap(it)
+            return
+        }
         v.tag = uri
         if (!loading.add(uri)) return // already on its way
         posterIo.execute {
             val bmp = try {
                 decode(uri)
             } catch (e: Exception) {
-                android.util.Log.w("TvHome", "poster failed: $uri ($e)") // retried by retryPosters()
+                android.util.Log.w("TvHome", "poster failed: $uri ($e)") // retried when the list is refreshed
+                if (e is java.io.FileNotFoundException) noPoster += uri
                 null
             } finally {
                 loading.remove(uri)
-            } ?: return@execute
+            } ?: run {
+                if (uri in noPoster) ui.post { if (v.tag == uri) posterPlaceholder(v, v.getTag(R.id.watchTitle) as? String) }
+                return@execute
+            }
             posters.put(uri, bmp)
-            ui.post { if (v.tag == uri) v.setImageBitmap(bmp) }
+            ui.post {
+                if (v.tag == uri) {
+                    v.scaleType = ImageView.ScaleType.CENTER_CROP
+                    v.setImageBitmap(bmp)
+                }
+            }
         }
     }
 
