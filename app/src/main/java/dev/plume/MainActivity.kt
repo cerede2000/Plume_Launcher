@@ -75,6 +75,7 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.net.HttpURLConnection
+import java.time.LocalDate
 import java.net.URL
 import java.net.URLEncoder
 import java.security.MessageDigest
@@ -297,6 +298,7 @@ class MainActivity : Activity() {
         // Gallery chosen but its paintings missing (updated from a version that bundled them): fetch them.
         if (galleryOn() && photoScreensaver() == null && !paintingsReady(this)) downloadPaintings {}
         checkUpdate(force = false)
+        refreshDaily()
         ui.post { updateBadge() } // after layout, so the icon has its size
     }
 
@@ -650,6 +652,7 @@ class MainActivity : Activity() {
     private fun wallpaperChoices(forDark: Boolean): List<Pair<String, String>> =
         listOf(plainWallpaper(forDark).let { wallpaperName(it) to it }) +
             BUNDLED_WALLPAPERS.keys.map { wallpaperName("res:$it") to "res:$it" } +
+            (wallpaperName(DailyWallpaper.CHOICE) to DailyWallpaper.CHOICE) +
             (wallpaperDir()?.listFiles { f -> f.extension.lowercase() in setOf("jpg", "jpeg", "png", "webp") }
                 ?.sortedBy { it.name }?.map { it.nameWithoutExtension to "file:${it.name}" } ?: emptyList()) +
             listOfNotNull(currentWallpaper(forDark).takeIf { it.startsWith("folder:") }?.let { wallpaperName(it) to it })
@@ -665,9 +668,11 @@ class MainActivity : Activity() {
     /** Fade your own photos into the background at the bottom. Bundled wallpapers have it baked in either way. */
     private fun wallpaperFade() = prefs.getBoolean("wp_fade", true)
 
-    private fun wallpaperName(choice: String) =
-        if (choice.startsWith("folder:")) getString(R.string.folder_name, choice.substringAfter(':').substringAfter(':'))
-        else choice.substringAfter(':').substringBeforeLast('.').let { n -> WALLPAPER_NAMES[n]?.let { getString(it) } ?: n }
+    private fun wallpaperName(choice: String) = when {
+        choice == DailyWallpaper.CHOICE -> getString(R.string.bing_daily) + (prefs.getString("daily_title", null)?.let { " · $it" } ?: "")
+        choice.startsWith("folder:") -> getString(R.string.folder_name, choice.substringAfter(':').substringAfter(':'))
+        else -> choice.substringAfter(':').substringBeforeLast('.').let { n -> WALLPAPER_NAMES[n]?.let { getString(it) } ?: n }
+    }
 
     private fun loadWallpaper() {
         val view = findViewById<ImageView>(R.id.wallpaper)
@@ -700,12 +705,18 @@ class MainActivity : Activity() {
             return BitmapFactory.decodeResource(resources, res)
         }
         // fitWallpaper's bitmap is mutable: the fades are painted onto it.
-        val bmp = if (choice.startsWith("folder:")) {
-            val uri = ContentUris.withAppendedId(PHOTOS, folderPhoto(choice) ?: return null)
-            fitWallpaper { contentResolver.openInputStream(uri) ?: throw IOException("gone: $uri") }
-        } else {
-            val file = File(wallpaperDir(), choice.removePrefix("file:"))
-            fitWallpaper { file.inputStream() }
+        val bmp = when {
+            choice == DailyWallpaper.CHOICE -> DailyWallpaper.size(resources.displayMetrics.widthPixels).let { (w, h) ->
+                fitWallpaper(w, h) { DailyWallpaper.file(this).inputStream() }
+            }
+            choice.startsWith("folder:") -> {
+                val uri = ContentUris.withAppendedId(PHOTOS, folderPhoto(choice) ?: return null)
+                fitWallpaper { contentResolver.openInputStream(uri) ?: throw IOException("gone: $uri") }
+            }
+            else -> {
+                val file = File(wallpaperDir(), choice.removePrefix("file:"))
+                fitWallpaper { file.inputStream() }
+            }
         } ?: return null
         // Same fade as the bundled ones: clear above 28% height, into the background colour by 50%.
         val h = bmp.height.toFloat()
@@ -739,7 +750,43 @@ class MainActivity : Activity() {
     private fun setWallpaper(forDark: Boolean, choice: String) {
         prefs.edit().putString(if (forDark) "wp_dark" else "wp_light", choice)
             .remove(photoKey(forDark)).putLong(photoAtKey(forDark), System.currentTimeMillis()).apply()
+        if (choice == DailyWallpaper.CHOICE) refreshDaily(force = true) else dropDailyIfUnused()
         if (forDark == dark) loadWallpaper()
+    }
+
+    // ---------- Bing picture of the day ----------
+    // The picture is looked up from the home screen at most once a day (and at most hourly after a failure), only
+    // while a theme uses it. Offline, yesterday's picture stays. Switching to any other wallpaper deletes it.
+
+    @Volatile private var dailyBusy = false
+
+    private fun dailyOn() = currentWallpaper(false) == DailyWallpaper.CHOICE || currentWallpaper(true) == DailyWallpaper.CHOICE
+
+    private fun refreshDaily(force: Boolean = false) {
+        if (!dailyOn() || dailyBusy) return
+        val today = LocalDate.now().toEpochDay()
+        val now = System.currentTimeMillis()
+        if (!force && (prefs.getLong("daily_day", 0) == today || now - prefs.getLong("daily_try", 0) < 3_600_000L)) return
+        dailyBusy = true
+        prefs.edit().putLong("daily_try", now).apply()
+        io.execute {
+            try {
+                val got = DailyWallpaper.refresh(this, resources.displayMetrics.widthPixels, prefs.getString("daily_hash", null))
+                prefs.edit().putLong("daily_day", today).apply {
+                    if (got != null) putString("daily_hash", got.first).putString("daily_title", got.second)
+                }.apply()
+                if (got != null) ui.post { if (currentWallpaper() == DailyWallpaper.CHOICE) loadWallpaper() }
+            } catch (e: Exception) {
+                android.util.Log.w("Plume", "Bing picture failed ($e)")
+            }
+            dailyBusy = false
+        }
+    }
+
+    private fun dropDailyIfUnused() {
+        if (dailyOn()) return
+        DailyWallpaper.file(this).delete()
+        prefs.edit().remove("daily_hash").remove("daily_title").remove("daily_day").remove("daily_try").apply()
     }
 
     // ---------- folder wallpapers ----------

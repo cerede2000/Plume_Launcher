@@ -15,6 +15,7 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 
 ## Unreleased
 
+- You can use the Bing picture of the day as the wallpaper. Select **Plume settings → Appearance → Light mode wallpaper** or **Dark mode wallpaper**, then select **Bing picture of the day**. Plume gets a new picture once a day and keeps only one. On a 4K screen the picture is 4K.
 - Every HDMI input can be a tile. A device that names itself, like a PS5, Xbox or Nintendo Switch, gets a tile with its logo. Other HDMI devices get a tile while they send a picture. Every HDMI input is in **All apps**. Hold OK on one to pin it to the row.
 - You can set the weather location by hand. Select **Plume settings → Weather location**.
 - **Plume settings → Home button** is now a switch. Use it to turn the Home button on or off.

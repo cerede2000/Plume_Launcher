@@ -206,4 +206,5 @@
         <item quantity="one">%d key</item>
         <item quantity="other">%d keys</item>
     </plurals>
+    <string name="bing_daily">Bing picture of the day</string>
 </resources>
