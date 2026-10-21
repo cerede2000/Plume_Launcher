@@ -24,10 +24,26 @@ class HomeOverride : AccessibilityService() {
     }
 
     override fun onKeyEvent(e: KeyEvent): Boolean {
-        if (e.keyCode != KeyEvent.KEYCODE_HOME) return false
+        if (e.keyCode != KeyEvent.KEYCODE_HOME) return remap(e)
         // Decided on release, by how long it was held: this TV's remote doesn't reliably send key repeats.
         if (e.action == KeyEvent.ACTION_UP && !e.isCanceled) {
             if (e.eventTime - e.downTime < LONG_PRESS_MS) goHome() else performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS)
+        }
+        return true
+    }
+
+    /** Keys the user changed in Plume settings (see [Remap]); any other key goes on to the system untouched. */
+    private fun remap(e: KeyEvent): Boolean {
+        if (Remap.kept(e)) return false
+        Remap.learn?.let { learn ->
+            if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0) learn(e)
+            return true
+        }
+        val m = Remap.all(this)[Remap.id(e)] ?: return false
+        // Decided on release, like Home: this TV's remote doesn't reliably send key repeats.
+        if (e.action == KeyEvent.ACTION_UP && !e.isCanceled) {
+            val action = if (e.eventTime - e.downTime >= LONG_PRESS_MS && m.long.isNotEmpty()) m.long else m.short
+            if (action.isNotEmpty()) Remap.run(this, action)
         }
         return true
     }
