@@ -1,6 +1,7 @@
 # Changelog
 
 Plume shows the section for its own version in **Plume settings → Updates** after an update.
+After an update, a card on the home screen shows the first 3 entries. Put the 3 most interesting changes first.
 The build stops if `versionName` has no section here.
 
 Write every entry in ASD-STE100 Simplified Technical English:
@@ -13,27 +14,37 @@ Write every entry in ASD-STE100 Simplified Technical English:
 
 Put changes that are not released under `## Unreleased`. Rename that heading to the version number when you release.
 
-## Unreleased
+## 1.4
 
+### Smaller
+- **12% smaller.** Plume is now 365 KB, down from 413 KB.
+
+### New
 - A key on the remote can open Android settings or the network settings. Select **Plume settings → Remote keys**, pick a key, then **Android settings** or **Network settings**.
 - All apps opens under the apps row. Select the tile at the right end of the row, or the grid icon in the top bar. Push Left on the first app to reach that tile at once. The row moves up and Continue Watching steps aside. It shows the apps that are not in the row. Hold OK on one to move it or add it to the row. The row and All apps share one order.
 - Plume can end other apps to free memory. Plume ends the Google TV home screen each time it starts. Select **Plume settings → Memory** to turn that off, to pick more apps, or to stop the running apps now. A key on the remote can do the same: select **Plume settings → Remote keys**. A black screen shows the progress and the memory freed while Plume taps Force stop in Settings for each app. Push Back to cancel. This needs **Plume: Home button** turned on in Accessibility settings. Turn it off and on again once after an update.
 - The cards row can show one row for each channel. Select **Plume settings → Continue Watching → Cards row → One row per channel**. Push Down on a card to see the next channel. Push Up to go back.
 - You can use the Bing picture of the day as the wallpaper. Select **Plume settings → Appearance → Light mode wallpaper** or **Dark mode wallpaper**, then select **Bing picture of the day**. Plume gets a new picture once a day and keeps only one. On a 4K screen the picture is 4K. In dark mode, Plume makes the picture darker.
 - Continue Watching shows what you are watching before the next-episode suggestions. Some apps give the time in seconds. Plume now reads it correctly.
-- Every HDMI input can be a tile. A device that names itself, like a PS5, Xbox or Nintendo Switch, gets a tile with its logo. Other HDMI devices get a tile while they send a picture. Every HDMI input is in **All apps**. Hold OK on one to pin it to the row.
-- You can set the weather location by hand. Select **Plume settings → Weather location**.
-- **Plume settings → Home button** is now a switch. Use it to turn the Home button on or off.
-- All the text in Plume is now in one file. This makes translation easier.
-- A guided setup makes the Home button open Plume. To do it again, select **Plume settings → Set up Home button**.
-- A red dot on the Plume settings icon tells you about a new update or new update notes.
-- **Plume settings → Updates** shows what is new in this version.
-- You can put a short app row on the left, in the centre or on the right. Select **Plume settings → App row → App row position**.
-- **Plume settings** has sections. Each section shows its current settings.
-- Push Left or Right to change a value, for example **Theme** or **Weather units**.
-- At the top of a list, push Up to go to the bottom.
-- Plume settings opens at the section that you used last.
-- Dark mode stays dark. The selected item in settings, menus and popups is easier to see.
+- **Consoles on your home screen.** Your PS5, Xbox or Nintendo Switch gets a tile with its logo. Select it to switch to that input.
+- **More Continue Watching.** The limit of 3 shows for each app is gone. Each app keeps 3 places at the front.
+- **Every HDMI input as a tile.** Other HDMI devices get a tile while they are on. All of them are in **All apps**.
+- **What's new card.** After an update, a card shows the highlights. Select **See all changes** to read everything.
+
+### Design
+- **New dark mode.** True black, with lit edges on the selected item.
+- **Plume settings, organised.** Settings are in sections. Each section shows its current settings.
+- **App row position.** Put a short app row on the left, in the centre or on the right. Select **Plume settings → App row → App row position**.
+
+### Easier to use
+- **Faster settings.** Push Left or Right to change a value. Settings opens where you left it. At the top of a list, push Up to go to the bottom.
+- **Weather location.** Set it by hand in **Plume settings → Weather → Weather location**.
+- **Home button setup.** A guided setup makes the Home button open Plume. Select **Plume settings → Home button → Set up Home button**. **Home button** is now an on/off switch.
+- **Update dot.** A red dot on the Plume settings icon tells you about an update. **Plume settings → Updates** shows what is new.
+
+### Fixes
+- After the TV starts, the first app is selected, not the network icon.
+- The hold OK menu is only as wide as its items.
 
 ## 1.3
 
