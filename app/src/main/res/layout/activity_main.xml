@@ -112,6 +112,7 @@
         </LinearLayout>
 
         <View
+            android:id="@+id/topSpacer"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1" />
@@ -129,13 +130,24 @@
         <!-- Both rows: the scroller reaches 16dp (one grid gap) past the content edges on each side and
              clips there. That is room for the focus lift, while the next item, a gap away, stays hidden.
              Same on left and right, and SnapScrollView scrolls by whole items. -->
-        <dev.plume.SnapScrollView
-            android:id="@+id/appScroll"
+        <!-- The apps row and, fixed at its right end, the tile that opens All apps (added in code). The scroller ends
+             where that tile starts: a whole number of tiles shows, the next one stays hidden. -->
+        <LinearLayout
+            android:id="@+id/rowBand"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:orientation="horizontal">
+
+        <dev.plume.SnapScrollView
+            android:id="@+id/appScroll"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:layout_marginStart="-16dp"
             android:layout_marginTop="-24dp"
-            android:layout_marginEnd="-16dp"
+            android:layout_marginEnd="0dp"
             android:layout_marginBottom="-24dp"
             android:clipToPadding="false"
             android:paddingStart="16dp"
@@ -178,6 +190,48 @@
                     android:visibility="gone" />
             </LinearLayout>
         </dev.plume.SnapScrollView>
+        </LinearLayout>
+
+        <!-- All apps: opens under the apps row, in place of Continue Watching, over a veil that lets the wallpaper
+             show. Back closes it. -->
+        <ScrollView
+            android:id="@+id/allApps"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginStart="-16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="-16dp"
+            android:layout_weight="0"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:paddingStart="16dp"
+            android:paddingTop="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="8dp"
+            android:scrollbars="none"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipChildren="false"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/allAppsTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/all_apps"
+                    android:visibility="gone" />
+
+                <GridLayout
+                    android:id="@+id/allAppsGrid"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:clipChildren="false"
+                    android:columnCount="8" />
+            </LinearLayout>
+        </ScrollView>
 
         <!-- Weight 0 normally; 1 when the cards row is hidden, so the apps row centres. -->
         <View
@@ -221,44 +275,6 @@
                 android:orientation="horizontal" />
         </dev.plume.SnapScrollView>
     </LinearLayout>
-
-    <!-- All apps: hidden until the Apps tile is pressed; Back closes it. -->
-    <ScrollView
-        android:id="@+id/allApps"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        android:paddingStart="48dp"
-        android:paddingTop="28dp"
-        android:paddingEnd="48dp"
-        android:paddingBottom="28dp"
-        android:scrollbars="none"
-        android:visibility="gone">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:clipChildren="false"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/allAppsTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:fontFamily="sans-serif"
-                android:text="@string/all_apps"
-                android:textSize="20sp" />
-
-            <GridLayout
-                android:id="@+id/allAppsGrid"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:clipChildren="false"
-                android:columnCount="6" />
-        </LinearLayout>
-    </ScrollView>
 
     <!-- Launcher settings: side panel over a dimmed home screen; Back closes it. -->
     <FrameLayout

@@ -215,4 +215,5 @@
     <string name="cards_stack">Une rangée par chaîne</string>
     <string name="channels_row">Chaînes</string>
     <string name="no_channels">Aucune chaîne trouvée</string>
+    <string name="add_to_row">Ajouter à la ligne</string>
 </resources>

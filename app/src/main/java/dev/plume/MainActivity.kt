@@ -211,6 +211,10 @@ class MainActivity : Activity() {
     private val appsTitle by lazy { findViewById<TextView>(R.id.appsTitle) }
     private lateinit var watchScroll: View
     private lateinit var allApps: View
+    private lateinit var rowBand: LinearLayout
+    private lateinit var topSpacer: View
+    private var moreTile: View? = null // the tile at the right end of the apps row that opens All apps
+    private var drawerFrom: View? = null // what opened All apps, focused again when it closes
     private lateinit var allAppsGrid: GridLayout
     private lateinit var wifi: ImageView
 
@@ -252,6 +256,8 @@ class MainActivity : Activity() {
         }
         watchScroll = findViewById(R.id.watchScroll)
         allApps = findViewById(R.id.allApps)
+        rowBand = findViewById(R.id.rowBand)
+        topSpacer = findViewById(R.id.topSpacer)
         allAppsGrid = findViewById(R.id.allAppsGrid)
         wifi = findViewById(R.id.wifi)
         applyTheme()
@@ -656,7 +662,9 @@ class MainActivity : Activity() {
         // Must match the colour each wallpaper fades into, or the bottom edge shows a seam.
         ground = if (dark) DARK_BG else 0xFFF3F5F7.toInt()
         findViewById<View>(R.id.root).setBackgroundColor(ground)
-        allApps.setBackgroundColor(ground)
+        // All apps shows under the apps row over a veil: clear at the top, the background colour towards the bottom.
+        allApps.background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+            intArrayOf((ground and 0xFFFFFF) or 0x59000000, (ground and 0xFFFFFF) or 0xD9000000.toInt())).apply { setDither(true) }
         for (id in intArrayOf(R.id.clock, R.id.date, R.id.appsTitle, R.id.watchTitle, R.id.allAppsTitle, R.id.rowLabel, R.id.weather)) {
             findViewById<TextView>(id).setTextColor(fg)
         }
@@ -1093,7 +1101,7 @@ class MainActivity : Activity() {
         pageExit = null
         pageBack = null
         settingsScrim.visibility = View.GONE
-        homeFocusable(allApps.visibility != View.VISIBLE) // the PIN can open over All apps
+        homeFocusable(true)
         (panelFrom?.takeIf { it.isAttachedToWindow } ?: findViewById(R.id.launcherSettings)).requestFocus()
         panelFrom = null
     }
@@ -1586,7 +1594,7 @@ class MainActivity : Activity() {
     private fun alignRow() {
         val content = appRow.parent as View
         (content.layoutParams as FrameLayout.LayoutParams).gravity =
-            if (appTileCount() > ROW_TILES) Gravity.START else ROW_ALIGN[rowAlign()]!!.second
+            if (appTileCount() >= ROW_TILES) Gravity.START else ROW_ALIGN[rowAlign()]!!.second
         content.requestLayout()
     }
 
@@ -1605,6 +1613,13 @@ class MainActivity : Activity() {
             (layoutParams as LinearLayout.LayoutParams).bottomMargin = dp(-24) + (dp(76) - tileH) / 2
             requestLayout()
         }
+        val moreFocused = currentFocus === moreTile
+        moreTile?.let { rowBand.removeView(it) }
+        moreTile = tile(null, getDrawable(R.drawable.ic_apps)!!, true, "drawer") { toggleDrawer(moreTile) }.also {
+            it.contentDescription = getString(R.string.all_apps)
+            rowBand.addView(it, LinearLayout.LayoutParams(width, tileH))
+        }
+        if (moreFocused) moreTile?.requestFocus()
         appRow.removeAllViews()
         val hidden = rowHiddenSet()
         val pinned = pinnedInputs()
@@ -1905,7 +1920,7 @@ class MainActivity : Activity() {
                 return true
             }
         }
-        if (e.action == KeyEvent.ACTION_DOWN && settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE) {
+        if (e.action == KeyEvent.ACTION_DOWN && settingsScrim.visibility != View.VISIBLE) {
             currentFocus?.let { homeNav(it, e.keyCode) }?.let { it.requestFocus(); return true }
         }
         return super.dispatchKeyEvent(e)
@@ -1932,12 +1947,31 @@ class MainActivity : Activity() {
                 KeyEvent.KEYCODE_DPAD_RIGHT -> if (v.id == R.id.launcherSettings) v else null
                 else -> null
             }
-            v.parent === appRow -> when (key) {
+            v.parent === appRow -> when (key) { // Left on the first app jumps to the All apps tile at the other end
                 KeyEvent.KEYCODE_DPAD_UP -> top
-                KeyEvent.KEYCODE_DPAD_DOWN -> title ?: cards ?: v
-                KeyEvent.KEYCODE_DPAD_LEFT -> if (appRow.indexOfChild(v) == 0) v else null
-                KeyEvent.KEYCODE_DPAD_RIGHT -> if (appRow.indexOfChild(v) == appRow.childCount - 1) v else null
+                KeyEvent.KEYCODE_DPAD_DOWN -> if (allApps.visibility == View.VISIBLE) allAppsGrid.getChildAt(0) ?: v else title ?: cards ?: v
+                KeyEvent.KEYCODE_DPAD_LEFT -> if (appRow.indexOfChild(v) == 0) moreTile ?: v else null
+                KeyEvent.KEYCODE_DPAD_RIGHT -> if (appRow.indexOfChild(v) == appRow.childCount - 1) moreTile ?: v else null
                 else -> null
+            }
+            v === moreTile -> when (key) {
+                KeyEvent.KEYCODE_DPAD_UP -> top
+                KeyEvent.KEYCODE_DPAD_DOWN -> if (allApps.visibility == View.VISIBLE) allAppsGrid.getChildAt(0) ?: v else title ?: cards ?: v
+                KeyEvent.KEYCODE_DPAD_LEFT -> appRow.getChildAt(appRow.childCount - 1) ?: v
+                KeyEvent.KEYCODE_DPAD_RIGHT -> v
+                else -> null
+            }
+            v.parent === allAppsGrid -> {
+                val i = allAppsGrid.indexOfChild(v)
+                val last = allAppsGrid.childCount - 1
+                when (key) {
+                    KeyEvent.KEYCODE_DPAD_UP -> if (i >= ROW_TILES) allAppsGrid.getChildAt(i - ROW_TILES) else apps ?: moreTile ?: v
+                    KeyEvent.KEYCODE_DPAD_DOWN -> if (i + ROW_TILES <= last) allAppsGrid.getChildAt(i + ROW_TILES)
+                        else if (i / ROW_TILES < last / ROW_TILES) allAppsGrid.getChildAt(last) else v
+                    KeyEvent.KEYCODE_DPAD_LEFT -> if (i % ROW_TILES == 0) v else allAppsGrid.getChildAt(i - 1)
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> if (i % ROW_TILES == ROW_TILES - 1 || i == last) v else allAppsGrid.getChildAt(i + 1)
+                    else -> null
+                }
             }
             v.getTag(R.id.watchRow) is Prog -> {
                 val i = watchRow.indexOfChild(v.parent as View)
@@ -1975,17 +2009,38 @@ class MainActivity : Activity() {
     private fun onHold(v: View) {
         val tag = v.tag as? String
         when {
-            allApps.visibility == View.VISIBLE && tag != null -> unlock { // grid: pin to the front of the row (unhiding it)
-                val edit = prefs.edit().putStringSet("row_hidden", rowHiddenSet() - tag)
-                if (tag.startsWith(HDMI)) edit.putStringSet("inputs_pinned", pinnedInputs() + tag)
-                edit.apply()
-                saveOrder(listOf(tag) + sortedApps().map { it.pkg }.filter { it != tag })
-                closeAllApps()
-                appRow.getChildAt(0)?.requestFocus() // show the app just pinned
-            }
+            v.parent === allAppsGrid && tag != null -> drawerMenu(v)
             v.parent === appRow -> appMenu(v)
             v.getTag(R.id.watchRow) is Prog -> watchMenu(v, v.getTag(R.id.watchRow) as Prog)
         }
+    }
+
+    /** Hold OK on an app in All apps: Move (OK places it; the row follows the same order), Add to or Remove from the row, App info. */
+    private fun drawerMenu(v: View) {
+        val pkg = v.tag as String
+        if (locked()) return holdMenu(v, listOf(
+            getString(R.string.open) to { v.performClick(); Unit },
+            getString(R.string.unlock_to_edit) to { unlock { v.requestFocus(); drawerMenu(v) } },
+        ))
+        val offline = apps.any { it.pkg == pkg && it.offline }
+        val onRow = inRow(pkg, offline, rowHiddenSet(), pinnedInputs())
+        holdMenu(v, listOfNotNull(
+            getString(R.string.move) to { startEdit(grab = v, once = true, box = allAppsGrid) },
+            if (onRow) getString(R.string.remove_from_row) to {
+                prefs.edit().putStringSet("row_hidden", if (offline) rowHiddenSet() else rowHiddenSet() + pkg)
+                    .putStringSet("inputs_pinned", pinnedInputs() - pkg).apply()
+                renderApps()
+                Toast.makeText(this, getString(R.string.removed_from_row), Toast.LENGTH_SHORT).show()
+            } else getString(R.string.add_to_row) to {
+                val edit = prefs.edit().putStringSet("row_hidden", rowHiddenSet() - pkg)
+                if (pkg.startsWith(HDMI)) edit.putStringSet("inputs_pinned", pinnedInputs() + pkg)
+                edit.apply()
+                renderApps()
+            },
+            if (pkg.startsWith(HDMI)) null else getString(R.string.app_info) to {
+                openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null))
+            },
+        ))
     }
 
     /** Hold OK on a row app: Move (OK places it), Remove from row (stays in All apps), App info. Locked: Open only. */
@@ -2056,12 +2111,15 @@ class MainActivity : Activity() {
 
     private var moveOnce = false // moving one app from the hold menu: OK places it and editing ends
 
-    private fun startEdit(grab: View?, once: Boolean = false) {
+    private var editBox: ViewGroup? = null // the row, or the grid in All apps, being rearranged
+
+    private fun startEdit(grab: View?, once: Boolean = false, box: ViewGroup = appRow) {
         editing = true
+        editBox = box
         moveOnce = once
         appsTitle.text = if (once) getString(R.string.moving_hint) else getString(R.string.editing_hint)
         appsTitle.visibility = View.VISIBLE
-        (grab ?: appRow.getChildAt(0)).requestFocus()
+        (grab ?: box.getChildAt(0)).requestFocus()
         setGrabbed(grab)
     }
 
@@ -2076,8 +2134,11 @@ class MainActivity : Activity() {
         editing = false
         moveOnce = false
         appsTitle.visibility = View.GONE
-        val row = (0 until appTileCount()).map { appRow.getChildAt(it).tag as String }
+        val box = editBox ?: appRow
+        editBox = null
+        val row = (0 until box.childCount).map { box.getChildAt(it).tag as String }
         saveOrder(row + sortedApps().map { it.pkg }.filter { it !in row })
+        if (box === allAppsGrid) renderApps() // the row follows the new order
         currentFocus?.takeIf { it.parent === appRow }?.let { showRowLabel(it, true) } // the name was hidden while editing
     }
 
@@ -2088,32 +2149,42 @@ class MainActivity : Activity() {
             return true
         }
         val v = currentFocus ?: return false
-        val i = appRow.indexOfChild(v)
+        val box = editBox ?: appRow
+        val i = box.indexOfChild(v)
         if (confirm) {
-            if (e.action == KeyEvent.ACTION_UP && i in 0 until appTileCount()) {
+            if (e.action == KeyEvent.ACTION_UP && i in 0 until box.childCount) {
                 if (moveOnce) endEdit() else setGrabbed(if (grabbed === v) null else v)
             }
             return true
         }
         if (e.action != KeyEvent.ACTION_DOWN) return e.keyCode in EDIT_KEYS
+        // Swap layout params too, so the first tile keeps no leading margin.
+        fun move(j: Int) {
+            val other = box.getChildAt(j)
+            val lp = v.layoutParams
+            v.layoutParams = other.layoutParams
+            other.layoutParams = lp
+            box.removeViewAt(i)
+            box.addView(v, j)
+            if (box === appRow) showNames()
+            v.requestFocus()
+        }
         when (e.keyCode) {
-            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> return true
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> {
+                if (box === appRow) return true
+                if (grabbed !== v) return false // the grid: a line up or down
+                val j = if (e.keyCode == KeyEvent.KEYCODE_DPAD_UP) i - ROW_TILES else i + ROW_TILES
+                if (j in 0 until box.childCount) move(j)
+                return true
+            }
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
                 val j = if (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) i - 1 else i + 1
-                if (j !in 0 until appTileCount()) return true
+                if (j !in 0 until box.childCount) return box === appRow
                 if (grabbed === v) {
-                    // Swap layout params too, so the first tile keeps no leading margin.
-                    val other = appRow.getChildAt(j)
-                    val lp = v.layoutParams
-                    v.layoutParams = other.layoutParams
-                    other.layoutParams = lp
-                    appRow.removeViewAt(i)
-                    appRow.addView(v, j)
-                    showNames()
-                    v.requestFocus()
+                    move(j)
                     return true
                 }
-                return false // not holding anything: normal focus movement within the row
+                return false // not holding anything: normal focus movement
             }
         }
         return false
@@ -2158,28 +2229,49 @@ class MainActivity : Activity() {
 
     // ---------- all apps ----------
 
-    private fun openAllApps() {
+    private fun toggleDrawer(from: View?) = if (allApps.visibility == View.VISIBLE) closeAllApps() else openAllApps(from)
+
+    /**
+     * All apps open under the apps row, which moves up beside the clock and top bar; Continue Watching steps aside.
+     * Same eight columns as the row, in the same order: moving an app here moves it in the row too.
+     */
+    private fun openAllApps(from: View? = null) {
+        drawerFrom = from ?: findViewById<View>(R.id.allAppsButton)
         allAppsGrid.removeAllViews()
-        val gap = dp(10)
-        val width = (resources.displayMetrics.widthPixels - dp(96) - gap * 5) / 6
-        for (a in sortedApps()) {
-            val t = appTile(a) // holding OK here pins it to the row (see onHold)
-            allAppsGrid.addView(t, GridLayout.LayoutParams().apply {
+        val gap = dp(GRID_GAP)
+        val width = rowTileWidth()
+        for ((n, a) in sortedApps().withIndex()) {
+            allAppsGrid.addView(appTile(a), GridLayout.LayoutParams().apply { // holding OK here opens the menu (see onHold)
                 this.width = width
                 height = dp(76)
-                setMargins(0, 0, gap, gap)
+                setMargins(0, 0, if (n % ROW_TILES == ROW_TILES - 1) 0 else gap, gap)
             })
         }
+        (topSpacer.layoutParams as LinearLayout.LayoutParams).weight = 0f
+        (allApps.layoutParams as LinearLayout.LayoutParams).weight = 1f
+        (findViewById<View>(R.id.cardsSpacer).layoutParams as LinearLayout.LayoutParams).weight = 0f
+        watchTitle.visibility = View.GONE
+        watchScroll.visibility = View.GONE
         allApps.visibility = View.VISIBLE
-        homeFocusable(false)
+        allApps.scrollTo(0, 0)
+        findViewById<View>(R.id.content).requestLayout()
         allAppsGrid.getChildAt(0)?.requestFocus()
     }
 
     private fun closeAllApps() {
+        if (editing) endEdit()
+        val back = drawerFrom
+        drawerFrom = null
         allApps.visibility = View.GONE
-        homeFocusable(true)
+        allAppsGrid.removeAllViews() // a grid of every app costs memory only while it shows
+        (topSpacer.layoutParams as LinearLayout.LayoutParams).weight = 1f
+        (allApps.layoutParams as LinearLayout.LayoutParams).weight = 0f
+        watchKey = null
+        refreshWatchNext() // Continue Watching comes back
         renderApps()
-        findViewById<View>(R.id.allAppsButton).requestFocus() // back where it was opened from
+        findViewById<View>(R.id.content).requestLayout()
+        val target: View? = if (back?.tag == "drawer") moreTile else back?.takeIf { it.isAttachedToWindow } ?: findViewById<View>(R.id.allAppsButton)
+        target?.requestFocus()
     }
 
     // ---------- screensaver ----------
@@ -2872,7 +2964,7 @@ class MainActivity : Activity() {
         watchKey = key
         val focusedAt = watchRow.indexOfChild(currentFocus?.parent as? View)
         watchRow.removeAllViews()
-        val visible = if (list.isEmpty() || cardsMode() == "off") View.GONE else View.VISIBLE
+        val visible = if (list.isEmpty() || cardsMode() == "off" || allApps.visibility == View.VISIBLE) View.GONE else View.VISIBLE
         watchTitle.visibility = visible
         watchScroll.visibility = visible
         showCardTitle(watchTitle.isFocused)
@@ -2887,7 +2979,7 @@ class MainActivity : Activity() {
             watchScroll.animate().alpha(1f).setDuration(220).start()
         }
         // With no cards row at all the apps row sits in the middle of the space, not on the bottom of it.
-        (findViewById<View>(R.id.cardsSpacer).layoutParams as LinearLayout.LayoutParams).weight = if (cardsMode() == "off") 1f else 0f
+        (findViewById<View>(R.id.cardsSpacer).layoutParams as LinearLayout.LayoutParams).weight = if (cardsMode() == "off" && allApps.visibility != View.VISIBLE) 1f else 0f
         findViewById<View>(R.id.cardsSpacer).requestLayout()
         // ~16 ms per card here and only four show at once: build them four per frame, not all 20 in one.
         fun addCards(from: Int) {

@@ -213,4 +213,5 @@
     <string name="cards_stack">One row per channel</string>
     <string name="channels_row">Channels</string>
     <string name="no_channels">No channels found</string>
+    <string name="add_to_row">Add to row</string>
 </resources>
