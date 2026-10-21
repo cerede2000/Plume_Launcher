@@ -183,7 +183,7 @@ class MainActivity : Activity() {
     private val posterIo = Executors.newFixedThreadPool(3)
     private val loading = java.util.Collections.synchronizedSet(HashSet<String>())
     private val ui = Handler(Looper.getMainLooper())
-    private val posters = object : LruCache<String, Bitmap>(6 * 1024 * 1024) {
+    private val posters = object : LruCache<String, Bitmap>(3 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
 
@@ -245,7 +245,11 @@ class MainActivity : Activity() {
         style(watchTitle, dp(8), card = false, lift = 1.04f) { showCardTitle(it) }
         watchTitle.isFocusable = false
         watchTitle.setPadding(dp(10), dp(4), dp(10), dp(4))
-        (watchTitle.layoutParams as LinearLayout.LayoutParams).marginStart = -dp(10)
+        (watchTitle.layoutParams as LinearLayout.LayoutParams).apply {
+            marginStart = -dp(10)
+            topMargin -= dp(4)
+            bottomMargin -= dp(4)
+        }
         watchScroll = findViewById(R.id.watchScroll)
         allApps = findViewById(R.id.allApps)
         allAppsGrid = findViewById(R.id.allAppsGrid)
@@ -2826,6 +2830,7 @@ class MainActivity : Activity() {
         fun addCards(from: Int) {
             if (watchKey != key) return // a newer list replaced this one
             list.subList(from, minOf(from + 4, list.size)).forEach { watchRow.addView(watchCard(it, watchRow.childCount > 0)) }
+            windowPosters(maxOf(0, watchRow.indexOfChild(lastCard?.parent as? View)))
             if (from + 4 < list.size) ui.post { addCards(from + 4) }
         }
         addCards(0)
@@ -2863,7 +2868,10 @@ class MainActivity : Activity() {
         val frame = FrameLayout(this)
         style(frame, dp(8), card = true, lift = 1.1f) { focused ->
             title.isSelected = focused
-            if (focused) lastCard = frame
+            if (focused) {
+                lastCard = frame
+                windowPosters(watchRow.indexOfChild(col))
+            }
         }
         frame.contentDescription = p.title
         frame.addView(img, MATCH_PARENT, MATCH_PARENT)
@@ -2891,8 +2899,21 @@ class MainActivity : Activity() {
                 }
             })
         }
-        loadPoster(img, p.image)
+        img.tag = p.image // loaded by windowPosters, only while the card is near the one in focus
         return col
+    }
+
+    /**
+     * Posters are loaded for the focused card and the ones around it only, and dropped from the others, so a channel
+     * of 30 cards costs no more memory than one of four. The views keep their address and load again when you get near.
+     */
+    private fun windowPosters(center: Int) {
+        for (i in 0 until watchRow.childCount) {
+            val img = ((watchRow.getChildAt(i) as? ViewGroup)?.getChildAt(0) as? ViewGroup)?.getChildAt(0) as? ImageView ?: continue
+            if (i in center - 2..center + 5) {
+                if (img.drawable == null) loadPoster(img, img.tag as? String)
+            } else if (img.drawable != null) img.setImageDrawable(null)
+        }
     }
 
     private fun progressBarDrawable(): Drawable {
@@ -2935,12 +2956,7 @@ class MainActivity : Activity() {
     }
 
     /** Cards whose poster never arrived (offline, server timeout) try again; loaded ones are left alone. */
-    private fun retryPosters() {
-        for (i in 0 until watchRow.childCount) {
-            val img = ((watchRow.getChildAt(i) as? ViewGroup)?.getChildAt(0) as? ViewGroup)?.getChildAt(0) as? ImageView ?: continue
-            if (img.drawable == null) loadPoster(img, img.tag as? String)
-        }
-    }
+    private fun retryPosters() = windowPosters(maxOf(0, watchRow.indexOfChild(lastCard?.parent as? View)))
 
     /** Downsample to card size in RGB_565 so a dozen posters stay around 1-2 MB. */
     private fun decode(uri: String): Bitmap? {
