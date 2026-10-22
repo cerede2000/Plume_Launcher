@@ -51,11 +51,14 @@ internal fun boxBlur(px: IntArray, w: Int, h: Int, radius: Int, passes: Int = 2)
     return src
 }
 
-/** The glass keeps the wallpaper's colours but not its brightness: dark mode darkens it, light mode lightens it. */
-internal fun glassTone(px: IntArray, dark: Boolean): IntArray = IntArray(px.size) {
+/**
+ * The glass keeps the wallpaper's colours but not its brightness: dark mode keeps [darkPct] percent of it, light mode
+ * moves [lightPct] percent of the way to white.
+ */
+internal fun glassTone(px: IntArray, dark: Boolean, darkPct: Int = 60, lightPct: Int = 25): IntArray = IntArray(px.size) {
     val p = px[it]
     val c = IntArray(3) { k -> p shr (16 - 8 * k) and 0xFF }
-    for (k in 0..2) c[k] = if (dark) c[k] * 60 / 100 else c[k] + (255 - c[k]) * 25 / 100
+    for (k in 0..2) c[k] = if (dark) c[k] * darkPct / 100 else c[k] + (255 - c[k]) * lightPct / 100
     (0xFF shl 24) or (c[0] shl 16) or (c[1] shl 8) or c[2]
 }
 
@@ -63,7 +66,7 @@ internal fun glassTone(px: IntArray, dark: Boolean): IntArray = IntArray(px.size
  * The wallpaper as it shows on the screen, blurred, as [GLASS_W]x[GLASS_H] pixels. [ground] fills what the picture
  * does not cover (the bundled ones stop at 70% of the height). Done once when a wallpaper loads, off the UI thread.
  */
-internal fun glassPixels(wallpaper: Bitmap, ground: Int, dark: Boolean): IntArray {
+internal fun glassPixels(wallpaper: Bitmap, ground: Int, dark: Boolean, darkPct: Int = 60, lightPct: Int = 25): IntArray {
     // In two steps, or a 1920 px picture shrunk to 120 px in one would skip most of its pixels.
     val mid = Bitmap.createScaledBitmap(wallpaper, wallpaper.width / 4, wallpaper.height / 4, true)
     val screen = Bitmap.createBitmap(GLASS_W, GLASS_H, Bitmap.Config.ARGB_8888)
@@ -75,7 +78,7 @@ internal fun glassPixels(wallpaper: Bitmap, ground: Int, dark: Boolean): IntArra
     val px = IntArray(GLASS_W * GLASS_H)
     screen.getPixels(px, 0, GLASS_W, 0, 0, GLASS_W, GLASS_H)
     screen.recycle()
-    return glassTone(boxBlur(px, GLASS_W, GLASS_H, 2), dark)
+    return glassTone(boxBlur(px, GLASS_W, GLASS_H, 2), dark, darkPct, lightPct)
 }
 
 /**

@@ -715,8 +715,10 @@ class MainActivity : Activity() {
         // Cards are see-through, so the wallpaper shows through them like frosted glass: dark ones are rimCard()s at
         // 70%, light ones frosted grey at 78%, and focus lifts them to 80% and 95%.
         val glassy = glassActive() // over a blur the tiles need less colour of their own
-        cardRest = if (dark) DARK_CARD else if (glassy) intArrayOf(0x8CE2E5E9.toInt(), 0x8CD8DCE1.toInt()) else intArrayOf(0xC8E2E5E9.toInt(), 0xC8D8DCE1.toInt())
-        cardLit = if (dark) DARK_CARD_LIT else if (glassy) intArrayOf(0xD9FFFFFF.toInt(), 0xD9FFFFFF.toInt()) else intArrayOf(0xF2FFFFFF.toInt(), 0xF2FFFFFF.toInt())
+        val lr = glassAlpha("glass_l_rest", 0x8C) shl 24
+        val ll = glassAlpha("glass_l_lit", 0xD9) shl 24
+        cardRest = if (dark) DARK_CARD else if (glassy) intArrayOf(lr or 0xE2E5E9, lr or 0xD8DCE1) else intArrayOf(0xC8E2E5E9.toInt(), 0xC8D8DCE1.toInt())
+        cardLit = if (dark) DARK_CARD_LIT else if (glassy) intArrayOf(ll or 0xFFFFFF, ll or 0xFFFFFF) else intArrayOf(0xF2FFFFFF.toInt(), 0xF2FFFFFF.toInt())
         // Must match the colour each wallpaper fades into, or the bottom edge shows a seam.
         ground = if (dark) DARK_BG else 0xFFF3F5F7.toInt()
         findViewById<View>(R.id.root).setBackgroundColor(ground)
@@ -761,6 +763,11 @@ class MainActivity : Activity() {
     /** Glass tiles: the see-through tiles over a blur of the wallpaper (settings, off by default). */
     private fun glassOn() = prefs.getBoolean("glass", false)
 
+    // Glass look, as percentages and alpha values; settings in the file only, to tune them on a TV (the defaults are the look).
+    private fun glassDarkPct() = prefs.getInt("glass_dark", 60)
+    private fun glassLightPct() = prefs.getInt("glass_light", 25)
+    private fun glassAlpha(name: String, default: Int) = prefs.getInt(name, default)
+
     /** Glass needs a picture to blur: with a plain background the tiles stay as they are. */
     private fun glassActive() = glassOn() && !currentWallpaper().startsWith("plain:")
 
@@ -801,7 +808,7 @@ class MainActivity : Activity() {
                 null
             } ?: decodeWallpaper(fallback).also { shown = fallback }
             val tail = BUNDLED_TAILS[shown.removePrefix("res:")] ?: 0 // what shows under a bundled wallpaper kept to its top 70%
-            val blur = if (bmp != null && glassActive()) glassPixels(bmp, ground, dark) else null
+            val blur = if (bmp != null && glassActive()) glassPixels(bmp, ground, dark, glassDarkPct(), glassLightPct()) else null
             ui.post {
                 if (gen != wallpaperGen) return@post bmp?.recycle().let {}
                 glass.setBlur(blur)
@@ -3394,7 +3401,7 @@ class MainActivity : Activity() {
      */
     private fun rimCard(radius: Int, lit: Boolean, solid: Boolean = false, frosted: Boolean = false, ring: Boolean = false): Drawable {
         val glass = (if (lit) DARK_CARD_LIT else DARK_CARD).let { c -> if (solid) IntArray(c.size) { c[it] or 0xFF000000.toInt() } else c }
-            .let { c -> if (frosted) IntArray(c.size) { c[it] and 0x00FFFFFF or (if (lit) 0x8C000000.toInt() else 0x73000000) } else c }
+            .let { c -> if (frosted) IntArray(c.size) { c[it] and 0x00FFFFFF or ((if (lit) glassAlpha("glass_d_lit", 0x8C) else glassAlpha("glass_d_rest", 0x73)) shl 24) } else c }
         val body = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, glass).apply {
             cornerRadius = radius.toFloat()
             if (ring && lit) setStroke(dp(2), 0xCCFFFFFF.toInt()) // the selected tile, as a ring (an idea to try for glass)
