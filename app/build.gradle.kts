@@ -10,7 +10,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "dev.plume"
+        applicationId = "dev.plume.ev"
         minSdk = 26
         targetSdk = 36
         versionCode = 6
@@ -49,6 +49,7 @@ android {
 
     buildTypes {
         release {
+            isDebuggable = true // test copy only: run-as can then write its settings
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
