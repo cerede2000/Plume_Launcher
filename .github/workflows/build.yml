@@ -43,7 +43,8 @@ jobs:
       # The upstream code has lint findings of its own, so lint only reports: the run stays green and the
       # findings are in the lint-report artifact.
       - name: Lint (report only)
-        run: ./gradlew --no-daemon :app:lintDebug || echo "::notice::Lint found issues in the upstream code: see the lint-report artifact"
+        run: |
+          ./gradlew --no-daemon :app:lintDebug || echo "::notice::Lint found issues in the upstream code, see the lint-report artifact"
 
       - name: Name the APK
         id: apk
