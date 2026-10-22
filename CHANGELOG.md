@@ -14,6 +14,13 @@ Write every entry in ASD-STE100 Simplified Technical English:
 
 Put changes that are not released under `## Unreleased`. Rename that heading to the version number when you release.
 
+## Unreleased
+
+- When you move quickly along the app row, Plume shows an app's name only when you reach that app.
+- In **All apps**, the tile in the first or last column is no longer cut off when you select it.
+- The dark tiles and the wallpaper fade are smooth. Their gradients no longer show as bands.
+- Continue Watching shows what you are watching before the next-episode suggestions. Some apps give the time in seconds. Plume now reads it correctly.
+
 ## 1.4
 
 ### Smaller

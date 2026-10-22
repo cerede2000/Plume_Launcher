@@ -119,7 +119,7 @@ internal fun folderPhotos(cr: ContentResolver, choice: String): List<Long> =
  * newest first. Some apps write the time in seconds, not milliseconds (Wholphin does, for what is playing): a number
  * that small is read as seconds, or it would sort a thousand times older than every other row.
  */
-internal fun watchKey(type: Long, engaged: Long): Long {
+internal fun watchSortKey(type: Long, engaged: Long): Long {
     val millis = if (engaged in 1 until 100_000_000_000L) engaged * 1000 else engaged
     return (if (type == 0L) 1L shl 50 else 0L) + millis
 }
@@ -1817,12 +1817,13 @@ class MainActivity : Activity() {
         val label = findViewById<TextView>(R.id.rowLabel)
         if (focused && !editing && rowNames() == "focus") {
             // Name and place change together, or moving quickly shows the next name under the previous tile for a frame.
-            // Posted only on first render, when focus lands before layout and every width is still 0.
+            // Posted only on first render, when focus lands before layout and every width is still 0. A post that runs
+            // after focus moved on is skipped, or it would show this old name while a newer tile is selected.
             val place = {
                 label.text = v.contentDescription
                 label.translationX = v.left + v.width / 2f - label.width / 2f
             }
-            if (v.width > 0 && label.width > 0) place() else v.post(place)
+            if (v.width > 0 && label.width > 0) place() else v.post { if (v.isFocused) place() }
             label.animate().alpha(if (dark) 0.85f else 1f).setDuration(160).start()
         } else {
             ui.post { if (currentFocus?.parent !== appRow || editing) label.animate().alpha(0f).setDuration(120).start() }
@@ -2950,7 +2951,7 @@ class MainActivity : Activity() {
         val hidden = prefs.getStringSet("hidden_watch", emptySet())!!
         val watchNext = readPrograms(TvContract.WatchNextPrograms.CONTENT_URI, hidden)
         val channels = continueChannels().flatMap { id ->
-            readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden).map { (_, p) -> watchKey(0, prefs.getLong("t_${p.pkg}", 0)) to p }
+            readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden).map { (_, p) -> watchSortKey(0, prefs.getLong("t_${p.pkg}", 0)) to p }
         }
         val all = watchNext + channels
         publishingPkgs = all.mapNotNull { it.second.pkg }.toSet()
@@ -3003,7 +3004,7 @@ class MainActivity : Activity() {
         return ids
     }
 
-    /** Pairs of (sort key, item), see [watchKey]; channel rows have no time of their own and get the type "continue". */
+    /** Pairs of (sort key, item), see [watchSortKey]; channel rows have no time of their own and get the type "continue". */
     private fun readPrograms(uri: Uri, hidden: Set<String>, sort: String? = null): List<Pair<Long, Prog>> {
         val out = ArrayList<Pair<Long, Prog>>()
         contentResolver.query(uri, null, null, null, sort)?.use { c ->
@@ -3024,7 +3025,7 @@ class MainActivity : Activity() {
                 ).joinToString(" - ")
                 val progress = if (duration > 0 && position >= 1000) (position * 100 / duration).toInt().coerceIn(0, 100) else 0
                 val prog = Prog(title, sub, progress, str("thumbnail_uri") ?: str("poster_art_uri"), str("intent_uri"), str("package_name"))
-                out += watchKey(num("watch_next_type"), num("last_engagement_time_utc_millis")) to prog
+                out += watchSortKey(num("watch_next_type"), num("last_engagement_time_utc_millis")) to prog
             }
         }
         return out
@@ -3340,7 +3341,7 @@ class MainActivity : Activity() {
         val body = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, if (lit) DARK_CARD_LIT else DARK_CARD).apply {
             cornerRadius = radius.toFloat()
             setStroke(1, if (lit) RIM_SIDE_LIT else RIM_SIDE) // 1px, not 1dp: a hairline stays crisp
-            setDither(true) // near black the gradient has only ~8 steps: dithered, they don't show as bands
+            setDither(true) // near black the gradient has ~8 steps; dithered, they don't show as bands
         }
         return LayerDrawable(arrayOf(body, ColorDrawable(if (lit) RIM_TOP_LIT else RIM_TOP))).apply {
             setLayerGravity(1, Gravity.TOP or Gravity.FILL_HORIZONTAL)
