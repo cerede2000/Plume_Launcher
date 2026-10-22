@@ -34,9 +34,10 @@ class GlassTest {
 
     @Test fun darkModeDarkensAndLightModeLightens() {
         val pic = intArrayOf(px(200, 100, 50))
-        val dark = glassTone(pic, dark = true)[0]
-        val light = glassTone(pic, dark = false)[0]
+        val dark = glassTone(pic, dark = true, darkPct = 60)[0]
+        val light = glassTone(pic, dark = false, lightPct = 25)[0]
         assertEquals(px(120, 60, 30), dark)
         assertEquals(px(213, 138, 101), light)
+        assertEquals("the default dark glass keeps the brightness", pic[0], glassTone(pic, dark = true)[0])
     }
 }

@@ -55,7 +55,7 @@ internal fun boxBlur(px: IntArray, w: Int, h: Int, radius: Int, passes: Int = 2)
  * The glass keeps the wallpaper's colours but not its brightness: dark mode keeps [darkPct] percent of it, light mode
  * moves [lightPct] percent of the way to white.
  */
-internal fun glassTone(px: IntArray, dark: Boolean, darkPct: Int = 60, lightPct: Int = 25): IntArray = IntArray(px.size) {
+internal fun glassTone(px: IntArray, dark: Boolean, darkPct: Int = 100, lightPct: Int = 20): IntArray = IntArray(px.size) {
     val p = px[it]
     val c = IntArray(3) { k -> p shr (16 - 8 * k) and 0xFF }
     for (k in 0..2) c[k] = if (dark) c[k] * darkPct / 100 else c[k] + (255 - c[k]) * lightPct / 100
@@ -66,7 +66,7 @@ internal fun glassTone(px: IntArray, dark: Boolean, darkPct: Int = 60, lightPct:
  * The wallpaper as it shows on the screen, blurred, as [GLASS_W]x[GLASS_H] pixels. [ground] fills what the picture
  * does not cover (the bundled ones stop at 70% of the height). Done once when a wallpaper loads, off the UI thread.
  */
-internal fun glassPixels(wallpaper: Bitmap, ground: Int, dark: Boolean, darkPct: Int = 60, lightPct: Int = 25): IntArray {
+internal fun glassPixels(wallpaper: Bitmap, ground: Int, dark: Boolean, darkPct: Int = 100, lightPct: Int = 20): IntArray {
     // In two steps, or a 1920 px picture shrunk to 120 px in one would skip most of its pixels.
     val mid = Bitmap.createScaledBitmap(wallpaper, wallpaper.width / 4, wallpaper.height / 4, true)
     val screen = Bitmap.createBitmap(GLASS_W, GLASS_H, Bitmap.Config.ARGB_8888)
