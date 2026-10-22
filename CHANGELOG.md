@@ -28,7 +28,7 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 ## 1.4
 
 ### Smaller
-- **8% smaller.** Plume is now 381 KB, down from 413 KB, and it has more features.
+- **3% smaller.** Plume is now 399 KB, down from 413 KB, and it has more features.
 
 ### New
 - **Plume settings → App row → Icon style** has two new choices, **Banner** and **Monochrome banner**. Each app shows its own picture, as on Apple TV. With **Monochrome banner**, the pictures are grey until you select one. An app with no banner keeps its logo. Monochrome stays the default.
