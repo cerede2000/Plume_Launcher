@@ -40,10 +40,10 @@ jobs:
       - name: Unit tests and release APK
         run: ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleRelease
 
-      # The upstream code has lint findings of its own, so lint reports instead of blocking the APK.
+      # The upstream code has lint findings of its own, so lint only reports: the run stays green and the
+      # findings are in the lint-report artifact.
       - name: Lint (report only)
-        continue-on-error: true
-        run: ./gradlew --no-daemon :app:lintDebug
+        run: ./gradlew --no-daemon :app:lintDebug || echo "::notice::Lint found issues in the upstream code: see the lint-report artifact"
 
       - name: Name the APK
         id: apk
