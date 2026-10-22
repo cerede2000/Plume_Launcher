@@ -16,11 +16,25 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 
 ## Unreleased
 
+- **Android 8:** Plume opens on Android 8.0 and 8.1. Before, it closed immediately after it opened.
+- When you move quickly along the app row, Plume shows an app's name only when you reach that app.
+- In **All apps**, the tile in the first or last column is no longer cut off when you select it.
+- The dark tiles and the wallpaper fade are smooth. Their gradients no longer show as bands.
+- Continue Watching shows what you are watching before the next-episode suggestions. Some apps give the time in seconds. Plume now reads it correctly.
+- You can use the Bing picture of the day as the wallpaper. Select **Plume settings → Appearance → Light mode wallpaper** or **Dark mode wallpaper**, then select **Bing picture of the day**. Plume asks Bing when the home screen opens, and stops for the day when the picture has changed. Plume keeps one picture. In dark mode, Plume makes the picture darker.
+- If your wallpaper is too big for the memory of your TV, Plume shows the default wallpaper. Before, Plume closed.
+
+## 1.4
+
+### Smaller
+- **8% smaller.** Plume is now 381 KB, down from 413 KB, and it has more features.
+
+### New
 - A key on the remote can open Android settings or the network settings. Select **Plume settings → Remote keys**, pick a key, then **Android settings** or **Network settings**.
 - All apps opens under the apps row. Select the tile at the right end of the row, or the grid icon in the top bar. Push Left on the first app to reach that tile at once. The row moves up and Continue Watching steps aside. It shows the apps that are not in the row. Hold OK on one to move it or add it to the row. The row and All apps share one order.
 - Plume can end other apps to free memory. Plume ends the Google TV home screen each time it starts. Select **Plume settings → Memory** to turn that off, to pick more apps, or to stop the running apps now. A key on the remote can do the same: select **Plume settings → Remote keys**. A black screen shows the progress and the memory freed while Plume taps Force stop in Settings for each app. Push Back to cancel. This needs **Plume: Home button** turned on in Accessibility settings. Turn it off and on again once after an update.
 - The cards row can show one row for each channel. Select **Plume settings → Continue Watching → Cards row → One row per channel**. Push Down on a card to see the next channel. Push Up to go back.
-- You can use the Bing picture of the day as the wallpaper. Select **Plume settings → Appearance → Light mode wallpaper** or **Dark mode wallpaper**, then select **Bing picture of the day**. Plume gets a new picture once a day and keeps only one. On a 4K screen the picture is 4K. In dark mode, Plume makes the picture darker.
+- You can use the Bing picture of the day as the wallpaper. Select **Plume settings → Appearance → Light mode wallpaper** or **Dark mode wallpaper**, then select **Bing picture of the day**. Plume asks Bing when the home screen opens, and stops for the day when the picture has changed. Plume keeps one picture. In dark mode, Plume makes the picture darker.
 - Continue Watching shows what you are watching before the next-episode suggestions. Some apps give the time in seconds. Plume now reads it correctly.
 - **Sources list.** Select the Sources icon in the top bar. A list of the TV inputs opens under it. Your PS5, Xbox or Nintendo Switch shows with its logo. A port with no signal says so. Hold OK on an input to put it in the apps row.
 - **More Continue Watching.** The limit of 3 shows for each app is gone. Each app keeps 3 places at the front.
