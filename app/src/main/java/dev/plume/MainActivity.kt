@@ -342,7 +342,7 @@ class MainActivity : Activity() {
         if (galleryOn() && photoScreensaver() == null && !paintingsReady(this)) downloadPaintings {}
         checkUpdate(force = false)
         Bing.onChanged = bingChanged
-        Bing.refresh(applicationContext, prefs, resources.displayMetrics.widthPixels)
+        Bing.refresh(applicationContext, prefs)
         ui.post { updateBadge() } // after layout, so the icon has its size
     }
 
@@ -774,7 +774,7 @@ class MainActivity : Activity() {
                 decodeWallpaper(choice)
             } catch (e: Exception) {
                 null
-            } catch (e: OutOfMemoryError) { // a 4K picture on a TV short of memory: show the default instead of crashing
+            } catch (e: OutOfMemoryError) { // a picture on a TV short of memory: show the default instead of crashing
                 null
             } ?: decodeWallpaper(fallback).also { shown = fallback }
             val tail = BUNDLED_TAILS[shown.removePrefix("res:")] ?: 0 // what shows under a bundled wallpaper kept to its top 70%
@@ -804,9 +804,7 @@ class MainActivity : Activity() {
         }
         // fitWallpaper's bitmap is mutable: the fades are painted onto it.
         val bmp = when {
-            choice == Bing.CHOICE -> Bing.wallpaperSize(resources.displayMetrics.widthPixels).let { (w, h) ->
-                fitWallpaper(w, h) { Bing.file(this).inputStream() }
-            }
+            choice == Bing.CHOICE -> fitWallpaper { Bing.file(this).inputStream() }
             choice.startsWith("folder:") -> {
                 val uri = ContentUris.withAppendedId(PHOTOS, folderPhoto(choice) ?: return null)
                 fitWallpaper { contentResolver.openInputStream(uri) ?: throw IOException("gone: $uri") }
@@ -853,7 +851,7 @@ class MainActivity : Activity() {
         prefs.edit().putString(if (forDark) "wp_dark" else "wp_light", choice)
             .remove(photoKey(forDark)).putLong(photoAtKey(forDark), System.currentTimeMillis()).apply()
         Bing.dropIfUnused(applicationContext, prefs) // choosing another wallpaper deletes the Bing picture at once
-        if (choice == Bing.CHOICE) Bing.refresh(applicationContext, prefs, resources.displayMetrics.widthPixels, force = true)
+        if (choice == Bing.CHOICE) Bing.refresh(applicationContext, prefs, force = true)
         if (forDark == dark) loadWallpaper()
     }
 
