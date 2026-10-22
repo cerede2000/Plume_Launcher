@@ -16,7 +16,6 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 
 ## Unreleased
 
-- A long app name no longer runs past its tile. It scrolls slowly while the app is selected.
 - **Android 8:** Plume opens on Android 8.0 and 8.1. Before, it closed immediately after it opened.
 - When you move quickly along the app row, Plume shows an app's name only when you reach that app.
 - In **All apps**, the tile in the first or last column is no longer cut off when you select it.
@@ -32,6 +31,7 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 - **3% smaller.** Plume is now 399 KB, down from 413 KB, and it has more features.
 
 ### New
+- A long app name no longer runs past its tile. It scrolls slowly while the app is selected.
 - **Plume settings → App row → Icon style** has two new choices, **Banner** and **Monochrome banner**. Each app shows its own picture, as on Apple TV. With **Monochrome banner**, the pictures are grey until you select one. An app with no banner keeps its logo. Monochrome stays the default.
 - **Plume settings → Appearance → Glass tiles** blurs the wallpaper behind the tiles, like frosted glass. It is off by default.
 - A key on the remote can open Android settings or the network settings. Select **Plume settings → Remote keys**, pick a key, then **Android settings** or **Network settings**.
