@@ -213,7 +213,6 @@
         <item quantity="other">%d touches</item>
     </plurals>
     <string name="bing_daily">Image Bing du jour</string>
-    <string name="banner">Bannière</string>
     <string name="cards_mode">Rangée de cartes</string>
     <string name="cards_one">Une rangée</string>
     <string name="cards_stack">Une rangée par chaîne</string>
