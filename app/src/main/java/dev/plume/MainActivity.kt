@@ -76,6 +76,7 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.net.HttpURLConnection
+import java.time.LocalDate
 import java.net.URL
 import java.net.URLEncoder
 import java.security.MessageDigest
@@ -179,7 +180,13 @@ class MainActivity : Activity() {
     private class App(val pkg: String, val label: String, val launch: Intent, val icon: Drawable, val offline: Boolean = false)
     private class Prog(val title: String, val sub: String, val progress: Int, val image: String?, val intent: String?, val pkg: String?)
 
-    private val prefs by lazy { getSharedPreferences("home", MODE_PRIVATE) }
+    private val prefs by lazy {
+        getSharedPreferences("home", MODE_PRIVATE).also { p ->
+            // The choice was "daily:bing" in builds before 1.4; the picture was in daily_bing.jpg.
+            for (k in arrayOf("wp_light", "wp_dark")) if (p.getString(k, null) == "daily:bing") p.edit().putString(k, Bing.CHOICE).apply()
+            File(filesDir, "daily_bing.jpg").delete()
+        }
+    }
     private val io = Executors.newSingleThreadExecutor()
     // Posters get their own threads: one slow image server must not hold up the rest (or the row data).
     private val posterIo = Executors.newFixedThreadPool(3)
