@@ -22,8 +22,6 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 - The dark tiles and the wallpaper fade are smooth. Their gradients no longer show as bands.
 - Continue Watching shows what you are watching before the next-episode suggestions. Some apps give the time in seconds. Plume now reads it correctly.
 - The tiles are see-through. The wallpaper shows through them. Menus and dialogs stay solid.
-- **Plume settings → App row → Icon style** has two new choices, **Banner** and **Monochrome banner**. Each app shows its own picture, as on Apple TV. With **Monochrome banner**, the pictures are grey until you select one. An app with no banner keeps its logo. Monochrome stays the default.
-- **Plume settings → Appearance → Glass tiles** blurs the wallpaper behind the tiles, like frosted glass. It is off by default.
 - You can use the Bing picture of the day as the wallpaper. Select **Plume settings → Appearance → Light mode wallpaper** or **Dark mode wallpaper**, then select **Bing picture of the day**. Plume asks Bing when the home screen opens, and stops for the day when the picture has changed. Plume keeps one picture. In dark mode, Plume makes the picture darker.
 - If your wallpaper is too big for the memory of your TV, Plume shows the default wallpaper. Before, Plume closed.
 
@@ -33,6 +31,8 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 - **8% smaller.** Plume is now 381 KB, down from 413 KB, and it has more features.
 
 ### New
+- **Plume settings → App row → Icon style** has two new choices, **Banner** and **Monochrome banner**. Each app shows its own picture, as on Apple TV. With **Monochrome banner**, the pictures are grey until you select one. An app with no banner keeps its logo. Monochrome stays the default.
+- **Plume settings → Appearance → Glass tiles** blurs the wallpaper behind the tiles, like frosted glass. It is off by default.
 - A key on the remote can open Android settings or the network settings. Select **Plume settings → Remote keys**, pick a key, then **Android settings** or **Network settings**.
 - All apps opens under the apps row. Select the tile at the right end of the row, or the grid icon in the top bar. Push Left on the first app to reach that tile at once. The row moves up and Continue Watching steps aside. It shows the apps that are not in the row. Hold OK on one to move it or add it to the row. The row and All apps share one order.
 - Plume can end other apps to free memory. Plume ends the Google TV home screen each time it starts. Select **Plume settings → Memory** to turn that off, to pick more apps, or to stop the running apps now. A key on the remote can do the same: select **Plume settings → Remote keys**. A black screen shows the progress and the memory freed while Plume taps Force stop in Settings for each app. Push Back to cancel. This needs **Plume: Home button** turned on in Accessibility settings. Turn it off and on again once after an update.
