@@ -167,6 +167,16 @@ internal fun isAudioDevice(name: String) = name.lowercase().let { n -> AUDIO_WOR
 /** An app is in the home row unless it was taken out; it stays in All apps either way. */
 internal fun inRow(pkg: String, hidden: Set<String>) = pkg !in hidden
 
+/** The icon styles, in the order the setting steps through them. */
+internal val ICON_STYLE_KEYS = listOf("mono", "colour", "banner", "bannermono")
+
+/** Banner and Monochrome banner: the row shows the apps' own pictures in 16:9 tiles. */
+internal fun isBannerStyle(style: String) = style.startsWith("banner")
+
+/** The style a stored choice means. Before styles, Colour was an on/off setting ([oldColour]): it decides until a style is picked. */
+internal fun iconStyleOf(stored: String?, oldColour: Boolean) =
+    stored?.takeIf { it in ICON_STYLE_KEYS } ?: if (oldColour) "colour" else "mono"
+
 /** Allowed to start an activity from the background because the Home button service is bound. */
 class Updated : BroadcastReceiver() {
     override fun onReceive(c: Context, i: Intent) {
@@ -697,8 +707,8 @@ class MainActivity : Activity() {
     private fun applyTheme() {
         dark = wantDark()
         fg = if (dark) DARK_TEXT else 0xFF111214.toInt()
-        // Dark cards are rimCard()s on true black. Light cards are frosted grey glass, so they still read on
-        // white wallpapers; focus turns them white.
+        // Cards are see-through, so the wallpaper shows through them like frosted glass: dark ones are rimCard()s at
+        // 70%, light ones frosted grey at 78%, and focus lifts them to 80% and 95%.
         cardRest = if (dark) DARK_CARD else intArrayOf(0xC8E2E5E9.toInt(), 0xC8D8DCE1.toInt())
         cardLit = if (dark) DARK_CARD_LIT else intArrayOf(0xF2FFFFFF.toInt(), 0xF2FFFFFF.toInt())
         // Must match the colour each wallpaper fades into, or the bottom edge shows a seam.
@@ -1685,7 +1695,7 @@ class MainActivity : Activity() {
         val takeFocus = currentFocus == null || currentFocus?.parent === appRow || firstFill
         val gap = dp(GRID_GAP)
         val width = rowTileWidth()
-        val tileH = if (iconStyle() == "banner") width * 9 / 16 else dp(76) // 16:9 like a banner
+        val tileH = if (isBannerStyle(iconStyle())) width * 9 / 16 else dp(76) // 16:9 like a banner
         // The row sits on the bottom of its space. A banner row is shorter, so lift it by half the difference: its
         // centre stays where the card row's is, between the clock and Continue Watching.
         findViewById<View>(R.id.appScroll).apply {
@@ -1727,10 +1737,9 @@ class MainActivity : Activity() {
 
     /** Each app's own shipped icon instead of the mono mark, in the row and All apps. */
     /** "mono", "colour" or "banner". The old on/off "colour_icons" decides until a style has been picked. */
-    private fun iconStyle() = prefs.getString("icon_style", null)?.takeIf { it in ICON_STYLES }
-        ?: if (prefs.getBoolean("colour_icons", false)) "colour" else "mono"
+    private fun iconStyle() = iconStyleOf(prefs.getString("icon_style", null), prefs.getBoolean("colour_icons", false))
 
-    private fun colourIcons() = iconStyle() != "mono"
+    private fun colourIcons() = iconStyle().let { it == "colour" || it == "banner" } // a monochrome banner row keeps the marks grey too
 
     /** Width of a home row tile: eight across the screen. */
     private fun rowTileWidth() = (resources.displayMetrics.widthPixels - dp(96) - dp(GRID_GAP) * (ROW_TILES - 1)) / ROW_TILES
@@ -1760,18 +1769,30 @@ class MainActivity : Activity() {
         (banner as? BitmapDrawable)?.isFilterBitmap = true
         banner.setBounds((w - dw) / 2, (h - dh) / 2, (w - dw) / 2 + dw, (h - dh) / 2 + dh)
         banner.draw(Canvas(bmp))
+        // Monochrome banner: grey at rest, in colour while selected, as the marks brighten in dark mode.
+        val grey = iconStyle() == "bannermono"
+        val rest = if (dark) 0.8f else 1f
+        val pic = ImageView(this).apply {
+            setImageBitmap(bmp)
+            scaleType = ImageView.ScaleType.FIT_XY
+            if (grey) { colorFilter = GREYSCALE; alpha = rest }
+        }
         val col = FrameLayout(this).apply {
-            addView(ImageView(context).apply { setImageBitmap(bmp); scaleType = ImageView.ScaleType.FIT_XY }, MATCH_PARENT, MATCH_PARENT)
+            addView(pic, MATCH_PARENT, MATCH_PARENT)
             tag = a.pkg
             setOnClickListener { launch(a) }
         }
-        style(col, dp(8), card = false)
+        style(col, dp(8), card = false) { focused ->
+            if (!grey) return@style
+            pic.colorFilter = if (focused) null else GREYSCALE
+            pic.animate().alpha(if (focused) 1f else rest).setDuration(160).start()
+        }
         return col
     }
 
     /** The home row shows marks only by default (see rowNames); the All apps grid always labels them. */
     private fun appTile(a: App, labeled: Boolean = true): View {
-        if (!labeled && iconStyle() == "banner") bannerTile(a)?.let { it.contentDescription = a.label; return it }
+        if (!labeled && isBannerStyle(iconStyle())) bannerTile(a)?.let { it.contentDescription = a.label; return it }
         val logo = LOGOS[a.pkg]
         val custom = customIcon(a.pkg)
         val name = a.label.takeIf { labeled }
@@ -1862,7 +1883,7 @@ class MainActivity : Activity() {
                 img.scaleType = ImageView.ScaleType.CENTER_CROP
                 img.setPadding(wordmarkInset, 0, wordmarkInset, 0)
             } else {
-                val v = if (iconStyle() == "banner") dp(8) else dp(20) // banner rows are shorter
+                val v = if (isBannerStyle(iconStyle())) dp(8) else dp(20) // banner rows are shorter
                 img.setPadding(dp(16), v, dp(16), v)
             }
             col.addView(img, LinearLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
@@ -3379,7 +3400,7 @@ class MainActivity : Activity() {
         const val DARK_SURFACE = 0xFF0B0B0B.toInt() // placeholders behind images
         const val DARK_TEXT = 0xFFF5F5F5.toInt()
         const val DARK_TEXT_2 = 0xFF7A7A7A.toInt() // values, unfocused rows, supporting text
-        // Translucent (70% and 80%), so the wallpaper shows through the tiles like frosted glass.
+        // Translucent (70% at rest, 80% selected), so the wallpaper shows through the tiles like frosted glass.
         val DARK_CARD = intArrayOf(0xB30B0B0B.toInt(), 0xB3040404.toInt())
         val DARK_CARD_LIT = intArrayOf(0xCC141414.toInt(), 0xCC070707.toInt())
         const val RIM_TOP = 0x17FFFFFF // white 9%
@@ -3413,7 +3434,7 @@ class MainActivity : Activity() {
         /** The cards row setting -> its name. */
         val CARDS_MODES = linkedMapOf("one" to R.string.cards_one, "stack" to R.string.cards_stack, "off" to R.string.hidden)
         /** Icon style setting -> its name. */
-        val ICON_STYLES = linkedMapOf("mono" to R.string.monochrome, "colour" to R.string.colour, "banner" to R.string.banner)
+        val ICON_STYLES = linkedMapOf(ICON_STYLE_KEYS[0] to R.string.monochrome, ICON_STYLE_KEYS[1] to R.string.colour, ICON_STYLE_KEYS[2] to R.string.banner, ICON_STYLE_KEYS[3] to R.string.banner_mono)
         const val GRID_GAP = 16 // dp; shared by the apps row and the cards so their columns line up
         /** Shown names for the wallpaper keys saved in prefs (the keys stay English). */
         val WALLPAPER_NAMES = mapOf(
