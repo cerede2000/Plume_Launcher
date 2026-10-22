@@ -1579,6 +1579,7 @@ class MainActivity : Activity() {
      */
     private fun bannerTile(a: App): View? {
         if (a.pkg.startsWith(HDMI)) return null
+        if (a.pkg in prefs.getStringSet("nobanner", emptySet())!!) return null // test copy only: pretend this app has no banner
         val banner = try {
             packageManager.getActivityBanner(a.launch)
         } catch (e: Exception) {
