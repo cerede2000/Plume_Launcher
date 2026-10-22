@@ -1,0 +1,42 @@
+package dev.plume
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class GlassTest {
+    private fun px(r: Int, g: Int, b: Int) = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+
+    @Test fun aFlatPictureStaysFlat() {
+        val flat = IntArray(12 * 8) { px(40, 120, 200) }
+        assertTrue(boxBlur(flat, 12, 8, 2).all { it == px(40, 120, 200) })
+    }
+
+    @Test fun aBrightPixelSpreadsToItsNeighboursAndDims() {
+        val w = 15
+        val h = 15
+        val pic = IntArray(w * h) { px(0, 0, 0) }
+        pic[7 * w + 7] = px(255, 255, 255)
+        val out = boxBlur(pic, w, h, 2)
+        val centre = out[7 * w + 7] and 0xFF
+        assertTrue("the centre dims", centre in 1..254)
+        assertTrue("a neighbour lights up", (out[7 * w + 8] and 0xFF) > 0)
+        assertEquals("the blur is the same both ways", out[7 * w + 8], out[8 * w + 7])
+        assertTrue("far away stays black", (out[0] and 0xFF) == 0)
+    }
+
+    @Test fun theInputIsLeftAlone() {
+        val pic = IntArray(9 * 9) { px(it, 0, 0) }
+        val copy = pic.copyOf()
+        boxBlur(pic, 9, 9, 1)
+        assertTrue(pic.contentEquals(copy))
+    }
+
+    @Test fun darkModeDarkensAndLightModeLightens() {
+        val pic = intArrayOf(px(200, 100, 50))
+        val dark = glassTone(pic, dark = true)[0]
+        val light = glassTone(pic, dark = false)[0]
+        assertEquals(px(120, 60, 30), dark)
+        assertEquals(px(213, 138, 101), light)
+    }
+}
