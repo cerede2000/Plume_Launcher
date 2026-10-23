@@ -1754,12 +1754,18 @@ class MainActivity : Activity() {
             isFocusable = true
             isClickable = true
             val name = label(title, 14f).apply { if (dark) setTextColor(text2()) }
-            addView(name, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
             val shown = if (value == TOGGLE_ON || value == TOGGLE_OFF) null else label(value, 13f).apply { secondary(0.6f) }
-            if (shown == null) addView(switch(value == TOGGLE_ON), LinearLayout.LayoutParams(dp(36), dp(20)))
-            else addView(shown, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                if (value.isNotEmpty()) marginStart = dp(16) // room between a long title and its value
-            })
+            if (shown == null) {
+                addView(name, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                addView(switch(value == TOGGLE_ON), LinearLayout.LayoutParams(dp(36), dp(20)))
+            } else {
+                // The title keeps its room and the value gives way, cut with "…": a long value must not cut "Appearance".
+                addView(name, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+                shown.gravity = Gravity.END
+                addView(shown, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    if (value.isNotEmpty()) marginStart = dp(16) // room between a long title and its value
+                })
+            }
             setOnClickListener { action() }
             setOnFocusChangeListener { _, focused ->
                 // Focus: a lit rimCard in dark (and the title brightens), a white pill in light.
