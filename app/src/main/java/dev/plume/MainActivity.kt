@@ -773,13 +773,16 @@ class MainActivity : Activity() {
     /** The surfaces (menus, cards, the settings panel) are glass too when Glass is on and there is a blur to paint. */
     private fun frosted() = glassActive() && glass.blur != null
 
+    /** Supporting text in dark mode: dim grey on black, lighter on glass, where it sits over a photo. */
+    private fun text2() = if (frosted()) Color.rgb(glassAlpha("glass_text2", 0xCC), glassAlpha("glass_text2", 0xCC), glassAlpha("glass_text2", 0xCC)) else DARK_TEXT_2
+
     /** A frosted surface in this theme: the blurred wallpaper under it, a tint, a hairline rim and a little light on top. */
     private fun glassSurface(round: Float, flatRight: Boolean = false): GlassBox = GlassBox(this).also { g -> styleGlass(g, round, flatRight) }
 
     private fun styleGlass(g: GlassBox, round: Float, flatRight: Boolean = false) {
         g.round = round
         g.flatRight = flatRight
-        g.tint = if (dark) glassAlpha("glass_s_dark", 0x73) shl 24 else (glassAlpha("glass_s_light", 0xA8) shl 24) or 0xFFFFFF
+        g.tint = if (dark) glassAlpha("glass_s_dark", 0x8C) shl 24 else (glassAlpha("glass_s_light", 0xA8) shl 24) or 0xFFFFFF
         g.rim = if (dark) 0x33FFFFFF else 0x1F000000
         g.highlight = if (dark) 0x14FFFFFF else 0x66FFFFFF
         g.setBlur(glass.blur)
@@ -1569,7 +1572,7 @@ class MainActivity : Activity() {
             background = bg
             isFocusable = true
             isClickable = true
-            val name = label(title, 14f).apply { if (dark) setTextColor(DARK_TEXT_2) }
+            val name = label(title, 14f).apply { if (dark) setTextColor(text2()) }
             addView(name, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
             val shown = if (value == TOGGLE_ON || value == TOGGLE_OFF) null else label(value, 13f).apply { secondary(0.6f) }
             if (shown == null) addView(switch(value == TOGGLE_ON), LinearLayout.LayoutParams(dp(36), dp(20)))
@@ -1582,7 +1585,7 @@ class MainActivity : Activity() {
                 if (dark) background = if (focused) rimCard(dp(8), true) else bg
                 else bg.colors = if (focused) intArrayOf(Color.WHITE, Color.WHITE) else intArrayOf(0, 0)
                 // The title glides to bright rather than snapping, so moving through the list feels smooth.
-                if (dark) ValueAnimator.ofArgb(name.currentTextColor, if (focused) DARK_TEXT else DARK_TEXT_2).apply {
+                if (dark) ValueAnimator.ofArgb(name.currentTextColor, if (focused) DARK_TEXT else text2()).apply {
                     duration = 160
                     interpolator = DECELERATE
                     addUpdateListener { name.setTextColor(it.animatedValue as Int) }
@@ -2307,7 +2310,7 @@ class MainActivity : Activity() {
                 settingsRow(src.label, state) { dismiss(); launch(src) }.also { row ->
                     (row as LinearLayout).addView(ImageView(this).apply {
                         setImageDrawable(src.icon)
-                        setColorFilter(if (dark) DARK_TEXT_2 else fg)
+                        setColorFilter(if (dark) text2() else fg)
                     }, 0, LinearLayout.LayoutParams(dp(20), dp(20)).apply { marginEnd = dp(12) })
                     row.setOnLongClickListener { dismiss(); unlock { togglePin(src) }; true } // hold OK: in or out of the home row
                 }
@@ -3463,7 +3466,7 @@ class MainActivity : Activity() {
     }
 
     /** Supporting text: the secondary grey in dark mode, [lightAlpha] of the main colour in light mode. */
-    private fun TextView.secondary(lightAlpha: Float) = if (dark) setTextColor(DARK_TEXT_2) else alpha = lightAlpha
+    private fun TextView.secondary(lightAlpha: Float) = if (dark) setTextColor(text2()) else alpha = lightAlpha
 
     /** A name that stays inside its box: it scrolls slowly while its tile is selected if it is too wide (see FittingLabel). */
     private fun fittingLabel(text: String, size: Float) = FittingLabel(this).apply {
