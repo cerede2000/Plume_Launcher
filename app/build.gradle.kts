@@ -10,7 +10,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "dev.plume"
+        applicationId = "dev.plume.ef"
         minSdk = 26
         targetSdk = 36
         versionCode = 7
@@ -54,6 +54,7 @@ android {
 
     buildTypes {
         release {
+            isDebuggable = true // test copy only: run-as can then write its settings
             vcsInfo.include = false
             isMinifyEnabled = true
             isShrinkResources = true
