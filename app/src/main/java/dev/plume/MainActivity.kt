@@ -771,7 +771,10 @@ class MainActivity : Activity() {
     private fun glassAlpha(name: String, default: Int) = prefs.getInt(name, default)
 
     /** The surfaces (menus, cards, the settings panel) are glass too when Glass is on and there is a blur to paint. */
-    private fun frosted() = glassActive() && glass.blur != null
+    private fun frosted() = glassActive()
+
+    /** The glass surfaces that are on screen, so that a wallpaper change (or a blur that arrives late) reaches them. */
+    private val glassSurfaces = ArrayList<java.lang.ref.WeakReference<GlassBox>>()
 
     /** Supporting text in dark mode: dim grey on black, lighter on glass, where it sits over a photo. */
     private fun text2() = if (frosted()) Color.rgb(glassAlpha("glass_text2", 0xCC), glassAlpha("glass_text2", 0xCC), glassAlpha("glass_text2", 0xCC)) else DARK_TEXT_2
@@ -786,6 +789,8 @@ class MainActivity : Activity() {
         g.rim = if (dark) 0x33FFFFFF else 0x1F000000
         g.highlight = if (dark) 0x14FFFFFF else 0x66FFFFFF
         g.setBlur(glass.blur)
+        glassSurfaces.removeAll { it.get() == null }
+        glassSurfaces.add(java.lang.ref.WeakReference(g))
     }
 
     /** Glass needs a picture to blur: with a plain background the tiles stay as they are. */
@@ -832,6 +837,7 @@ class MainActivity : Activity() {
             ui.post {
                 if (gen != wallpaperGen) return@post bmp?.recycle().let {}
                 glass.setBlur(blur)
+                glassSurfaces.forEach { it.get()?.setBlur(glass.blur) } // menus and cards that are open, and the panel
                 if (settingsScrim.visibility == View.VISIBLE) showPanelGlass() // a wallpaper picked from the panel itself
                 if (bmp == null) wallpaperKey = null
                 view.setBackgroundColor(tail)

@@ -194,9 +194,10 @@ internal class GlassBox @JvmOverloads constructor(context: Context, attrs: andro
             paint.shader = s
             c.drawRoundRect(rect, round, round, paint)
         }
-        tintPaint.color = tint
+        // Until the blur is there (a card opened at start), the tint is solid, so what is behind never shows in the text.
+        tintPaint.color = if (shader == null) tint or (0xFF shl 24) else tint
         c.drawRoundRect(rect, round, round, tintPaint)
-        if (highlight != 0) {
+        if (highlight != 0 && shader != null) {
             tintPaint.shader = gloss
             c.drawRoundRect(rect, round, round, tintPaint)
             tintPaint.shader = null
