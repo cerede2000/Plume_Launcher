@@ -25,7 +25,13 @@ Plume replaces the cluttered stock home screen with the two things you actually 
 - **Home button support on Google TV.** The Home button opens Plume directly, even on devices where the system launcher can't be replaced. Holding Home still opens the Google TV dashboard.
 - **Continue Watching.** Resume shows and films from Android TV's Watch Next list and from apps that publish their own "Continue Watching" channel, such as Stremio.
 - **Clean apps row.** Monochrome logos (or the same logos in brand colour, or each app's own banner) in a single row, with names on focus, always or never. Rearrange it by holding OK, sort by most used, or hide apps you don't use (they stay in All apps). An optional PIN locks the layout so small hands can't rearrange it.
+- **All apps under the row.** The tile at the right end of the row, or the grid icon in the top bar, opens every app that is not in the row, with the HDMI inputs. Hold OK on an app to move it or add it to the row, or to uninstall it. The row and All apps share one order.
 - **Sources list.** The Sources icon in the top bar opens the list of the TV inputs. A console or set-top box that names itself over HDMI-CEC (for example "PlayStation 5") shows with its logo, and selecting it switches the TV to that input. A port with no signal says so. Hold OK on an input to put it in the apps row, and again to take it out. A remote key can also open one input.
+- **Top bar you choose.** Pick which icons show at the top right, and their order: network, Sources, All apps, Android settings, Plume settings and an optional Power icon. Power turns the screen off, opens the power menu (power off, restart) or stops the running apps. Plume settings and Settings also have a tile in All apps, so you can hide their icons and still reach them.
+- **Remote keys.** Change what a button on your remote does: Play/Pause, Back, Recent apps, Quick settings, the power menu, Android settings, Network settings, open an app or an input, or nothing. A key can do one thing on a press and another when you hold it.
+- **Cards rows.** The row under the apps can show Continue Watching, any channel that one of your apps publishes (such as a Stremio library), or one row for each channel.
+- **Optional glass look.** Frosted glass behind the tiles, the menus, the cards and the settings panel: the wallpaper, blurred. Off by default.
+- **Optional memory clean-up.** Plume can end the Google TV home screen, or other apps you choose, to free memory. See [Free memory](#free-memory).
 - **Light, dark or automatic theme**, each with its own wallpaper. Add your own photos from your phone by scanning a QR code, or show a folder of photos from the TV or a USB drive that changes on a timer.
 - **Optional Gallery screensaver.** Public-domain landscape paintings in 16:9, downloaded only if you choose it, or a folder of your own photos.
 - **Optional weather** under the clock.
@@ -58,7 +64,7 @@ Measured on a Hisense Google TV (Android 12, 1.8 GB RAM):
 
 ### First-run setup
 
-Plume's settings panel includes two setup rows:
+**Plume settings → Home button** has two setup rows:
 
 | Setting | What to do |
 |---|---|
@@ -68,7 +74,7 @@ Plume's settings panel includes two setup rows:
 Allow the **TV listings** permission when asked; Continue Watching needs it.
 
 > [!NOTE]
-> Android shows the same generic warning for every accessibility service. Plume's service only listens for the Home key and for the system launcher appearing. It cannot read screen content.
+> Android shows the same generic warning for every accessibility service. Plume's service listens for the Home key, for the Google TV home screen appearing and for the keys you set under **Remote keys**. It sees only the windows of the Google TV home screen and of Android Settings, never other apps. It reads the Settings screens only while it stops apps for you (see [Free memory](#free-memory)).
 
 > [!TIP]
 > **Android 13 and newer:** Android blocks sideloaded apps from Accessibility at first. Open **Settings → Apps → Plume**, choose **Allow restricted settings** from the menu, then turn the service on.
@@ -102,19 +108,58 @@ Android 13 and newer grey out the Accessibility switch for apps installed outsid
 
 ## Using Plume
 
+Open **Plume settings** with the sliders icon in the top bar, or with the **Plume settings** tile in All apps. Settings are in sections: **Appearance**, **App row**, **Bottom row**, **Weather**, **Screensaver**, **Home button** and **Memory**, then **Remote keys**, **Top bar**, **Updates** and **Lock layout**.
+
 | Action | How |
 |---|---|
-| Rearrange apps | Hold **OK** on an app, or use **Settings → Edit apps row** |
+| Rearrange apps | Hold **OK** on an app, or use **Plume settings → App row → Edit apps row** |
 | Hide a Continue Watching item | Hold **OK** on its card, then **Remove from Continue Watching** |
 | Remove an app from the row | Hold **OK** on it, then **Remove from row** (it stays in *All apps*) |
-| Choose which apps feed Continue Watching | **Settings → Continue Watching apps** |
-| Pin an app from *All apps* to the front | Open **All apps**, hold **OK** on the app (this also unhides it) |
-| Hide apps from the row | **Settings → Apps in row** |
-| Show app names always, on focus or never | **Settings → App names** |
-| Switch between monochrome icons, colour icons and app banners | **Settings → Icon style** |
-| Update Plume | **Settings → Updates** |
-| Lock the layout with a PIN | **Settings → Lock layout** |
+| Uninstall an app | Hold **OK** on it in the row, then **Uninstall**. Android asks you to confirm. Plume offers this only for apps Android lets you remove. |
+| Open *All apps* | Select the tile at the right end of the row, or the grid icon in the top bar. Push **Left** on the first app to reach the tile at once. |
+| Pin an app from *All apps* to the row | Open **All apps**, hold **OK** on the app, then **Add to row** (this also unhides it) |
+| Choose which apps feed Continue Watching | **Plume settings → Bottom row → Apps** |
+| Hide apps from the row | **Plume settings → App row → Apps in row** |
+| Show app names always, on focus or never | **Plume settings → App row → App names** |
+| Use the Bing picture of the day as wallpaper | **Plume settings → Appearance → Light mode wallpaper** or **Dark mode wallpaper**, then **Bing picture of the day** |
+| Switch between monochrome icons, colour icons and app banners | **Plume settings → App row → Icon style** |
+| Choose the icons at the top right | **Plume settings → Top bar** |
+| Change what a remote key does | **Plume settings → Remote keys** |
+| Turn on the glass look | **Plume settings → Appearance → Glass** |
+| Update Plume | **Plume settings → Updates** |
+| Lock the layout with a PIN | **Plume settings → Lock layout** |
 | Open the Google TV dashboard | Hold the **Home** button |
+
+### Top bar
+
+**Plume settings → Top bar** lists the icons. Press **OK** to show or hide one, and **Left** or **Right** to move it. The **Power** icon is hidden at first. Select it to turn the screen off, open the power menu (power off, restart) or stop the running apps. If you hide **Plume settings** or **Settings**, you still reach them from the tiles of the same name in All apps.
+
+### Cards rows
+
+**Plume settings → Bottom row** sets what shows under the apps.
+
+- **Cards row** is **One row** (the default), **One row per channel** or off. With one row per channel, push **Down** on a card to see the next channel, and **Up** to go back.
+- **Channels** picks a channel from your apps for the first row, such as a Stremio library. **Row name** renames that row.
+- **Channel rows** picks the channels you can show next to Continue Watching. With **One row**, select the row's title and push **Left** or **Right** to switch channel. With **One row per channel**, each one has its own row.
+- **Apps** picks the apps that feed Continue Watching.
+
+### Remote keys
+
+**Plume settings → Remote keys → Add a key**, then press the key on your remote. Back, OK and the arrows can't be changed. For each key, choose what a **Press** does and what a **Hold** does: Play/Pause, Next, Previous, Stop, Rewind, Fast-forward, Back, Recent apps, Notifications, Quick settings, Power menu, Android settings, Network settings, **Open an app or input…**, **Stop running apps**, or **Do nothing**. A key you set stops doing its usual job. This needs **Plume: Home button** turned on in Accessibility settings.
+
+### Free memory
+
+**Plume settings → Memory** has three rows:
+
+- **Stop other home screens** ends the Google TV home screen each time Plume starts. It is on by default.
+- **Apps to stop** picks more apps for Plume to end.
+- **Stop running apps** ends them now.
+
+Android 14 lets an app end only itself, so Plume does what you would do: it opens each app's page in Settings and taps **Force stop**. A black screen covers this and shows the progress and the memory freed. Push **Back** to cancel. This needs **Plume: Home button** turned on in Accessibility settings. After an update, turn it off and on again once.
+
+### Glass
+
+**Plume settings → Appearance → Glass** blurs the wallpaper behind the tiles, the menus, the cards, All apps and the settings panel, like frosted glass. It is off by default. Plume blurs a small copy of the wallpaper once, so the look costs no extra work while you browse.
 
 ### Custom wallpapers
 
@@ -126,21 +171,21 @@ You can also copy `.jpg`, `.png` or `.webp` files to `Android/data/dev.plume/fil
 adb push my-wallpaper.jpg /sdcard/Android/data/dev.plume/files/wallpapers/
 ```
 
-A gentle fade is added automatically so the rows stay readable (**Settings → Photo fade** turns it off).
+A gentle fade is added automatically so the rows stay readable (**Plume settings → Appearance → Photo fade** turns it off).
 
 ### Photo folders
 
-Choose **Choose a folder on this TV…** in the wallpaper list to use a whole folder of photos, from the TV's storage or a USB drive. Plume asks for access to your photos the first time. The photos take turns in shuffled order; **Settings → Folder photo changes** sets how often, from every minute to once a day. The screensaver can show a folder too: **Settings → Screensaver → Your photos**.
+Choose **Choose a folder on this TV…** in the wallpaper list to use a whole folder of photos, from the TV's storage or a USB drive. Plume asks for access to your photos the first time. The photos take turns in shuffled order; **Plume settings → Appearance → Folder photo changes** sets how often, from every minute to once a day. The screensaver can show a folder too: **Plume settings → Screensaver → Screensaver → Your photos**.
 
 ### Lock layout
 
-**Settings → Lock layout** sets a 4-digit PIN. While it's on, Plume settings and anything that changes the home screen (moving, removing or pinning apps, hiding shows) ask for the PIN first; opening apps works as usual. One PIN unlocks changes for five minutes, until you leave the home screen. Use the arrows or the remote's number keys to enter it.
+**Plume settings → Lock layout** sets a 4-digit PIN. While it's on, Plume settings and anything that changes the home screen (moving, removing or pinning apps, hiding shows) ask for the PIN first, and so do the Wi-Fi and Android settings icons in the top bar. Opening apps works as usual. One PIN unlocks changes for five minutes, until you leave the home screen. Use the arrows or the remote's number keys to enter it.
 
 The lock keeps the layout safe, it isn't parental control: apps can still be opened by voice search or from Android settings. Forgot the PIN? **Android Settings → Apps → Plume → Clear data** removes it, along with your layout and settings.
 
 ### Gallery screensaver
 
-Select **Settings → Screensaver** to switch to Gallery. Plume downloads the paintings (4.7 MB) from this repository's releases and stores them privately. Switching back to another screensaver deletes them again, so they only take space while you use them.
+Select **Plume settings → Screensaver → Screensaver** to switch to Gallery. Plume downloads the paintings (4.7 MB) from this repository's releases and stores them privately. Switching back to another screensaver deletes them again, so they only take space while you use them.
 
 ## Privacy
 
@@ -158,13 +203,13 @@ Plume has no analytics, no ads and no account. It only connects to the internet 
 <details>
 <summary><b>The Home button still opens the old home screen</b></summary>
 
-Check that **Settings → Home button** shows **On**. If the app was force-stopped, Android turns its accessibility service off; open Plume once (or grant the optional adb permission above) to restore it.
+Check that **Plume settings → Home button** shows **On**. If the app was force-stopped, Android turns its accessibility service off; open Plume once (or grant the optional adb permission above) to restore it.
 </details>
 
 <details>
 <summary><b>Continue Watching is empty</b></summary>
 
-Make sure the TV listings permission is allowed (**Settings → Apps → Plume → Permissions**), and that the app you watch publishes to Android TV's Watch Next list. Check **Settings → Continue Watching apps** in Plume too.
+Make sure the TV listings permission is allowed (Android **Settings → Apps → Plume → Permissions**), and that the app you watch publishes to Android TV's Watch Next list. Check **Plume settings → Bottom row → Apps** too.
 </details>
 
 <details>
