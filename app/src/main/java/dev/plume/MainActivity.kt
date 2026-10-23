@@ -270,10 +270,18 @@ class MainActivity : Activity() {
     private lateinit var wifi: ImageView
     private lateinit var glass: GlassLayer // paints the blurred wallpaper under glass tiles
 
+    private var resumed = false
+    private val refreshIfDirty = Runnable { if (appsDirty) refreshApps() }
+
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
             appsDirty = true
             i.data?.schemeSpecificPart?.let { GLYPHS.remove(it); ACCENTS.remove(it) } // an update may bring a new icon
+            // The system can tell us after we are back in front, for example after an uninstall: onResume has run already.
+            if (resumed) {
+                ui.removeCallbacks(refreshIfDirty)
+                ui.postDelayed(refreshIfDirty, 300L)
+            }
         }
     }
 
@@ -368,6 +376,7 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        resumed = true
         ensureHomeService()
         homeSetupResumed()
         if (wantDark() != dark) {
@@ -415,6 +424,8 @@ class MainActivity : Activity() {
     }
 
     override fun onPause() {
+        resumed = false
+        ui.removeCallbacks(refreshIfDirty)
         ui.removeCallbacks(weatherTick)
         ui.removeCallbacks(themeTick)
         ui.removeCallbacks(wallpaperTick)
