@@ -179,10 +179,10 @@ section_screensaver	Écran de veille
 section_home	Bouton Accueil
 section_keys	Touches de la télécommande
 key_add	Ajouter une touche
-key_press_prompt	Appuyez sur la touche à modifier sur votre télécommande. Retour, OK et les flèches ne sont pas modifiables. Une touche réglée ici ne fait plus son action habituelle.
+key_press_prompt	Appuyez sur la touche à changer sur votre télécommande. Retour, OK et les flèches ne peuvent pas être changés. Une touche réglée ici ne fait plus son travail habituel.
 key_short	Appui
 key_long	Appui long
-key_unset	Non défini
+key_unset	Non réglée
 key_block	Ne rien faire
 key_open_app	Ouvrir une appli ou une entrée…
 key_remove	Retirer cette touche
@@ -226,7 +226,7 @@ section_top_bar	Barre du haut
 top_bar_hint	OK affiche ou masque l'icône. Gauche et Droite la déplacent. Paramètres de Plume reste dans Toutes les applis s'il est masqué.
 act_screen_off	Éteindre l'écran
 uninstall	Désinstaller
-cant_uninstall	Android n'a pas ouvert l'écran de désinstallation
+cant_uninstall	Impossible de désinstaller cette appli
 plume_tile	Plume
 n_on	Actives : %1$d
 cw_channels	Chaînes

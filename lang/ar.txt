@@ -184,3 +184,9 @@ photo_count:other	%d صورة
 language	اللغة
 lang_downloading	جارٍ التنزيل…
 lang_failed	فشل التنزيل
+sources	المصادر
+no_signal	لا توجد إشارة
+in_row	في الصف
+input_added	أُضيف إلى الصف.
+input_removed	أُزيل من الصف.
+sources_hint	اضغط مطوّلًا على OK لتثبيت مدخل في الصف.

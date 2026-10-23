@@ -147,7 +147,7 @@ Open **Plume settings** with the sliders icon in the top bar, or with the **Plum
 
 ### Remote keys
 
-**Plume settings → Remote keys → Add a key**, then press the key on your remote. Back, OK and the arrows can't be changed. For each key, choose what a **Press** does and what a **Hold** does: Play/Pause, Next, Previous, Stop, Rewind, Fast-forward, Back, Recent apps, Notifications, Quick settings, Power menu, Android settings, Network settings, **Open an app or input…**, **Stop running apps**, or **Do nothing**. A key you set stops doing its usual job. This needs **Plume: Home button** turned on in Accessibility settings.
+**Plume settings → Remote keys → Add a key**, then press the key on your remote. Back, OK, the arrows, Home, Power and the volume keys can't be changed, so the remote can't be locked out and keeps its volume. For each key, choose what a **Press** does and what a **Hold** does: Play/Pause, Next, Previous, Stop, Rewind, Fast-forward, Back, Recent apps, Notifications, Quick settings, Power menu, Android settings, Network settings, **Open an app or input…**, **Stop running apps**, or **Do nothing**. A key you set stops doing its usual job, and **Remove this key** gives it back. This needs **Plume: Home button** turned on in Accessibility settings.
 
 ### Free memory
 

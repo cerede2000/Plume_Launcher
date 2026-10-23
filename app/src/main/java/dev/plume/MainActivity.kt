@@ -189,6 +189,13 @@ internal fun isBannerStyle(style: String) = style.startsWith("banner")
 internal fun iconStyleOf(stored: String?, oldColour: Boolean) =
     stored?.takeIf { it in ICON_STYLE_KEYS } ?: if (oldColour) "colour" else "mono"
 
+/**
+ * Before the Sources list, an input with a signal or a CEC name was in the row without a pin. Once, on the update,
+ * pin every input that was in the row so that no tile goes away. [inputs]: the input key and whether it has no signal.
+ */
+internal fun pinsAfterSourcesUpdate(inputs: List<Pair<String, Boolean>>, hidden: Set<String>, pinned: Set<String>) =
+    pinned + inputs.filter { (pkg, offline) -> pkg !in hidden && (!offline || pkg in pinned) }.map { it.first }
+
 /** Allowed to start an activity from the background because the Home button service is bound. */
 class Updated : BroadcastReceiver() {
     override fun onReceive(c: Context, i: Intent) {
@@ -272,7 +279,7 @@ class MainActivity : Activity() {
     private lateinit var glass: GlassLayer // paints the blurred wallpaper under glass tiles
 
     private var resumed = false
-    private val refreshIfDirty = Runnable { if (appsDirty) refreshApps() }
+    private val refreshIfDirty = Runnable { if (appsDirty && !editing) refreshApps() } // not while a tile is being moved: onResume catches up
 
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
@@ -1203,7 +1210,7 @@ class MainActivity : Activity() {
     }
 
     private fun pickApp(id: String, hold: Boolean, now: String) {
-        showPage(getString(R.string.key_open_app), (sortedApps().filter { !it.pkg.startsWith(SETTINGS_PREFIX) } + sources).distinctBy { it.pkg }.map { a -> // HDMI ports count with or without a signal
+        showPage(getString(R.string.key_open_app), (sources + sortedApps().filter { !it.pkg.startsWith(HDMI) && !it.pkg.startsWith(SETTINGS_PREFIX) }).map { a -> // every input counts, with or without a signal: sortedApps() has only the pinned ones
             val action = if (a.pkg.startsWith(HDMI)) "hdmi:" + a.pkg.removePrefix(HDMI) else "app:" + a.pkg
             page(a.label, if (action == now) CHOSEN else "") { setAction(id, hold, action) }
         }) { pickAction(id, hold) }
@@ -1599,7 +1606,13 @@ class MainActivity : Activity() {
             }
         }
         val top = sections.map { (key, value, keys) -> key to page(getString(key), "$value  ›") { renderSettings(keys[0]) } } +
-            (R.string.section_keys to page(getString(R.string.section_keys), "${keysSummary()}  ›") { pickKeys() }) +
+            (R.string.section_keys to page(getString(R.string.section_keys), "${keysSummary()}  ›") {
+                // Like the layout: behind the PIN. unlock() closes the panel after the PIN, so open it again.
+                unlock(back = { renderSettings(R.string.section_keys) }) {
+                    if (settingsScrim.visibility != View.VISIBLE) showPanel()
+                    pickKeys()
+                }
+            }) +
             (R.string.section_top_bar to page(getString(R.string.section_top_bar), "${topShown().size}  ›") { pickTopBar() }) +
             (R.string.language to page(getString(R.string.language), "${prefs.getString("lang", null)?.let { Lang.available[it] ?: it } ?: "English"}  ›") { pickLang() }) +
             listOf(R.string.updates, R.string.lock_layout).map { it to rows[it]!! } +
@@ -1724,11 +1737,11 @@ class MainActivity : Activity() {
 
     private fun locked() = lockOn() && SystemClock.elapsedRealtime() > unlockedUntil
 
-    /** Runs [then] at once when unlocked, otherwise after the right PIN. */
-    private fun unlock(then: () -> Unit) {
+    /** Runs [then] at once when unlocked, otherwise after the right PIN. [back] is where Back goes from the PIN page. */
+    private fun unlock(back: (() -> Unit)? = null, then: () -> Unit) {
         if (!locked()) return then()
-        showPanel()
-        pinPage(getString(R.string.enter_pin), back = null) { pin ->
+        if (settingsScrim.visibility != View.VISIBLE) showPanel() // from inside the panel, keep where its focus returns to
+        pinPage(getString(R.string.enter_pin), back = back) { pin ->
             val now = SystemClock.elapsedRealtime()
             if (now < pinWaitUntil) return@pinPage getString(R.string.too_many_tries, (pinWaitUntil - now) / 1000 + 1)
             if (!pinMatches(prefs.getString("lock_pin", null)!!, pin)) {
@@ -1933,6 +1946,7 @@ class MainActivity : Activity() {
             }
             val inputs = hdmiInputs()
             ui.post {
+                if (inputs.isNotEmpty() && !prefs.getBoolean("inputs_moved", false)) moveInputsToSources(inputs)
                 apps = list
                 APPS = list
                 sources = inputs
@@ -2028,6 +2042,19 @@ class MainActivity : Activity() {
 
     /** The apps, and the inputs pinned to the row: the entries the row and All apps are made of. */
     private fun listed(): List<App> = apps + sources.filter { it.pkg in pinnedInputs() }
+
+    /** Once: after an update, the inputs in the row stay pinned, and the inputs drop out of row_hidden, where only apps go now. */
+    private fun moveInputsToSources(inputs: List<App>) {
+        val hidden = rowHiddenSet()
+        val info = packageManager.getPackageInfo(packageName, 0)
+        val pins = if (info.firstInstallTime == info.lastUpdateTime) pinnedInputs() // a new install: no tile to keep
+            else pinsAfterSourcesUpdate(inputs.map { it.pkg to it.offline }, hidden, pinnedInputs())
+        prefs.edit()
+            .putStringSet("inputs_pinned", pins)
+            .putStringSet("row_hidden", hidden.filterNot { it.startsWith(HDMI) }.toSet())
+            .putBoolean("inputs_moved", true)
+            .apply()
+    }
 
     private fun togglePin(src: App) {
         val pinned = pinnedInputs()

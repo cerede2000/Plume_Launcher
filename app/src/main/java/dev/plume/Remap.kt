@@ -3,6 +3,7 @@ package dev.plume
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.media.AudioManager
 import android.media.tv.TvContract
 import android.media.tv.TvInputManager
@@ -30,7 +31,8 @@ object Remap {
     private val KEEP = intArrayOf(
         KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
         KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER, KeyEvent.KEYCODE_BACK,
-        KeyEvent.KEYCODE_HOME, KeyEvent.KEYCODE_POWER, KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_TAB,
+        KeyEvent.KEYCODE_HOME, KeyEvent.KEYCODE_POWER, KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN,
+        KeyEvent.KEYCODE_VOLUME_MUTE, KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_TAB,
         KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BUTTON_SELECT,
     )
 
@@ -61,25 +63,40 @@ object Remap {
     )
 
     /** A key's identity: its Android code, or its scan code for keys Android has no code for. */
-    fun id(e: KeyEvent) = if (e.keyCode != KeyEvent.KEYCODE_UNKNOWN) "k${e.keyCode}" else "s${e.scanCode}"
+    fun id(e: KeyEvent) = id(e.keyCode, e.scanCode)
 
     /** Also keys with no code at all, which would all share one identity. */
-    fun kept(e: KeyEvent) = e.keyCode in KEEP || (e.keyCode == KeyEvent.KEYCODE_UNKNOWN && e.scanCode == 0)
+    fun kept(e: KeyEvent) = kept(e.keyCode, e.scanCode)
 
-    fun all(c: Context): LinkedHashMap<String, Entry> = map ?: LinkedHashMap<String, Entry>().also { m ->
-        for (line in c.getSharedPreferences("home", Context.MODE_PRIVATE).getString("keymap", "")!!.lines()) {
-            val p = line.split('\t')
-            if (p.size == 3) m[p[0]] = Entry(p[1], p[2])
+    // The same rules on plain numbers and a plain SharedPreferences, so the unit tests need no Android framework.
+    internal fun id(keyCode: Int, scanCode: Int) = if (keyCode != KeyEvent.KEYCODE_UNKNOWN) "k$keyCode" else "s$scanCode"
+
+    internal fun kept(keyCode: Int, scanCode: Int) = keyCode in KEEP || (keyCode == KeyEvent.KEYCODE_UNKNOWN && scanCode == 0)
+
+    private fun store(c: Context) = c.getSharedPreferences("home", Context.MODE_PRIVATE)
+
+    fun all(c: Context) = all(store(c))
+
+    internal fun all(p: SharedPreferences): LinkedHashMap<String, Entry> = map ?: LinkedHashMap<String, Entry>().also { m ->
+        for (line in p.getString("keymap", "")!!.lines()) {
+            val f = line.split('\t')
+            if (f.size == 3) m[f[0]] = Entry(f[1], f[2])
         }
         map = m
     }
 
+    /** Forgets the keys held in memory, so the next [all] reads the preferences again. */
+    internal fun reset() {
+        map = null
+    }
+
     /** Saves a key's actions; a key left with none is forgotten and goes back to its usual job. */
-    fun put(c: Context, id: String, short: String, long: String) {
-        val m = all(c)
+    fun put(c: Context, id: String, short: String, long: String) = put(store(c), id, short, long)
+
+    internal fun put(p: SharedPreferences, id: String, short: String, long: String) {
+        val m = all(p)
         if (short.isEmpty() && long.isEmpty()) m.remove(id) else m[id] = Entry(short, long)
-        c.getSharedPreferences("home", Context.MODE_PRIVATE).edit()
-            .putString("keymap", m.entries.joinToString("\n") { "${it.key}\t${it.value.short}\t${it.value.long}" }).apply()
+        p.edit().putString("keymap", m.entries.joinToString("\n") { "${it.key}\t${it.value.short}\t${it.value.long}" }).apply()
     }
 
     fun run(s: AccessibilityService, action: String) {

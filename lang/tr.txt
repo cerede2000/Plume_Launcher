@@ -179,3 +179,9 @@ photo_count:other	%d fotoğraf
 language	Dil
 lang_downloading	İndiriliyor…
 lang_failed	İndirme başarısız
+sources	Kaynaklar
+no_signal	Sinyal yok
+in_row	Satırda
+input_added	Satıra eklendi.
+input_removed	Satırdan kaldırıldı.
+sources_hint	Bir girişi satıra sabitlemek için OK tuşunu basılı tutun.
