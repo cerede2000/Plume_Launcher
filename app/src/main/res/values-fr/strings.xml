@@ -239,4 +239,6 @@
     <string name="section_top_bar">Barre du haut</string>
     <string name="top_bar_hint">OK affiche ou masque l\'icône. Gauche et Droite la déplacent. Paramètres de Plume reste dans Toutes les applis s\'il est masqué.</string>
     <string name="act_screen_off">Éteindre l\'écran</string>
+    <string name="uninstall">Désinstaller</string>
+    <string name="cant_uninstall">Android n\'a pas ouvert l\'écran de désinstallation</string>
 </resources>

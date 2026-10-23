@@ -238,4 +238,6 @@
     <string name="section_top_bar">Top bar</string>
     <string name="top_bar_hint">OK shows or hides an icon. Left and Right move it. Plume settings is still in All apps when it is hidden.</string>
     <string name="act_screen_off">Screen off</string>
+    <string name="uninstall">Uninstall</string>
+    <string name="cant_uninstall">Android would not open the uninstall screen</string>
 </resources>

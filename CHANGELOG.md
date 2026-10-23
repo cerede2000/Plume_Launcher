@@ -33,6 +33,7 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 ### New
 - A long app name no longer runs past its tile. It scrolls slowly while the app is selected.
 - **Plume settings → App row → Icon style** has two new choices, **Banner** and **Monochrome banner**. Each app shows its own picture, as on Apple TV. With **Monochrome banner**, the pictures are grey until you select one. An app with no banner keeps its logo. Monochrome stays the default.
+- Hold OK on an app, then select **Uninstall**, to remove it. Android asks you to confirm. It is offered only for apps that Android lets you remove.
 - **All apps** lists **Plume settings** and **Settings** as tiles. You can add them to the apps row, and hide their icons in the top bar.
 - **Plume settings → Top bar** lets you choose which icons show at the top right, and their order. A new **Power** icon opens a menu to turn the screen off, open the power menu (power off, restart) or stop the running apps.
 - **Plume settings → Appearance → Glass** blurs the wallpaper behind the tiles, the menus, the cards and the settings panel, like frosted glass. It is off by default.

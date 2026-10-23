@@ -1807,6 +1807,23 @@ class MainActivity : Activity() {
         }
     }
 
+    /** An app that was installed by the user, or a system app that has an update to go back from: Android lets it go. */
+    private fun canUninstall(pkg: String) = !isOwnMark(pkg) && pkg != packageName && try {
+        val flags = packageManager.getApplicationInfo(pkg, 0).flags
+        flags and ApplicationInfo.FLAG_SYSTEM == 0 || flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0
+    } catch (e: Exception) {
+        false
+    }
+
+    /** The system's own screen asks to confirm. The lists follow by themselves: the package receiver marks them stale. */
+    private fun uninstall(pkg: String) {
+        try {
+            startActivity(Intent(Intent.ACTION_DELETE, Uri.fromParts("package", pkg, null)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (e: Exception) {
+            toast(getString(R.string.cant_uninstall))
+        }
+    }
+
     /** Entries that are not apps (the inputs, the settings): drawn from our own marks, and without App info. */
     private fun isOwnMark(pkg: String) = pkg.startsWith(HDMI) || pkg.startsWith(SETTINGS_PREFIX)
 
@@ -2387,6 +2404,7 @@ class MainActivity : Activity() {
             if (isOwnMark(pkg)) null else getString(R.string.app_info) to {
                 openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null))
             },
+            if (canUninstall(pkg)) getString(R.string.uninstall) to { uninstall(pkg) } else null,
         ))
     }
 
@@ -2412,6 +2430,7 @@ class MainActivity : Activity() {
             if (isOwnMark(pkg)) null else getString(R.string.app_info) to {
                 openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null))
             },
+            if (canUninstall(pkg)) getString(R.string.uninstall) to { uninstall(pkg) } else null,
         ))
     }
 
