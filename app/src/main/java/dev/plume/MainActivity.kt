@@ -371,7 +371,7 @@ class MainActivity : Activity() {
     override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, results: IntArray) {
         if (code != MEDIA_REQUEST) return refreshWatchNext()
         if (results.firstOrNull() == PackageManager.PERMISSION_GRANTED) afterPhotoAccess?.invoke()
-        else Toast.makeText(this, getString(R.string.photos_permission), Toast.LENGTH_LONG).show()
+        else toast(getString(R.string.photos_permission), long = true)
     }
 
     @Deprecated("Only used for the default-home role request")
@@ -448,7 +448,7 @@ class MainActivity : Activity() {
                 on.split(':').filter { ComponentName.unflattenFromString(it) != me }.joinToString(":"))
         }
         if (homeServiceOn()) {
-            Toast.makeText(this, getString(R.string.home_off_hint), Toast.LENGTH_LONG).show()
+            toast(getString(R.string.home_off_hint), long = true)
             openSettings(Settings.ACTION_ACCESSIBILITY_SETTINGS)
         }
         renderSettings(R.string.home_button)
@@ -461,7 +461,7 @@ class MainActivity : Activity() {
         if (homeServiceOn()) return renderSettings(R.string.home_button)
         // The written path is the safety net: some Google TVs (a Xiaomi stick) answer the Accessibility link
         // with "You don't have an app that can do this", which we can't detect from here.
-        Toast.makeText(this, getString(R.string.home_on_hint), Toast.LENGTH_LONG).show()
+        toast(getString(R.string.home_on_hint), long = true)
         openHomeServiceSettings()
     }
 
@@ -725,7 +725,10 @@ class MainActivity : Activity() {
         ground = if (dark) DARK_BG else 0xFFF3F5F7.toInt()
         findViewById<View>(R.id.root).setBackgroundColor(ground)
         // All apps shows under the apps row over a veil: clear at the top, the background colour towards the bottom.
-        allApps.background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+        // With Glass it is a frosted sheet over the wallpaper instead.
+        allApps.background = if (frosted()) GlassDrawable(allApps).also {
+            styleGlass(it, dp(22).toFloat(), darkAlpha = glassAlpha("glass_d_dark", 0x59), lightAlpha = glassAlpha("glass_d_light", 0x80))
+        } else GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
             intArrayOf(ground and 0xFFFFFF, (ground and 0xFFFFFF) or 0xCC000000.toInt())).apply { setDither(true) }
         for (id in intArrayOf(R.id.clock, R.id.date, R.id.appsTitle, R.id.watchTitle, R.id.allAppsTitle, R.id.rowLabel, R.id.weather)) {
             findViewById<TextView>(id).setTextColor(fg)
@@ -774,18 +777,52 @@ class MainActivity : Activity() {
     private fun frosted() = glassActive()
 
     /** The glass surfaces that are on screen, so that a wallpaper change (or a blur that arrives late) reaches them. */
-    private val glassSurfaces = ArrayList<java.lang.ref.WeakReference<GlassBox>>()
+    private val glassSurfaces = ArrayList<java.lang.ref.WeakReference<GlassDrawable>>()
+
+    private var noteView: View? = null
+    private var noteHide: Runnable? = null
+
+    /**
+     * A short message at the bottom of the screen. With Glass it is a frosted pill of our own, which fades in and out;
+     * otherwise it is the system's toast.
+     */
+    private fun toast(text: CharSequence, long: Boolean = false) {
+        if (!frosted()) return Toast.makeText(this, text, if (long) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
+        val root = findViewById<FrameLayout>(R.id.root)
+        noteHide?.let { ui.removeCallbacks(it) }
+        noteView?.let { root.removeView(it) }
+        val pill = glassSurface(dp(24).toFloat()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(26), dp(13), dp(26), dp(13))
+            alpha = 0f
+            translationY = dp(14).toFloat()
+            addView(label(text.toString(), 15f).apply {
+                maxLines = 3
+                ellipsize = null
+                maxWidth = dp(640)
+            })
+        }
+        root.addView(pill, FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
+            Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = dp(34) })
+        noteView = pill
+        pill.animate().alpha(1f).translationY(0f).setDuration(200).setInterpolator(DECELERATE).start()
+        noteHide = Runnable {
+            pill.animate().alpha(0f).translationY(dp(8).toFloat()).setDuration(220).withEndAction { root.removeView(pill) }.start()
+        }.also { ui.postDelayed(it, if (long) 3500L else 2000L) }
+    }
 
     /** Supporting text in dark mode: dim grey on black, lighter on glass, where it sits over a photo. */
     private fun text2() = if (frosted()) Color.rgb(glassAlpha("glass_text2", 0xCC), glassAlpha("glass_text2", 0xCC), glassAlpha("glass_text2", 0xCC)) else DARK_TEXT_2
 
     /** A frosted surface in this theme: the blurred wallpaper under it, a tint, a hairline rim and a little light on top. */
-    private fun glassSurface(round: Float, flatRight: Boolean = false): GlassBox = GlassBox(this).also { g -> styleGlass(g, round, flatRight) }
+    private fun glassSurface(round: Float, flatRight: Boolean = false): GlassBox = GlassBox(this).also { styleGlass(it.glass, round, flatRight) }
 
-    private fun styleGlass(g: GlassBox, round: Float, flatRight: Boolean = false) {
+    /** The tint alphas default to a menu's; the big All apps view uses lighter ones, so it doesn't weigh on the screen. */
+    private fun styleGlass(g: GlassDrawable, round: Float, flatRight: Boolean = false, darkAlpha: Int = glassAlpha("glass_s_dark", 0x8C), lightAlpha: Int = glassAlpha("glass_s_light", 0xA8)) {
         g.round = round
         g.flatRight = flatRight
-        g.tint = if (dark) glassAlpha("glass_s_dark", 0x8C) shl 24 else (glassAlpha("glass_s_light", 0xA8) shl 24) or 0xFFFFFF
+        g.tint = if (dark) darkAlpha shl 24 else (lightAlpha shl 24) or 0xFFFFFF
         g.rim = if (dark) 0x33FFFFFF else 0x1F000000
         g.highlight = if (dark) 0x14FFFFFF else 0x66FFFFFF
         g.setBlur(glass.blur)
@@ -953,7 +990,7 @@ class MainActivity : Activity() {
 
     /** Waits for the next key press (Back and the arrows are left alone so the page can always be left). */
     private fun learnKey() {
-        if (HomeOverride.running == null) return Toast.makeText(this, getString(R.string.home_on_hint), Toast.LENGTH_LONG).show()
+        if (HomeOverride.running == null) return toast(getString(R.string.home_on_hint), long = true)
         val hint = label(getString(R.string.key_press_prompt), 15f).apply {
             maxLines = 5
             setPadding(dp(14), dp(10), dp(14), dp(10))
@@ -1089,7 +1126,7 @@ class MainActivity : Activity() {
         }
         val folders = photoFolders()
         if (folders.isEmpty()) {
-            return Toast.makeText(this, getString(R.string.no_photos), Toast.LENGTH_LONG).show()
+            return toast(getString(R.string.no_photos), long = true)
         }
         val rows = folders.map { (id, name, n) ->
             page(name, resources.getQuantityString(R.plurals.photo_count, n, n)) { onPick("folder:$id:$name") }
@@ -1124,7 +1161,7 @@ class MainActivity : Activity() {
      * wallpaper and show it at once. The server runs only while this panel is open.
      */
     private fun uploadWallpaper(forDark: Boolean) {
-        val ip = lanAddress() ?: return Toast.makeText(this, getString(R.string.connect_network), Toast.LENGTH_LONG).show()
+        val ip = lanAddress() ?: return toast(getString(R.string.connect_network), long = true)
         val dir = wallpaperDir() ?: return
         val status = label(getString(R.string.waiting_photo), 14f).apply { gravity = Gravity.CENTER; maxLines = 2 }
         val server = try {
@@ -1137,7 +1174,7 @@ class MainActivity : Activity() {
                 saved.nameWithoutExtension
             }
         } catch (e: IOException) {
-            return Toast.makeText(this, getString(R.string.upload_failed), Toast.LENGTH_LONG).show()
+            return toast(getString(R.string.upload_failed), long = true)
         }
         upload = server
         val url = "http://$ip:${server.port}/${server.code}"
@@ -1208,7 +1245,7 @@ class MainActivity : Activity() {
         if (frosted()) {
             panel.background = null
             panel.setWillNotDraw(false)
-            styleGlass(panel, dp(22).toFloat(), flatRight = true)
+            styleGlass(panel.glass, dp(22).toFloat(), flatRight = true)
             settingsScrim.setBackgroundColor(0x55000000)
         } else {
             panel.setWillNotDraw(true)
@@ -1360,7 +1397,7 @@ class MainActivity : Activity() {
             R.string.stop_apps to Triple(getString(R.string.stop_apps), stopOn().size.let { if (it == 0) getString(R.string.off) else "$it" }) { pickStop() },
             R.string.stop_now to Triple(getString(R.string.stop_now), "") {
                 closeLauncherSettings()
-                if (!Stop.all(this)) Toast.makeText(this, getString(R.string.stop_needs_service), Toast.LENGTH_LONG).show()
+                if (!Stop.all(this)) toast(getString(R.string.stop_needs_service), long = true)
             },
             R.string.lock_layout to Triple(getString(R.string.lock_layout), toggle(lockOn())) {
                 if (!lockOn()) return@Triple setLock()
@@ -1472,14 +1509,14 @@ class MainActivity : Activity() {
     private fun setLock(): Unit = pinPage(getString(R.string.choose_pin), { renderSettings(R.string.lock_layout) }) { first ->
         pinPage(getString(R.string.enter_again), { renderSettings(R.string.lock_layout) }) { again ->
             if (again != first) {
-                Toast.makeText(this, getString(R.string.pins_mismatch), Toast.LENGTH_LONG).show()
+                toast(getString(R.string.pins_mismatch), long = true)
                 setLock()
                 return@pinPage null
             }
             prefs.edit().putString("lock_pin", hashPin(first)).apply()
             unlockedUntil = SystemClock.elapsedRealtime() + UNLOCKED_MS // no PIN straight away for the one who set it
             renderSettings(R.string.lock_layout)
-            Toast.makeText(this, getString(R.string.layout_locked), Toast.LENGTH_LONG).show()
+            toast(getString(R.string.layout_locked), long = true)
             null
         }
         null
@@ -1721,7 +1758,7 @@ class MainActivity : Activity() {
         val on = src.pkg !in pinned
         prefs.edit().putStringSet("inputs_pinned", if (on) pinned + src.pkg else pinned - src.pkg).apply()
         renderApps()
-        Toast.makeText(this, getString(if (on) R.string.input_added else R.string.input_removed), Toast.LENGTH_SHORT).show()
+        toast(getString(if (on) R.string.input_added else R.string.input_removed))
     }
 
     private fun sortedApps(): List<App> {
@@ -1796,7 +1833,7 @@ class MainActivity : Activity() {
         if (takeFocus) (tiles.firstOrNull { it.tag == focusedTag } ?: tiles[0]).requestFocus()
         if (!prefs.getBoolean("tip_move", false)) {
             prefs.edit().putBoolean("tip_move", true).apply()
-            Toast.makeText(this, getString(R.string.tip_move), Toast.LENGTH_LONG).show()
+            toast(getString(R.string.tip_move), long = true)
         }
     }
 
@@ -2245,7 +2282,7 @@ class MainActivity : Activity() {
                 renderApps()
                 if (allApps.visibility == View.VISIBLE) fillDrawer(allAppsGrid.childCount)
                 appRow.getChildAt(minOf(i, appRow.childCount - 1))?.requestFocus()
-                Toast.makeText(this, getString(R.string.removed_from_row), Toast.LENGTH_SHORT).show()
+                toast(getString(R.string.removed_from_row))
             },
             if (pkg.startsWith(HDMI)) null else getString(R.string.app_info) to {
                 openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null))
@@ -2475,7 +2512,7 @@ class MainActivity : Activity() {
     private fun openAllApps(from: View? = null) {
         val hidden = rowHiddenSet()
         if (apps.all { inRow(it.pkg, hidden) }) {
-            Toast.makeText(this, getString(R.string.all_in_row), Toast.LENGTH_SHORT).show()
+            toast(getString(R.string.all_in_row))
             return
         }
         drawerFrom = from ?: findViewById<View>(R.id.allAppsButton)
@@ -2559,7 +2596,7 @@ class MainActivity : Activity() {
         if (galleryOn()) return
         if (checkSelfPermission(WRITE_SECURE) != PackageManager.PERMISSION_GRANTED) {
             // Without the adb permission Plume can't switch it itself; Android's own list has getString(R.string.gallery).
-            Toast.makeText(this, getString(R.string.choose_gallery_hint), Toast.LENGTH_LONG).show()
+            toast(getString(R.string.choose_gallery_hint), long = true)
             return openScreensaverSettings()
         }
         prefs.edit().putString("prev_screensaver", currentScreensaver()).apply()
@@ -2594,7 +2631,7 @@ class MainActivity : Activity() {
     private fun downloadPaintings(then: () -> Unit) {
         if (downloading) return
         downloading = true
-        Toast.makeText(this, getString(R.string.downloading_paintings, PAINTINGS_MB), Toast.LENGTH_SHORT).show()
+        toast(getString(R.string.downloading_paintings, PAINTINGS_MB))
         Thread {
             val part = File(filesDir, "paintings.part").apply { deleteRecursively(); mkdirs() }
             val ok = try {
@@ -2610,7 +2647,7 @@ class MainActivity : Activity() {
             }
             ui.post {
                 downloading = false
-                if (ok) then() else Toast.makeText(this, getString(R.string.paintings_failed), Toast.LENGTH_LONG).show()
+                if (ok) then() else toast(getString(R.string.paintings_failed), long = true)
                 if (settingsScrim.visibility == View.VISIBLE) renderSettings(R.string.screensaver)
             }
         }.start()
@@ -2621,7 +2658,7 @@ class MainActivity : Activity() {
         try {
             startActivity(Intent(Intent.ACTION_MAIN).setClassName("com.android.systemui", "com.android.systemui.Somnambulator"))
         } catch (e: Exception) {
-            Toast.makeText(this, getString(R.string.cant_dream), Toast.LENGTH_SHORT).show()
+            toast(getString(R.string.cant_dream))
         }
     }
 
@@ -2654,9 +2691,9 @@ class MainActivity : Activity() {
                 val ver = availableUpdate()
                 if (ver != null && (force || prefs.getString("upd_told", null) != ver)) {
                     prefs.edit().putString("upd_told", ver).apply()
-                    if (!force) Toast.makeText(this, getString(R.string.update_available_toast, ver), Toast.LENGTH_LONG).show()
+                    if (!force) toast(getString(R.string.update_available_toast, ver), long = true)
                 } else if (force) {
-                    Toast.makeText(this, if (latest == null) getString(R.string.update_check_failed) else getString(R.string.up_to_date_toast), Toast.LENGTH_SHORT).show()
+                    toast(if (latest == null) getString(R.string.update_check_failed) else getString(R.string.up_to_date_toast))
                 }
                 updateBadge()
                 if (settingsScrim.visibility == View.VISIBLE) renderSettings(R.string.updates)
@@ -2710,7 +2747,7 @@ class MainActivity : Activity() {
     private fun installUpdate(ver: String) {
         if (updating) return
         if (!packageManager.canRequestPackageInstalls()) {
-            Toast.makeText(this, getString(R.string.allow_installs), Toast.LENGTH_LONG).show()
+            toast(getString(R.string.allow_installs), long = true)
             return openSettings(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName"))
         }
         updating = true
@@ -2748,7 +2785,7 @@ class MainActivity : Activity() {
             ui.post {
                 if (!ok) {
                     updating = false
-                    Toast.makeText(this, getString(R.string.update_download_failed), Toast.LENGTH_LONG).show()
+                    toast(getString(R.string.update_download_failed), long = true)
                 }
                 if (settingsScrim.visibility == View.VISIBLE) renderSettings(R.string.updates)
             }
@@ -2768,7 +2805,7 @@ class MainActivity : Activity() {
             val why = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
             android.util.Log.w("Plume", "update install failed: $status $why")
             if (status != PackageInstaller.STATUS_FAILURE_ABORTED) {
-                Toast.makeText(this, getString(R.string.update_install_failed), Toast.LENGTH_LONG).show()
+                toast(getString(R.string.update_install_failed), long = true)
             }
         }
         if (settingsScrim.visibility == View.VISIBLE) renderSettings(R.string.updates)
@@ -3030,7 +3067,7 @@ class MainActivity : Activity() {
                 emptyList()
             }
             ui.post {
-                if (chans.isEmpty()) Toast.makeText(this, getString(R.string.no_channels), Toast.LENGTH_SHORT).show() else channelToggles(chans, 0)
+                if (chans.isEmpty()) toast(getString(R.string.no_channels)) else channelToggles(chans, 0)
             }
         }
     }
@@ -3090,7 +3127,7 @@ class MainActivity : Activity() {
     private fun pickWatchSources() {
         val sources = watchSources()
         if (sources.isEmpty()) {
-            Toast.makeText(this, getString(R.string.no_cw_apps), Toast.LENGTH_SHORT).show()
+            toast(getString(R.string.no_cw_apps))
             return
         }
         toggles(getString(R.string.cw_apps), sources.map { it.label to it.pkg }, "cw_off", getString(R.string.on), getString(R.string.off)) {
@@ -3148,7 +3185,7 @@ class MainActivity : Activity() {
     private fun hideWatch(p: Prog) {
         val hidden = prefs.getStringSet("hidden_watch", emptySet())!! + hideKey(p.pkg, p.title)
         prefs.edit().putStringSet("hidden_watch", hidden).apply()
-        Toast.makeText(this, getString(R.string.hidden_from_cw), Toast.LENGTH_SHORT).show()
+        toast(getString(R.string.hidden_from_cw))
         refreshWatchNext()
     }
 
