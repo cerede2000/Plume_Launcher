@@ -18,6 +18,7 @@ import android.content.pm.PackageInstaller
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -299,9 +300,33 @@ class MainActivity : Activity() {
         }
     }
 
+    override fun attachBaseContext(base: Context) {
+        Lang.use(base, base.getSharedPreferences("home", MODE_PRIVATE).getString("lang", null))
+        super.attachBaseContext(base)
+    }
+
+    private var packRes: PackResources? = null
+
+    override fun getResources(): Resources = Lang.resources(super.getResources(), packRes).also { packRes = it as? PackResources }
+
+    /** The texts written in the layout come from the APK: put the language's own on them. */
+    private fun layoutTexts() {
+        if (!Lang.active) return
+        for ((id, s) in listOf(R.id.wifi to R.string.network_settings, R.id.sourcesButton to R.string.sources,
+            R.id.allAppsButton to R.string.all_apps, R.id.systemSettings to R.string.settings,
+            R.id.launcherSettings to R.string.plume_settings, R.id.powerButton to R.string.act_power)) {
+            findViewById<View>(id).contentDescription = getString(s)
+        }
+        for ((id, s) in listOf(R.id.allAppsTitle to R.string.all_apps, R.id.watchTitle to R.string.continue_watching,
+            R.id.settingsTitle to R.string.plume_settings)) {
+            findViewById<TextView>(id).text = getString(s)
+        }
+    }
+
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         setContentView(R.layout.activity_main)
+        layoutTexts()
         glass = GlassLayer(this)
         findViewById<ViewGroup>(R.id.root).addView(glass, 1, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)) // over the wallpaper, under the home screen
         for (id in intArrayOf(R.id.appScroll, R.id.watchScroll, R.id.allApps)) findViewById<View>(id).setOnScrollChangeListener { _, _, _, _, _ -> glass.kick(150) }
@@ -395,6 +420,7 @@ class MainActivity : Activity() {
         ui.post(wallpaperTick)
         // Gallery chosen but its paintings missing (updated from a version that bundled them): fetch them.
         if (galleryOn() && photoScreensaver() == null && !paintingsReady(this)) downloadPaintings {}
+        firstLanguage()
         checkUpdate(force = false)
         Bing.onChanged = bingChanged
         Bing.refresh(applicationContext, prefs)
@@ -1575,6 +1601,7 @@ class MainActivity : Activity() {
         val top = sections.map { (key, value, keys) -> key to page(getString(key), "$value  ›") { renderSettings(keys[0]) } } +
             (R.string.section_keys to page(getString(R.string.section_keys), "${keysSummary()}  ›") { pickKeys() }) +
             (R.string.section_top_bar to page(getString(R.string.section_top_bar), "${topShown().size}  ›") { pickTopBar() }) +
+            (R.string.language to page(getString(R.string.language), "${Lang.NAMES[prefs.getString("lang", null)] ?: "English"}  ›") { pickLang() }) +
             listOf(R.string.updates, R.string.lock_layout).map { it to rows[it]!! } +
             listOfNotNull(if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) null
                 else R.string.preview_home_setup to page(getString(R.string.preview_home_setup)) { closeLauncherSettings(); previewHomeSetup() })
@@ -1582,6 +1609,44 @@ class MainActivity : Activity() {
     }
 
     private var lastSettings = 0 // section used last, focused when settings open again
+
+    /** Switches to [code] (null: English), once its pack is on the TV; the old pack is deleted. */
+    private fun setLang(code: String?) {
+        prefs.edit().putBoolean("lang_chosen", true).apply { if (code == null) remove("lang") else putString("lang", code) }.apply()
+        Lang.prune(this, code)
+        recreate()
+    }
+
+    /** English, then each language: a pack is downloaded the first time it is picked. */
+    private fun pickLang() {
+        val cur = prefs.getString("lang", null)
+        showPage(getString(R.string.language), listOf(page("English", if (cur == null) CHOSEN else "") { setLang(null) }) +
+            Lang.NAMES.map { (code, name) ->
+                page(name, if (cur == code) CHOSEN else "") {
+                    if (Lang.has(this, code)) setLang(code) else {
+                        toast(getString(R.string.lang_downloading))
+                        Lang.fetch(this, code, force = true) { ok -> ui.post { if (ok) setLang(code) else toast(getString(R.string.lang_failed)) } }
+                    }
+                }
+            }) { renderSettings(R.string.language) }
+    }
+
+    /** First start in a language Plume has a pack for, and no choice made yet: fetch it once, then use it. */
+    private fun firstLanguage() {
+        if (prefs.getBoolean("lang_chosen", false)) return
+        val code = Lang.systemCode() ?: return
+        Lang.fetch(this, code, force = true) { ok ->
+            if (ok) ui.post { if (!prefs.getBoolean("lang_chosen", false)) setLang(code) }
+        }
+    }
+
+    /** The daily check also asks if the saved pack changed: a fixed text arrives with no release. */
+    private fun refreshLang() {
+        val code = prefs.getString("lang", null) ?: return
+        Lang.fetch(this, code, force = false) { ok ->
+            if (ok) ui.post { Lang.use(this, code); packRes = null }
+        }
+    }
 
     private fun <T> List<T>.step(current: T, dir: Int) = this[((indexOf(current) + dir) % size + size) % size]
 
@@ -2868,6 +2933,7 @@ class MainActivity : Activity() {
         if (checking || !force && System.currentTimeMillis() - prefs.getLong("upd_time", 0) < 24 * 3600_000L) return
         checking = true
         if (force) renderSettings(R.string.updates)
+        refreshLang()
         io.execute {
             val latest = try {
                 getJson("https://api.github.com/repos/$REPO/releases/latest").getString("tag_name").removePrefix("v")

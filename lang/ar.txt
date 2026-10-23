@@ -1,0 +1,186 @@
+override_desc	يفتح Plume كلما ظهرت الشاشة الرئيسية لـ Google TV، فيعيدك زر الرئيسية إلى هنا.
+delete_photo	حذف "%1$s"؟
+photo_added	تمت إضافة "%1$s". أرسل صورة أخرى، أو اضغط تم.
+n_of_m	%1$d من %2$d
+n_hidden	%1$d مخفي
+n_off	%1$d متوقف
+update_available_row	يتوفر %1$s
+up_to_date_row	محدّث (%1$s)
+too_many_tries	محاولات كثيرة. حاول مجددًا بعد %1$d ث.
+downloading_paintings	جارٍ تنزيل لوحات المعرض (%1$s)…
+update_available_toast	يتوفر Plume %1$s. حدّثه من إعدادات Plume.
+no_places	لا توجد أماكن باسم "%1$s".
+time_left_hm	بقي %1$d س %2$d د
+time_left_m	بقي %1$d د
+folder_name	المجلد: %1$s
+wp_rockies_day	جبال روكي (نهار)
+wp_rockies_dusk	جبال روكي (غروب)
+wp_pure_black	أسود خالص
+wp_soft_white	أبيض ناعم
+every_1	كل دقيقة
+every_5	كل 5 د
+every_10	كل 10 د
+every_15	كل 15 د
+every_30	كل 30 د
+every_60	كل ساعة
+every_1440	كل يوم
+unlock_to_edit	افتح القفل للتعديل…
+add_from_phone	إضافة من الهاتف…
+choose_from_tv	اختيار مجلد على هذا التلفاز…
+remove_photo_row	إزالة صورة…
+photos_permission	يحتاج Plume إلى إذن الصور لعرض مجلداتك
+home_off_hint	أوقف "Plume: زر الرئيسية" من الإعدادات ← النظام ← تسهيل الاستخدام
+home_on_hint	شغّل "Plume: زر الرئيسية" من الإعدادات ← النظام ← تسهيل الاستخدام
+dark_wallpaper	خلفية الوضع الداكن
+light_wallpaper	خلفية الوضع الفاتح
+folder_photo_changes	تغيير صور المجلد
+no_photos	لا توجد صور. انسخ بعضها إلى التلفاز أو أدخل ذاكرة USB فيها صور.
+choose_folder	اختر مجلدًا
+remove_photo_title	إزالة صورة
+cancel	إلغاء
+delete	حذف
+connect_network	صِل التلفاز بشبكة Wi-Fi أو Ethernet أولًا
+waiting_photo	بانتظار صورة…
+upload_failed	تعذّر فتح صفحة الرفع
+scan_hint	امسح الرمز بكاميرا هاتفك، أو افتح هذا العنوان. يجب أن يكون الهاتف والتلفاز على نفس شبكة Wi-Fi.
+add_from_your_phone	إضافة من هاتفك
+done	تم
+edit_apps_row	تعديل صف التطبيقات
+theme	المظهر
+photo_fade	تلاشي الصور
+sort_apps	ترتيب التطبيقات
+manual	يدوي
+most_used	الأكثر استخدامًا
+apps_in_row	التطبيقات في الصف
+all	الكل
+app_names	أسماء التطبيقات
+on_focus	عند التحديد
+always	دائمًا
+never	أبدًا
+icon_style	نمط الأيقونات
+colour	ملوّن
+monochrome	أحادي اللون
+restore_hidden	استعادة العروض المخفية
+none_hidden	لا شيء مخفي
+cw_apps	تطبيقات متابعة المشاهدة
+all_on	الكل يعمل
+weather	الطقس
+weather_units	وحدات الطقس
+screensaver	شاشة التوقف
+downloading_gallery	جارٍ تنزيل المعرض…
+gallery	المعرض
+test_screensaver	تجربة شاشة التوقف
+screensaver_timing	توقيت شاشة التوقف
+home_button	زر الرئيسية
+default_launcher	المشغّل الافتراضي
+plume_press_change	Plume: اضغط للتغيير
+press_to_set	اضغط للتعيين
+updates	التحديثات
+updating	جارٍ التحديث…
+checking	جارٍ التحقق…
+lock_layout	قفل التخطيط
+plume_settings	إعدادات Plume
+enter_pin	أدخل الرمز
+wrong_pin	رمز خاطئ
+choose_pin	اختر رمزًا
+enter_again	أدخله مرة أخرى
+pins_mismatch	الرمزان غير متطابقين. اختر رمزًا من جديد.
+layout_locked	تم قفل التخطيط. إعدادات Plume وتغييرات الشاشة الرئيسية تحتاج الآن إلى الرمز.
+pin_hint	▲ ▼ تغيير  ·  ◀ ▶ تنقّل  ·  OK إدخال. أزرار الأرقام تعمل أيضًا.
+pin_forgot	نسيته؟ إعدادات Android ← التطبيقات ← Plume ← محو البيانات يزيل القفل مع تخطيطك وإعداداتك.
+tip_move	تلميح: اضغط مطوّلًا على OK فوق تطبيق لإعادة ترتيب الصف
+open	فتح
+move	نقل
+remove_from_row	إزالة من الصف
+removed_from_row	أُزيل من الصف. ما زال في كل التطبيقات.
+app_info	معلومات التطبيق
+remove_from_cw	إزالة من متابعة المشاهدة
+open_app	فتح التطبيق
+moving_hint	نقل:  ◀ ▶ تحريك  ·  OK وضع
+editing_hint	تعديل صف التطبيقات:  OK التقاط / وضع  ·  ◀ ▶ تحريك  ·  رجوع للإنهاء
+shown	ظاهر
+hidden	مخفي
+off	متوقف
+on	يعمل
+system_default	افتراضي النظام
+gallery_paintings	لوحات المعرض
+downloading	جارٍ التنزيل…
+your_photos	صورك
+choose_gallery_hint	اختر "المعرض" شاشةً للتوقف هنا
+paintings_failed	تعذّر تنزيل اللوحات. تحقق من الاتصال وحاول مجددًا.
+cant_dream	لا يستطيع هذا التلفاز تشغيل شاشة التوقف عند الطلب
+update_check_failed	تعذّر التحقق من التحديثات. تحقق من الاتصال.
+up_to_date_toast	Plume محدّث
+allow_installs	فعّل Plume في القائمة التالية، ثم اضغط التحديثات مرة أخرى
+update_download_failed	تعذّر تنزيل التحديث. تحقق من الاتصال وحاول مجددًا.
+update_install_failed	فشل تثبيت التحديث
+city_hint	اكتب اسم مدينة، ثم ابحث
+automatic_ip	تلقائي (من عنوان الإنترنت)
+weather_location	موقع الطقس
+searching	جارٍ البحث…
+search_failed	تعذّر البحث. تحقق من الاتصال وحاول مجددًا.
+wx_clear	صافٍ
+wx_partly_cloudy	غائم جزئيًا
+wx_cloudy	غائم
+wx_fog	ضباب
+wx_drizzle	رذاذ
+wx_rain	مطر
+wx_snow	ثلج
+wx_thunderstorm	عاصفة رعدية
+no_cw_apps	لا توجد تطبيقات مثبتة تدعم متابعة المشاهدة
+hidden_from_cw	مخفي من متابعة المشاهدة
+network_settings	إعدادات الشبكة
+all_apps	كل التطبيقات
+settings	الإعدادات
+continue_watching	متابعة المشاهدة
+home_service_label	Plume: زر الرئيسية
+theme_light	فاتح
+theme_dark	داكن
+theme_auto	تلقائي
+season_episode	م%1$s ح%2$s
+setup_home	إعداد زر الرئيسية
+preview_home_setup	معاينة نوافذ إعداد الرئيسية
+setup_step	الخطوة %1$d من 3
+setup_role_title	اجعل Plume شاشتك الرئيسية
+setup_role_body	سيسألك Android عن التطبيق الذي تريده شاشةً رئيسية. اختر Plume.
+setup_test_title	اضغط زر الرئيسية في جهاز التحكم
+setup_test_body	يتحقق Plume من أن زر الرئيسية يعيدك إلى هنا. إن فُتحت شاشة رئيسية أخرى، افتح Plume مجددًا من تطبيقاتك وسيجرّب الإعداد الطريقة التالية.
+setup_service_title	شغّل زر الرئيسية في Plume
+setup_service_body	ستُفتح إعدادات تسهيل الاستخدام. اختر "Plume: زر الرئيسية" وشغّله، ثم اضغط رجوع للعودة إلى هنا.
+setup_adb_title	افتحه مرة واحدة عبر ADB
+setup_adb_body	يمنع هذا التلفاز تغيير زر الرئيسية للتطبيقات المثبتة من خارج متجر Play. شغّل تصحيح الأخطاء عبر الشبكة في خيارات المطوّرين، ثم شغّل هذه الأوامر من حاسوب أو من تطبيق ADB على الهاتف. Plume يتكفّل بالباقي.
+setup_scan_help	مساعدة خطوة بخطوة
+setup_done_title	تم إعداد الرئيسية
+setup_done_body	زر الرئيسية في جهاز التحكم يفتح Plume الآن.
+setup_done_body_service	زر الرئيسية في جهاز التحكم يفتح Plume الآن. اضغطه مطوّلًا للوحة Google TV.
+setup_continue	متابعة
+setup_not_now	ليس الآن
+setup_skip_check	تخطي هذا التحقق
+setup_open_accessibility	فتح تسهيل الاستخدام
+setup_try_again	إعادة المحاولة
+setup_close	إغلاق
+setup_done	تم
+whats_new_title	الجديد في %1$s
+whats_new_card_title	الجديد في Plume %1$s
+see_all_changes	عرض كل التغييرات
+check_updates	التحقق من التحديثات
+install_update	تثبيت %1$s
+row_position	موضع صف التطبيقات
+align_left	يسار
+align_centre	وسط
+align_right	يمين
+section_appearance	المظهر
+section_app_row	صف التطبيقات
+section_weather	الطقس
+section_screensaver	شاشة التوقف
+section_home	زر الرئيسية
+bing_daily	صورة اليوم من Bing
+photo_count:zero	لا صور
+photo_count:one	صورة واحدة
+photo_count:two	صورتان
+photo_count:few	%d صور
+photo_count:many	%d صورة
+photo_count:other	%d صورة
+language	اللغة
+lang_downloading	جارٍ التنزيل…
+lang_failed	فشل التنزيل

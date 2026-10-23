@@ -32,6 +32,7 @@ Plume replaces the cluttered stock home screen with the two things you actually 
 - **Cards rows.** The row under the apps can show Continue Watching, any channel that one of your apps publishes (such as a Stremio library), or one row for each channel.
 - **Optional glass look.** Frosted glass behind the tiles, the menus, the cards and the settings panel: the wallpaper, blurred. Off by default.
 - **Optional memory clean-up.** Plume can end the Google TV home screen, or other apps you choose, to free memory. See [Free memory](#free-memory).
+- **Languages on demand.** English is built in. French, Turkish and Arabic are text files in this repository that Plume downloads when you pick the language, and refreshes once a day. See [Language](#language).
 - **Light, dark or automatic theme**, each with its own wallpaper. Add your own photos from your phone by scanning a QR code, or show a folder of photos from the TV or a USB drive that changes on a timer.
 - **Optional Gallery screensaver.** Public-domain landscape paintings in 16:9, downloaded only if you choose it, or a folder of your own photos.
 - **Optional weather** under the clock.
@@ -124,6 +125,7 @@ Open **Plume settings** with the sliders icon in the top bar, or with the **Plum
 | Use the Bing picture of the day as wallpaper | **Plume settings → Appearance → Light mode wallpaper** or **Dark mode wallpaper**, then **Bing picture of the day** |
 | Switch between monochrome icons, colour icons and app banners | **Plume settings → App row → Icon style** |
 | Choose the icons at the top right | **Plume settings → Top bar** |
+| Change the language | **Plume settings → Language** |
 | Change what a remote key does | **Plume settings → Remote keys** |
 | Turn on the glass look | **Plume settings → Appearance → Glass** |
 | Update Plume | **Plume settings → Updates** |
@@ -161,6 +163,12 @@ Android 14 lets an app end only itself, so Plume does what you would do: it open
 
 **Plume settings → Appearance → Glass** blurs the wallpaper behind the tiles, the menus, the cards, All apps and the settings panel, like frosted glass. It is off by default. Plume blurs a small copy of the wallpaper once, so the look costs no extra work while you browse.
 
+### Language
+
+English is in the app. For another language, select **Plume settings → Language**. Plume downloads that language from this repository (`lang/<code>.txt`, about 10 KB), keeps it on the TV and uses it from then on. Picking another language deletes the old one, so one language is kept at a time. On its first start, Plume downloads the language of your TV if it has one. Once a day it asks GitHub whether the file changed, so a fixed text arrives with no new version. Without a network, Plume keeps the saved language, or shows English.
+
+To add or fix a translation, edit `lang/<code>.txt`. Each line is a key, a tab and the text. A key the file lacks shows in English, and a key Plume does not know is ignored. Never change what a key means: add a new key. Run `tools/lang.py check` to list what is missing in each language. The unit tests stop a file that has an unknown key or the wrong `%d` and `%s` markers.
+
 ### Custom wallpapers
 
 Open **Light mode wallpaper** or **Dark mode wallpaper** in Plume settings and choose **Add from phone…**. Scan the QR code with your phone (it must be on the same Wi-Fi as the TV), pick a photo and upload it. It becomes the wallpaper straight away. The TV turns it upright, crops it to the screen around its centre and saves a small copy. The upload page only works while that screen is open. **Remove a photo…** in the same list deletes one.
@@ -194,6 +202,7 @@ Plume has no analytics, no ads and no account. It only connects to the internet 
 - check this repository's GitHub releases for a new version, once a day, and download it when you choose to update
 - download the Gallery paintings from this repository, **only if you choose that screensaver**
 - get the Bing picture of the day (about 300 KB), **only if you choose it as your wallpaper**. Plume sends a request to [bing.com](https://www.bing.com) when the home screen opens: once a day, or once an hour until the picture has changed that day, because Bing changes it at a set time for each country. Bing sees the TV's IP address and its language and country, which Plume sends to get the picture for your country. Plume keeps one picture and deletes it when you choose another wallpaper.
+- download a language, **only if you pick one** (or accept your TV's language on the first start). Plume asks `raw.githubusercontent.com` for one text file of about 10 KB, and once a day asks whether it changed. GitHub sees the TV's IP address.
 - fetch the weather, **only if you turn it on**. It looks up your approximate location from your IP address via [ipwho.is](https://ipwho.is), then gets the forecast from [Open-Meteo](https://open-meteo.com).
 
 **Add from phone…** runs a small upload page on the TV itself, reachable only on your home network and only while that screen is open. Photos go straight from your phone to the TV and nowhere else.

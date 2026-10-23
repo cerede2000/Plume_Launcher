@@ -247,4 +247,7 @@
     <string name="uninstall">Uninstall</string>
     <string name="cant_uninstall">Android would not open the uninstall screen</string>
     <string name="plume_tile">Plume</string>
+    <string name="language">Language</string>
+    <string name="lang_downloading">Downloading…</string>
+    <string name="lang_failed">Download failed</string>
 </resources>
