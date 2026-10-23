@@ -913,22 +913,30 @@ class MainActivity : Activity() {
             } ?: decodeWallpaper(fallback).also { shown = fallback }
             val tail = BUNDLED_TAILS[shown.removePrefix("res:")] ?: 0 // what shows under a bundled wallpaper kept to its top 70%
             val blur = if (bmp != null && glassActive()) glassPixels(bmp, ground, dark, glassDarkPct(), glassLightPct()) else null
+            // Nothing reads the pixels after the blur: keep the picture in graphics memory only, not once more in ours.
+            val shownBmp = bmp?.let { b ->
+                try {
+                    b.copy(Bitmap.Config.HARDWARE, false)?.also { b.recycle() } ?: b
+                } catch (e: Exception) {
+                    b
+                }
+            }
             ui.post {
-                if (gen != wallpaperGen) return@post bmp?.recycle().let {}
+                if (gen != wallpaperGen) return@post shownBmp?.recycle().let {}
                 glass.setBlur(blur)
                 glassSurfaces.forEach { it.get()?.setBlur(glass.blur) } // menus and cards that are open, and the panel
                 if (settingsScrim.visibility == View.VISIBLE) showPanelGlass() // a wallpaper picked from the panel itself
-                if (bmp == null) wallpaperKey = null
+                if (shownBmp == null) wallpaperKey = null
                 view.setBackgroundColor(tail)
                 val old = (view.drawable as? BitmapDrawable)?.bitmap
-                if (old == null || bmp == null) return@post view.setImageBitmap(bmp)
+                if (old == null || shownBmp == null) return@post view.setImageBitmap(shownBmp)
                 // Soft change from one photo to the next; then drop the old one so only one stays in memory.
-                val fade = TransitionDrawable(arrayOf(view.drawable, BitmapDrawable(resources, bmp))).apply { isCrossFadeEnabled = true }
+                val fade = TransitionDrawable(arrayOf(view.drawable, BitmapDrawable(resources, shownBmp))).apply { isCrossFadeEnabled = true }
                 view.setImageDrawable(fade)
                 fade.startTransition(800)
                 ui.postDelayed({
                     if (view.drawable !== fade) return@postDelayed
-                    view.setImageBitmap(bmp)
+                    view.setImageBitmap(shownBmp)
                     // Freed now, not whenever the garbage collector gets to it: it is 8 MB. A moment later, so that no frame still draws it.
                     ui.postDelayed({ old.recycle() }, 300)
                 }, 900)
