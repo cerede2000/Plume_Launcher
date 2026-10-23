@@ -96,6 +96,8 @@ internal class GlassLayer(context: Context) : View(context) {
     private val rect = RectF()
     private val at = IntArray(2)
     private var shader: BitmapShader? = null
+    var blur: Bitmap? = null // the blurred wallpaper, for the surfaces that paint it themselves (GlassBox)
+        private set
     private var until = 0L // keeps redrawing for a moment after a scroll or a focus change, which move the tiles
 
     fun add(v: View, radius: Float) {
@@ -105,7 +107,8 @@ internal class GlassLayer(context: Context) : View(context) {
 
     /** The blurred wallpaper, or null for none (a plain background has nothing to blur). */
     fun setBlur(px: IntArray?) {
-        shader = px?.let { BitmapShader(Bitmap.createBitmap(it, GLASS_W, GLASS_H, Bitmap.Config.ARGB_8888), Shader.TileMode.CLAMP, Shader.TileMode.CLAMP) }
+        blur = px?.let { Bitmap.createBitmap(it, GLASS_W, GLASS_H, Bitmap.Config.ARGB_8888) }
+        shader = blur?.let { BitmapShader(it, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP) }
         invalidate()
     }
 
@@ -135,5 +138,71 @@ internal class GlassLayer(context: Context) : View(context) {
             c.restore()
         }
         if (SystemClock.uptimeMillis() < until) postInvalidateOnAnimation()
+    }
+}
+
+/** Where a view at ([x], [y]) on a [screenW]x[screenH] screen finds itself in the blurred wallpaper: scale x, scale y, shift x, shift y. */
+internal fun glassMapping(screenW: Int, screenH: Int, x: Int, y: Int) =
+    floatArrayOf(screenW.toFloat() / GLASS_W, screenH.toFloat() / GLASS_H, -x.toFloat(), -y.toFloat())
+
+/**
+ * A menu, a card or a panel in frosted glass: it paints the blurred wallpaper that is under it, at its own place, then
+ * a tint (dark or white) and a hairline rim, with the children on top. The blur is the one the tiles use, so
+ * nothing is blurred again, and what is behind the surface (tiles, cards) does not show through the text.
+ * [round] is the corner radius, [flatRight]: the right corners run off the screen (a panel along the right edge).
+ */
+internal class GlassBox @JvmOverloads constructor(context: Context, attrs: android.util.AttributeSet? = null) : android.widget.LinearLayout(context, attrs) {
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val tintPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val rimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 1f }
+    private val matrix = Matrix()
+    private val rect = RectF()
+    private val at = IntArray(2)
+    private var shader: BitmapShader? = null
+    private var gloss: android.graphics.LinearGradient? = null
+    var round = 0f
+    var flatRight = false
+    var tint = 0
+    var rim = 0
+    var highlight = 0 // white at the top edge, fading out: the light of the glass
+
+    init {
+        setWillNotDraw(false)
+        clipChildren = false
+    }
+
+    /** The blur to paint, or null for a plain [tint] (a plain background has nothing to blur). */
+    fun setBlur(b: Bitmap?) {
+        shader = b?.let { BitmapShader(it, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP) }
+        invalidate()
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        gloss = android.graphics.LinearGradient(0f, 0f, 0f, minOf(h.toFloat(), 120f * resources.displayMetrics.density), highlight, 0, Shader.TileMode.CLAMP)
+    }
+
+    override fun onDraw(c: Canvas) {
+        rect.set(0f, 0f, width.toFloat(), height.toFloat())
+        if (flatRight) rect.right += round
+        shader?.let { s ->
+            getLocationOnScreen(at)
+            val m = glassMapping(resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels, at[0], at[1])
+            matrix.setScale(m[0], m[1])
+            matrix.postTranslate(m[2], m[3])
+            s.setLocalMatrix(matrix)
+            paint.shader = s
+            c.drawRoundRect(rect, round, round, paint)
+        }
+        tintPaint.color = tint
+        c.drawRoundRect(rect, round, round, tintPaint)
+        if (highlight != 0) {
+            tintPaint.shader = gloss
+            c.drawRoundRect(rect, round, round, tintPaint)
+            tintPaint.shader = null
+        }
+        rimPaint.color = rim
+        rect.inset(0.5f, 0.5f)
+        c.drawRoundRect(rect, round, round, rimPaint)
     }
 }

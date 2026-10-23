@@ -40,4 +40,13 @@ class GlassTest {
         assertEquals(px(213, 138, 101), light)
         assertEquals("the default dark glass keeps the brightness", pic[0], glassTone(pic, dark = true)[0])
     }
+
+    @Test fun aSurfaceFindsItsPlaceInTheBlur() {
+        // On a 1920x1080 screen the 120x68 blur is scaled by 16 and 15.88; a view at (300, 200) shifts it back.
+        val m = glassMapping(1920, 1080, 300, 200)
+        assertEquals(16f, m[0], 0.001f)
+        assertEquals(1080f / 68, m[1], 0.001f)
+        assertEquals(-300f, m[2], 0.001f)
+        assertEquals(-200f, m[3], 0.001f)
+    }
 }
