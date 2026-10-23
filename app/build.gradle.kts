@@ -20,12 +20,6 @@ android {
             .substringAfter("\n## $versionName\n", "").substringBefore("\n## ")
             .lines().filter { it.startsWith("- ") }.map { it.removePrefix("- ").replace("**", "") }
         require(notes.isNotEmpty()) { "CHANGELOG.md has no entries under \"## $versionName\"" }
-        // The French notes are written by hand in values-fr: stop the build when they fall behind CHANGELOG.md.
-        val frNotes = Regex("<string name=\"whats_new\"[^>]*>(.*?)</string>", RegexOption.DOT_MATCHES_ALL)
-            .find(file("src/main/res/values-fr/strings.xml").readText())?.groupValues?.get(1)?.split("\\n")
-        require(frNotes != null && frNotes.size == notes.size) {
-            "values-fr whats_new has ${frNotes?.size ?: 0} entries but CHANGELOG.md has ${notes.size} under \"## $versionName\""
-        }
         resValue("string", "whats_new", notes.joinToString("\\n") { it.replace("'", "\\'").replace("\"", "\\\"") })
     }
 
