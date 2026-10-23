@@ -16,6 +16,7 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 
 ## Unreleased
 
+- **Glass.** Select **Plume settings → Appearance → Glass**. Plume blurs the wallpaper behind the tiles, the menus, the cards, the settings panel and the short messages. It looks like frosted glass. It is off by default.
 - A long app name no longer runs past its tile. It scrolls slowly while the app is selected.
 
 ## 1.5
