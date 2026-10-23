@@ -1601,7 +1601,7 @@ class MainActivity : Activity() {
         val top = sections.map { (key, value, keys) -> key to page(getString(key), "$value  ›") { renderSettings(keys[0]) } } +
             (R.string.section_keys to page(getString(R.string.section_keys), "${keysSummary()}  ›") { pickKeys() }) +
             (R.string.section_top_bar to page(getString(R.string.section_top_bar), "${topShown().size}  ›") { pickTopBar() }) +
-            (R.string.language to page(getString(R.string.language), "${Lang.NAMES[prefs.getString("lang", null)] ?: "English"}  ›") { pickLang() }) +
+            (R.string.language to page(getString(R.string.language), "${prefs.getString("lang", null)?.let { Lang.available[it] ?: it } ?: "English"}  ›") { pickLang() }) +
             listOf(R.string.updates, R.string.lock_layout).map { it to rows[it]!! } +
             listOfNotNull(if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) null
                 else R.string.preview_home_setup to page(getString(R.string.preview_home_setup)) { closeLauncherSettings(); previewHomeSetup() })
@@ -1617,11 +1617,25 @@ class MainActivity : Activity() {
         recreate()
     }
 
-    /** English, then each language: a pack is downloaded the first time it is picked. */
+    private var langShown = false // the Language page is on screen, so a new list of languages can redraw it
+
+    /** The languages come from the index in the repository: a new file there is a new language here, with no new version. */
     private fun pickLang() {
+        if (Lang.available.isEmpty()) {
+            toast(getString(R.string.lang_downloading))
+            Lang.fetchIndex(this, force = true) { ok -> ui.post { if (ok) langPage() else toast(getString(R.string.lang_failed)) } }
+            return
+        }
+        langPage()
+        val before = Lang.available
+        Lang.fetchIndex(this, force = false) { ui.post { if (langShown && Lang.available != before) langPage() } }
+    }
+
+    /** English, then each language on offer: a pack is downloaded the first time it is picked. */
+    private fun langPage() {
         val cur = prefs.getString("lang", null)
         showPage(getString(R.string.language), listOf(page("English", if (cur == null) CHOSEN else "") { setLang(null) }) +
-            Lang.NAMES.map { (code, name) ->
+            Lang.available.map { (code, name) ->
                 page(name, if (cur == code) CHOSEN else "") {
                     if (Lang.has(this, code)) setLang(code) else {
                         toast(getString(R.string.lang_downloading))
@@ -1629,21 +1643,26 @@ class MainActivity : Activity() {
                     }
                 }
             }) { renderSettings(R.string.language) }
+        langShown = true
+        pageExit = { langShown = false }
     }
 
-    /** First start in a language Plume has a pack for, and no choice made yet: fetch it once, then use it. */
+    /** First start with no choice made yet: if the index offers the language of the TV, fetch that pack once and use it. */
     private fun firstLanguage() {
         if (prefs.getBoolean("lang_chosen", false)) return
-        val code = Lang.systemCode() ?: return
-        Lang.fetch(this, code, force = true) { ok ->
-            if (ok) ui.post { if (!prefs.getBoolean("lang_chosen", false)) setLang(code) }
+        Lang.fetchIndex(this, force = Lang.available.isEmpty()) {
+            val code = Lang.systemCode() ?: return@fetchIndex
+            Lang.fetch(this, code, force = true) { ok ->
+                if (ok) ui.post { if (!prefs.getBoolean("lang_chosen", false)) setLang(code) }
+            }
         }
     }
 
-    /** The daily check also asks if the saved pack changed: a fixed text arrives with no release. */
+    /** The daily check also asks if the list and the saved pack changed: a fixed text or a new language arrives with no release. */
     private fun refreshLang() {
-        val code = prefs.getString("lang", null) ?: return
-        Lang.fetch(this, code, force = false) { ok ->
+        val code = prefs.getString("lang", null)
+        Lang.fetchIndex(this, force = false) {}
+        if (code != null) Lang.fetch(this, code, force = false) { ok ->
             if (ok) ui.post { Lang.use(this, code); packRes = null }
         }
     }

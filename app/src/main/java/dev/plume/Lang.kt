@@ -14,13 +14,20 @@ import java.util.Locale
  * pack once and keeps it; the daily check asks GitHub if it changed (ETag), so a fixed text reaches the TV with no release.
  * A key the pack lacks shows in English, and a key the app does not know is ignored, so one pack suits every version:
  * never change what an existing key means, add a new key. Only one pack is kept: picking another deletes the old one.
+ * The languages on offer are listed in lang/index.txt ("code<TAB>name" lines), downloaded the same way: a new language is a new
+ * file and a line in that index, with no new version of the app.
  */
 internal object Lang {
-    val NAMES = linkedMapOf("fr" to "Français", "tr" to "Türkçe", "ar" to "العربية")
+    private val CODE = Regex("[a-z]{2,3}(-[A-Za-z0-9]{2,8})*")
     private const val BASE = "https://raw.githubusercontent.com/cerede2000/Plume_Launcher/integration/lang/"
     private const val MAX_BYTES = 200_000
 
     private var texts: Map<String, String> = emptyMap()
+
+    /** The languages on offer: code -> the name in that language. From the saved index, empty until it was downloaded once. */
+    @Volatile
+    var available: Map<String, String> = emptyMap()
+        private set
     private var locale: Locale = Locale.ENGLISH
     private var plurals: android.icu.text.PluralRules? = null
 
@@ -28,13 +35,40 @@ internal object Lang {
 
     private fun file(c: Context, code: String) = File(c.filesDir, "lang-$code.txt")
     private fun tag(c: Context, code: String) = File(c.filesDir, "lang-$code.etag")
+    private fun indexFile(c: Context) = File(c.filesDir, "lang-index.txt")
+    private fun indexTag(c: Context) = File(c.filesDir, "lang-index.etag")
+
+    internal fun validCode(code: String) = CODE.matches(code)
+
+    /** "code<TAB>name" lines; a line with an unsafe code or an empty name is dropped. */
+    internal fun parseIndex(t: String): Map<String, String> {
+        val m = LinkedHashMap<String, String>()
+        for (line in t.lineSequence()) {
+            if (line.isEmpty() || line[0] == '#') continue
+            val i = line.indexOf('\t')
+            if (i <= 0) continue
+            val code = line.substring(0, i).trim()
+            val name = line.substring(i + 1).trim()
+            if (validCode(code) && name.isNotEmpty() && code !in m) m[code] = name
+        }
+        return m
+    }
+
+    private fun loadIndex(c: Context) {
+        available = try {
+            parseIndex(indexFile(c).readText())
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
 
     fun has(c: Context, code: String) = file(c, code).exists()
 
     /** Reads the saved pack of [code] (English when null, missing or damaged). */
     fun use(c: Context, code: String?) {
+        loadIndex(c)
         texts = try {
-            if (code == null || code !in NAMES) emptyMap() else parse(file(c, code).readText())
+            if (code == null || !validCode(code)) emptyMap() else parse(file(c, code).readText())
         } catch (e: Exception) {
             emptyMap()
         }
@@ -70,48 +104,61 @@ internal object Lang {
     }
 
     /**
-     * Gets the pack of [code] on a background thread. Without [force] the saved ETag is sent, and GitHub answers
-     * "not modified" in a few hundred bytes when nothing changed. [done]: true when the pack on the TV is good.
+     * Saves [path] of the repository to [store]. Without [force] the saved ETag is sent, and GitHub answers "not modified" in
+     * a few hundred bytes when nothing changed. True when a good copy is on the TV afterwards.
      */
-    fun fetch(c: Context, code: String, force: Boolean, done: (Boolean) -> Unit) {
-        Thread {
-            done(try {
-                val saved = has(c, code)
-                val conn = URL(BASE + code + ".txt").openConnection() as HttpURLConnection
-                conn.connectTimeout = 5000
-                conn.readTimeout = 5000
-                if (saved && !force) tag(c, code).takeIf { it.exists() }?.readText()?.let { conn.setRequestProperty("If-None-Match", it) }
-                when (conn.responseCode) {
-                    304 -> true
-                    200 -> {
-                        val body = conn.inputStream.use { it.readBytes() }
-                        if (body.size > MAX_BYTES) return@Thread done(saved)
-                        val text = body.toString(Charsets.UTF_8)
-                        if (parse(text).isEmpty()) return@Thread done(saved)
-                        val part = File(c.filesDir, "lang.part")
-                        part.writeText(text)
-                        part.renameTo(file(c, code))
-                        conn.getHeaderField("ETag")?.let { tag(c, code).writeText(it) }
-                        true
-                    }
-                    else -> saved
+    private fun download(path: String, store: File, etag: File, force: Boolean, good: (String) -> Boolean): Boolean = try {
+        val saved = store.exists()
+        val conn = URL(BASE + path).openConnection() as HttpURLConnection
+        conn.connectTimeout = 5000
+        conn.readTimeout = 5000
+        if (saved && !force) etag.takeIf { it.exists() }?.readText()?.let { conn.setRequestProperty("If-None-Match", it) }
+        when (conn.responseCode) {
+            304 -> true
+            200 -> {
+                val body = conn.inputStream.use { it.readBytes() }
+                val text = body.toString(Charsets.UTF_8)
+                if (body.size > MAX_BYTES || !good(text)) {
+                    saved
+                } else {
+                    val part = File(store.parentFile, "lang.part")
+                    part.writeText(text)
+                    part.renameTo(store)
+                    conn.getHeaderField("ETag")?.let { etag.writeText(it) }
+                    true
                 }
-            } catch (e: Exception) {
-                has(c, code)
-            })
+            }
+            else -> saved
+        }
+    } catch (e: Exception) {
+        store.exists()
+    }
+
+    /** Gets the pack of [code] on a background thread; [done] gets true when the pack on the TV is good. */
+    fun fetch(c: Context, code: String, force: Boolean, done: (Boolean) -> Unit) {
+        if (!validCode(code)) return done(false)
+        Thread { done(download("$code.txt", file(c, code), tag(c, code), force) { parse(it).isNotEmpty() }) }.start()
+    }
+
+    /** Gets the list of languages on offer; [done] gets true when there is a good list on the TV. */
+    fun fetchIndex(c: Context, force: Boolean, done: (Boolean) -> Unit) {
+        Thread {
+            val ok = download("index.txt", indexFile(c), indexTag(c), force) { parseIndex(it).isNotEmpty() }
+            if (ok) loadIndex(c)
+            done(ok)
         }.start()
     }
 
     /** Deletes the packs other than [keep]: one language is kept at a time. */
     fun prune(c: Context, keep: String?) {
-        for (code in NAMES.keys) if (code != keep) {
-            file(c, code).delete()
-            tag(c, code).delete()
+        c.filesDir.listFiles()?.forEach { f ->
+            val n = f.name
+            if (n.startsWith("lang-") && !n.startsWith("lang-index") && (keep == null || !n.startsWith("lang-$keep."))) f.delete()
         }
     }
 
-    /** The language of the TV when Plume has a pack for it. */
-    fun systemCode(): String? = Locale.getDefault().language.takeIf { it in NAMES }
+    /** The language of the TV ("pt-BR", then "pt") when the index offers it. */
+    fun systemCode(): String? = Locale.getDefault().let { listOf(it.toLanguageTag(), it.language) }.firstOrNull { it in available }
 
     internal fun text(r: Resources, id: Int): String? = texts[r.getResourceEntryName(id)]
 

@@ -1,0 +1,3 @@
+fr	Français
+tr	Türkçe
+ar	العربية

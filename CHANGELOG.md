@@ -17,7 +17,7 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 ## 1.5
 
 ### New
-- **Languages on demand.** Select **Plume settings → Language**. Plume downloads the language you pick from GitHub and keeps it. It keeps one language at a time. On the first start, Plume downloads the language of your TV. Plume checks once a day for a fixed text. English is always in the app.
+- **Languages on demand.** Select **Plume settings → Language**. Plume downloads the language you pick from GitHub and keeps it. It keeps one language at a time. On the first start, Plume downloads the language of your TV. Plume checks once a day for a fixed text and for new languages. A new language needs no new version of Plume. English is always in the app.
 - A long app name no longer runs past its tile. It scrolls slowly while the app is selected.
 - **Plume settings → App row → Icon style** has two new choices, **Banner** and **Monochrome banner**. Each app shows its own picture, as on Apple TV. With **Monochrome banner**, the pictures are grey until you select one. An app with no banner keeps its logo. Monochrome stays the default.
 - Hold OK on an app, then select **Uninstall**, to remove it. Android asks you to confirm. It is offered only for apps that Android lets you remove.

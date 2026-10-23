@@ -167,7 +167,9 @@ Android 14 lets an app end only itself, so Plume does what you would do: it open
 
 English is in the app. For another language, select **Plume settings → Language**. Plume downloads that language from this repository (`lang/<code>.txt`, about 10 KB), keeps it on the TV and uses it from then on. Picking another language deletes the old one, so one language is kept at a time. On its first start, Plume downloads the language of your TV if it has one. Once a day it asks GitHub whether the file changed, so a fixed text arrives with no new version. Without a network, Plume keeps the saved language, or shows English.
 
-To add or fix a translation, edit `lang/<code>.txt`. Each line is a key, a tab and the text. A key the file lacks shows in English, and a key Plume does not know is ignored. Never change what a key means: add a new key. Run `tools/lang.py check` to list what is missing in each language. The unit tests stop a file that has an unknown key or the wrong `%d` and `%s` markers.
+The languages on offer come from `lang/index.txt`, which Plume downloads too. **A new language needs no new version of Plume:** add `lang/<code>.txt` and its line in `lang/index.txt` (`tools/lang.py new <code> <Name>` starts both), and the language shows in the list. A TV that already has the index sees it at the next daily check, or when the Language page opens.
+
+To add or fix a translation, edit `lang/<code>.txt`. Each line is a key, a tab and the text. A key the file lacks shows in English, and a key Plume does not know is ignored. Never change what a key means: add a new key. Run `tools/lang.py check` to list what is missing in each language. The unit tests check every file in `lang/`, a new one too, with no change to the tests. They stop a file that has an unknown key, an empty text or the wrong `%d` and `%s` markers, and a file with no line in the index (or a line with no file).
 
 ### Custom wallpapers
 
@@ -202,7 +204,7 @@ Plume has no analytics, no ads and no account. It only connects to the internet 
 - check this repository's GitHub releases for a new version, once a day, and download it when you choose to update
 - download the Gallery paintings from this repository, **only if you choose that screensaver**
 - get the Bing picture of the day (about 300 KB), **only if you choose it as your wallpaper**. Plume sends a request to [bing.com](https://www.bing.com) when the home screen opens: once a day, or once an hour until the picture has changed that day, because Bing changes it at a set time for each country. Bing sees the TV's IP address and its language and country, which Plume sends to get the picture for your country. Plume keeps one picture and deletes it when you choose another wallpaper.
-- download a language, **only if you pick one** (or accept your TV's language on the first start). Plume asks `raw.githubusercontent.com` for one text file of about 10 KB, and once a day asks whether it changed. GitHub sees the TV's IP address.
+- download a language, **only if you pick one** (or accept your TV's language on the first start). Plume asks `raw.githubusercontent.com` for the list of languages (a few lines) and for one text file of about 10 KB, and once a day asks whether they changed. GitHub sees the TV's IP address.
 - fetch the weather, **only if you turn it on**. It looks up your approximate location from your IP address via [ipwho.is](https://ipwho.is), then gets the forecast from [Open-Meteo](https://open-meteo.com).
 
 **Add from phone…** runs a small upload page on the TV itself, reachable only on your home network and only while that screen is open. Photos go straight from your phone to the TV and nowhere else.
