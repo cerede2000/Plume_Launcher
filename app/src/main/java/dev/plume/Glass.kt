@@ -153,8 +153,10 @@ internal fun glassMapping(screenW: Int, screenH: Int, x: Int, y: Int) =
  * Until there is a blur (a card opened at start), the tint is solid.
  */
 internal class GlassDrawable(private val host: View) : android.graphics.drawable.Drawable() {
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
-    private val tintPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    // Dithered: a dark blur and a faint gradient have only a few levels, which show as bands on a big surface. A menu
+    // or a panel is drawn once and then sits still, so the dither costs nothing that shows (the tiles of the row differ).
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG or Paint.DITHER_FLAG)
+    private val tintPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.DITHER_FLAG)
     private val rimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 1f }
     private val matrix = Matrix()
     private val rect = RectF()
