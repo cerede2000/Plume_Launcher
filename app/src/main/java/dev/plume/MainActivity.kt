@@ -18,6 +18,7 @@ import android.content.pm.PackageInstaller
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -297,6 +298,18 @@ class MainActivity : Activity() {
         override fun onLost(n: Network) {
             ui.post { showNet(null) }
         }
+    }
+
+    override fun attachBaseContext(base: Context) {
+        Lang.use(base, base.getSharedPreferences("home", MODE_PRIVATE).getString("lang", null))
+        super.attachBaseContext(base)
+    }
+
+    private var packRes: Resources? = null
+
+    override fun getResources(): Resources {
+        val r = super.getResources()
+        return if (!Lang.active) r else packRes ?: PackResources(r).also { packRes = it }
     }
 
     override fun onCreate(state: Bundle?) {
@@ -1575,6 +1588,7 @@ class MainActivity : Activity() {
         val top = sections.map { (key, value, keys) -> key to page(getString(key), "$value  ›") { renderSettings(keys[0]) } } +
             (R.string.section_keys to page(getString(R.string.section_keys), "${keysSummary()}  ›") { pickKeys() }) +
             (R.string.section_top_bar to page(getString(R.string.section_top_bar), "${topShown().size}  ›") { pickTopBar() }) +
+            (R.string.language to page(getString(R.string.language), "${Lang.NAMES[prefs.getString("lang", null)] ?: "English"}  ›") { pickLang() }) +
             listOf(R.string.updates, R.string.lock_layout).map { it to rows[it]!! } +
             listOfNotNull(if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) null
                 else R.string.preview_home_setup to page(getString(R.string.preview_home_setup)) { closeLauncherSettings(); previewHomeSetup() })
@@ -1582,6 +1596,24 @@ class MainActivity : Activity() {
     }
 
     private var lastSettings = 0 // section used last, focused when settings open again
+
+    /** English, then each language pack: a pack is fetched the first time it is picked. */
+    private fun pickLang() {
+        val cur = prefs.getString("lang", null)
+        fun use(code: String?) {
+            prefs.edit().apply { if (code == null) remove("lang") else putString("lang", code) }.apply()
+            recreate()
+        }
+        showPage(getString(R.string.language), listOf(page("English", if (cur == null) CHOSEN else "") { use(null) }) +
+            Lang.NAMES.map { (code, name) ->
+                page(name, if (cur == code) CHOSEN else "") {
+                    if (Lang.has(this, code)) use(code) else {
+                        toast(getString(R.string.lang_downloading))
+                        Lang.fetch(this, code) { ok -> ui.post { if (ok) use(code) else toast(getString(R.string.lang_failed)) } }
+                    }
+                }
+            }) { renderSettings(R.string.language) }
+    }
 
     private fun <T> List<T>.step(current: T, dir: Int) = this[((indexOf(current) + dir) % size + size) % size]
 
