@@ -1647,14 +1647,23 @@ class MainActivity : Activity() {
         pageExit = { langShown = false }
     }
 
-    /** First start with no choice made yet: if the index offers the language of the TV, fetch that pack once and use it. */
+    /**
+     * No choice made yet: ask GitHub for the file of the TV's language. If it is there, use it; if not, stay in English. An English
+     * TV asks for nothing, and any other asks once a day at most, so the day a language is added, a TV in that language gets it.
+     */
     private fun firstLanguage() {
         if (prefs.getBoolean("lang_chosen", false)) return
-        Lang.fetchIndex(this, force = Lang.available.isEmpty()) {
-            val code = Lang.systemCode() ?: return@fetchIndex
-            Lang.fetch(this, code, force = true) { ok ->
-                if (ok) ui.post { if (!prefs.getBoolean("lang_chosen", false)) setLang(code) }
-            }
+        val codes = Lang.systemCandidates()
+        if (codes.isEmpty() || System.currentTimeMillis() - prefs.getLong("lang_first_try", 0) < 24 * 3600_000L) return
+        prefs.edit().putLong("lang_first_try", System.currentTimeMillis()).apply()
+        firstLanguageFrom(codes)
+    }
+
+    private fun firstLanguageFrom(codes: List<String>) {
+        val code = codes.firstOrNull() ?: return
+        Lang.fetch(this, code, force = true) { ok ->
+            if (!ok) return@fetch firstLanguageFrom(codes.drop(1))
+            ui.post { if (!prefs.getBoolean("lang_chosen", false)) setLang(code) }
         }
     }
 

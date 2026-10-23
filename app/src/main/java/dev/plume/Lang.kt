@@ -157,8 +157,14 @@ internal object Lang {
         }
     }
 
-    /** The language of the TV ("pt-BR", then "pt") when the index offers it. */
-    fun systemCode(): String? = Locale.getDefault().let { listOf(it.toLanguageTag(), it.language) }.firstOrNull { it in available }
+    /**
+     * The files to ask for, most exact first, for the language of the TV: "pt-BR", then "pt". English has no file (it is in the
+     * app), so an English TV asks for nothing. Asking for a file that does not exist costs one small "not found" answer.
+     */
+    internal fun candidates(l: Locale): List<String> =
+        listOf(l.toLanguageTag(), l.language).distinct().filter { it != "und" && it != "en" && !it.startsWith("en-") && validCode(it) }
+
+    fun systemCandidates() = candidates(Locale.getDefault())
 
     internal fun text(r: Resources, id: Int): String? = texts[r.getResourceEntryName(id)]
 

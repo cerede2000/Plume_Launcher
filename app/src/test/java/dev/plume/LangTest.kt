@@ -82,6 +82,16 @@ class LangTest {
         assertTrue(Lang.validCode("zh-Hans-CN"))
     }
 
+    @Test fun theFirstStartAsksForTheFileOfTheTvLanguage() {
+        assertEquals(listOf("fr-FR", "fr"), Lang.candidates(java.util.Locale("fr", "FR")))
+        assertEquals(listOf("pt-BR", "pt"), Lang.candidates(java.util.Locale("pt", "BR")))
+        assertEquals(listOf("de"), Lang.candidates(java.util.Locale("de")))
+        assertEquals(listOf("zh-Hans-CN", "zh"), Lang.candidates(java.util.Locale.forLanguageTag("zh-Hans-CN")))
+        assertEquals("an English TV asks for nothing", emptyList<String>(), Lang.candidates(java.util.Locale("en", "GB")))
+        assertEquals(emptyList<String>(), Lang.candidates(java.util.Locale.ENGLISH))
+        assertEquals(emptyList<String>(), Lang.candidates(java.util.Locale.ROOT))
+    }
+
     @Test fun escapesAreRead() {
         val m = Lang.parse("a\tone\\ntwo\\\\three\n# comment\n\nb\tx\ty")
         assertEquals("one\ntwo\\three", m["a"])
