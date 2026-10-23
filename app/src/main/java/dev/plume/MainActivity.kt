@@ -2163,7 +2163,8 @@ class MainActivity : Activity() {
         val side = maxOf(r - l, b - t) + 1
         val x = ((l + r + 1 - side) / 2).coerceIn(0, size - side)
         val y = ((t + b + 1 - side) / 2).coerceIn(0, size - side)
-        return Bitmap.createBitmap(bmp, x, y, side, side)
+        // Only the alpha is kept (the mark is tinted when it is drawn): a quarter of the memory of a full-colour bitmap.
+        return Bitmap.createBitmap(bmp, x, y, side, side).extractAlpha().also { bmp.recycle() }
     }
 
     /** glyph() walks every pixel, too slow to redo on each row rebuild; kept per app until the app changes. */
