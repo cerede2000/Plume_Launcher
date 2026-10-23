@@ -214,7 +214,6 @@ internal class GlassBox @JvmOverloads constructor(context: Context, attrs: andro
 
     init {
         setWillNotDraw(false)
-        clipChildren = false
     }
 
     override fun onDraw(c: Canvas) {
