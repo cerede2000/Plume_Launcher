@@ -216,7 +216,7 @@
     <string name="cards_mode">Rangée de cartes</string>
     <string name="cards_one">Une rangée</string>
     <string name="cards_stack">Une rangée par chaîne</string>
-    <string name="channels_row">Chaînes</string>
+    <string name="channels_row">Rangées de chaînes</string>
     <string name="no_channels">Aucune chaîne trouvée</string>
     <string name="add_to_row">Ajouter à la ligne</string>
     <string name="all_in_row">Toutes les applis sont dans la ligne</string>
