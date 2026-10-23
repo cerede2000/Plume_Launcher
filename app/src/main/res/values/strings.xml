@@ -236,6 +236,6 @@
     <string name="input_removed">Removed from the row.</string>
     <string name="sources_hint">Hold OK to pin an input to the row.</string>
     <string name="section_top_bar">Top bar</string>
-    <string name="top_bar_hint">OK shows or hides an icon. Left and Right move it.</string>
+    <string name="top_bar_hint">OK shows or hides an icon. Left and Right move it. Plume settings is still in All apps when it is hidden.</string>
     <string name="act_screen_off">Screen off</string>
 </resources>
