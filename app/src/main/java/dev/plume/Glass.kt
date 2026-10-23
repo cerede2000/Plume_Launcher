@@ -112,6 +112,20 @@ internal class GlassLayer(context: Context) : View(context) {
         invalidate()
     }
 
+    // A layout pass can move the tiles with no scroll and no focus change (the cards load and push the row up):
+    // draw again then, or the layer keeps frosting the places the tiles have left.
+    private val moved = android.view.ViewTreeObserver.OnGlobalLayoutListener { invalidate() }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        viewTreeObserver.addOnGlobalLayoutListener(moved)
+    }
+
+    override fun onDetachedFromWindow() {
+        viewTreeObserver.removeOnGlobalLayoutListener(moved)
+        super.onDetachedFromWindow()
+    }
+
     /** Tiles move on a scroll or a focus lift: draw again for the next [ms]. */
     fun kick(ms: Long) {
         until = maxOf(until, SystemClock.uptimeMillis() + ms)
