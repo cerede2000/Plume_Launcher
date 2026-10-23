@@ -1850,7 +1850,7 @@ class MainActivity : Activity() {
      * are the way back to the settings when their top bar icons are hidden, so they can't be left out of All apps.
      */
     private fun settingsEntries() = listOf(
-        App(PLUME_SETTINGS, getString(R.string.plume_settings), Intent(), getDrawable(R.drawable.ic_tune)!!),
+        App(PLUME_SETTINGS, getString(R.string.plume_tile), Intent(), getDrawable(R.drawable.ic_tune)!!), // short: a tile is about 13 letters wide
         App(ANDROID_SETTINGS, getString(R.string.settings), Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), getDrawable(R.drawable.ic_settings)!!),
     )
 

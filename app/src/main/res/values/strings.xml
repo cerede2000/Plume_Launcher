@@ -240,4 +240,5 @@
     <string name="act_screen_off">Screen off</string>
     <string name="uninstall">Uninstall</string>
     <string name="cant_uninstall">Android would not open the uninstall screen</string>
+    <string name="plume_tile">Plume</string>
 </resources>
