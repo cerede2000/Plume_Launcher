@@ -822,7 +822,7 @@ class MainActivity : Activity() {
     private fun styleGlass(g: GlassDrawable, round: Float, flatRight: Boolean = false, darkAlpha: Int = glassAlpha("glass_s_dark", 0x8C), lightAlpha: Int = glassAlpha("glass_s_light", 0xA8)) {
         g.round = round
         g.flatRight = flatRight
-        g.tint = if (dark) darkAlpha shl 24 else (lightAlpha shl 24) or 0xFFFFFF
+        g.wash = if (dark) darkAlpha shl 24 else (lightAlpha shl 24) or 0xFFFFFF
         g.rim = if (dark) 0x33FFFFFF else 0x1F000000
         g.highlight = if (dark) 0x14FFFFFF else 0x66FFFFFF
         g.setBlur(glass.blur)

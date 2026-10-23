@@ -163,11 +163,11 @@ internal class GlassDrawable(private val host: View) : android.graphics.drawable
     private var gloss: android.graphics.LinearGradient? = null
     var round = 0f
     var flatRight = false
-    var tint = 0
+    var wash = 0
     var rim = 0
     var highlight = 0 // white at the top edge, fading out: the light of the glass
 
-    /** The blur to paint, or null for a plain solid [tint] (a plain background has nothing to blur). */
+    /** The blur to paint, or null for a plain solid [wash] (a plain background has nothing to blur). */
     fun setBlur(b: Bitmap?) {
         shader = b?.let { BitmapShader(it, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP) }
         invalidateSelf()
@@ -190,7 +190,7 @@ internal class GlassDrawable(private val host: View) : android.graphics.drawable
             paint.shader = s
             c.drawRoundRect(rect, round, round, paint)
         }
-        tintPaint.color = if (shader == null) tint or (0xFF shl 24) else tint
+        tintPaint.color = if (shader == null) wash or (0xFF shl 24) else wash
         c.drawRoundRect(rect, round, round, tintPaint)
         if (highlight != 0 && shader != null) {
             tintPaint.shader = gloss
