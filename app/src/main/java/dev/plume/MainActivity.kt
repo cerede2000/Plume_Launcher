@@ -1762,6 +1762,7 @@ class MainActivity : Activity() {
                 // The title keeps its room and the value gives way, cut with "…": a long value must not cut "Appearance".
                 addView(name, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
                 shown.gravity = Gravity.END
+                shown.ellipsize = TextUtils.TruncateAt.MIDDLE // the end keeps its "›"
                 addView(shown, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
                     if (value.isNotEmpty()) marginStart = dp(16) // room between a long title and its value
                 })
