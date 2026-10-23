@@ -83,7 +83,6 @@ import java.net.URLEncoder
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Calendar
-import java.util.concurrent.Executors
 import org.json.JSONObject
 
 /** Light/dark from the launcher's theme setting; shared with the Gallery screensaver. */
@@ -198,9 +197,13 @@ class MainActivity : Activity() {
             File(filesDir, "daily_bing.jpg").delete()
         }
     }
-    private val io = Executors.newSingleThreadExecutor()
+    private val io = idlePool(1)
     // Posters get their own threads: one slow image server must not hold up the rest (or the row data).
-    private val posterIo = Executors.newFixedThreadPool(3)
+    private val posterIo = idlePool(3)
+    /** [n] threads that end after a few idle seconds, so a home screen at rest keeps none (and their stacks). */
+    private fun idlePool(n: Int) = java.util.concurrent.ThreadPoolExecutor(n, n, 3, java.util.concurrent.TimeUnit.SECONDS,
+        java.util.concurrent.LinkedBlockingQueue()).apply { allowCoreThreadTimeOut(true) }
+
     private val loading = java.util.Collections.synchronizedSet(HashSet<String>())
     private val ui = Handler(Looper.getMainLooper())
     private val posters = object : LruCache<String, Bitmap>(2 * 1024 * 1024) {
