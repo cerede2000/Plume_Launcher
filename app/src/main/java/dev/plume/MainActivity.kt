@@ -285,7 +285,6 @@ class MainActivity : Activity() {
         topSpacer = findViewById(R.id.topSpacer)
         allAppsGrid = findViewById(R.id.allAppsGrid)
         wifi = findViewById(R.id.wifi)
-        findViewById<View>(R.id.sourcesButton).visibility = if (sources.isEmpty()) View.GONE else View.VISIBLE
         applyTheme()
         loadWallpaper()
 
@@ -296,6 +295,7 @@ class MainActivity : Activity() {
             R.id.allAppsButton to { openAllApps() },
             R.id.systemSettings to { openSettings(Settings.ACTION_SETTINGS) },
             R.id.launcherSettings to { unlock { openLauncherSettings() } },
+            R.id.powerButton to { showPower(findViewById(R.id.powerButton)) },
         )) findViewById<ImageView>(id).apply {
             setColorFilter(fg)
             val ring = GradientDrawable().apply { shape = GradientDrawable.OVAL }
@@ -308,6 +308,7 @@ class MainActivity : Activity() {
             }
             setOnClickListener { action() }
         }
+        applyTopBar()
         if (prefs.getBoolean("reopen_settings", false)) {
             prefs.edit().remove("reopen_settings").apply()
             ui.post { openLauncherSettings(R.string.theme) }
@@ -978,6 +979,98 @@ class MainActivity : Activity() {
     // Settings > Remote keys: press a key on the remote to pick it, then choose what it does. The work is done by
     // the Home key service (see Remap), which is why the page asks for it to be on.
 
+    // ---------- top bar: which icons show, and in which order ----------
+
+    private fun topId(icon: String) = when (icon) {
+        "wifi" -> R.id.wifi
+        "sources" -> R.id.sourcesButton
+        "apps" -> R.id.allAppsButton
+        "android" -> R.id.systemSettings
+        "plume" -> R.id.launcherSettings
+        else -> R.id.powerButton
+    }
+
+    private fun topName(icon: String) = getString(when (icon) {
+        "wifi" -> R.string.network_settings
+        "sources" -> R.string.sources
+        "apps" -> R.string.all_apps
+        "android" -> R.string.settings
+        "plume" -> R.string.plume_settings
+        else -> R.string.act_power
+    })
+
+    private fun topOrder() = topOrder(prefs.getString("top_order", null))
+
+    /** Plume settings can't be hidden, and Sources only shows when the TV has an input. */
+    private fun topIsShown(icon: String) = topWanted(icon) && (icon != "sources" || sources.isNotEmpty())
+
+    /** What the user chose for an icon, whether or not it can show now (Sources needs an input). */
+    private fun topWanted(icon: String) = icon == "plume" || icon !in prefs.getStringSet("top_hidden", TOP_HIDDEN_AT_FIRST)!!
+
+    private fun topShown() = topOrder().filter { topIsShown(it) }
+
+    private fun shownTopViews() = topShown().map { findViewById<View>(topId(it)) }
+
+    /** Puts the icons of the top bar in the saved order, and hides the ones that are off. */
+    private fun applyTopBar() {
+        val bar = wifi.parent as LinearLayout
+        val shown = topShown().toSet()
+        var first = true
+        for (icon in topOrder()) {
+            val v = findViewById<View>(topId(icon))
+            bar.removeView(v)
+            bar.addView(v, LinearLayout.LayoutParams(dp(36), dp(36)).apply { if (icon in shown && !first) marginStart = dp(8) })
+            v.visibility = if (icon in shown) View.VISIBLE else View.GONE
+            if (icon in shown) first = false
+        }
+        ui.post { updateBadge() } // the badge sits on the Plume settings icon, which may have moved
+    }
+
+    /** OK shows or hides an icon; Left and Right move it. */
+    private fun pickTopBar(focus: Int = 0) {
+        val order = topOrder()
+        val hint = label(getString(R.string.top_bar_hint), 12f).apply {
+            secondary(0.6f)
+            maxLines = 3
+            isSingleLine = false
+            setPadding(dp(14), dp(2), dp(14), dp(10))
+        }
+        val rows = order.map { icon ->
+            page(topName(icon), getString(if (topWanted(icon)) R.string.shown else R.string.hidden)) {
+                if (icon == "plume") return@page // always shown, or settings could not be reached
+                val off = prefs.getStringSet("top_hidden", TOP_HIDDEN_AT_FIRST)!!
+                prefs.edit().putStringSet("top_hidden", if (icon in off) off - icon else off + icon).apply()
+                applyTopBar()
+                pickTopBar(order.indexOf(icon))
+            }
+        }
+        val steps = order.map { icon ->
+            { d: Int ->
+                val moved = topMoved(order, icon, d)
+                prefs.edit().putString("top_order", moved.joinToString(",")).apply()
+                applyTopBar()
+                pickTopBar(moved.indexOf(icon))
+            }
+        }
+        showPage(getString(R.string.section_top_bar), rows, focus, top = hint, steps = steps) { renderSettings(R.string.section_top_bar) }
+    }
+
+    /** The power icon: a short menu under it. The system's own power menu (power off, restart) needs the Home button service. */
+    private fun showPower(anchor: View) {
+        popupMenu(anchor, below = true) { dismiss ->
+            val service = { action: String ->
+                dismiss()
+                val s = HomeOverride.running
+                if (s == null) toast(getString(R.string.home_on_hint), long = true) else Remap.run(s, action)
+            }
+            listOfNotNull(
+                if (Remap.SYS.containsKey("lock")) settingsRow(getString(R.string.act_screen_off), "") { service("sys:lock") } else null,
+                settingsRow(getString(R.string.act_power), "") { service("sys:power") },
+                settingsRow(getString(R.string.stop_now), "") { dismiss(); if (!Stop.all(this)) toast(getString(R.string.stop_needs_service), long = true) },
+            )
+        }
+    }
+
     private fun keysSummary() = Remap.all(this).size.let { resources.getQuantityString(R.plurals.n_keys, it, it) }
 
     private fun pickKeys(focus: Int = 0) {
@@ -1429,6 +1522,7 @@ class MainActivity : Activity() {
         }
         val top = sections.map { (key, value, keys) -> key to page(getString(key), "$value  ›") { renderSettings(keys[0]) } } +
             (R.string.section_keys to page(getString(R.string.section_keys), "${keysSummary()}  ›") { pickKeys() }) +
+            (R.string.section_top_bar to page(getString(R.string.section_top_bar), "${topShown().size}  ›") { pickTopBar() }) +
             listOf(R.string.updates, R.string.lock_layout).map { it to rows[it]!! } +
             listOfNotNull(if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) null
                 else R.string.preview_home_setup to page(getString(R.string.preview_home_setup)) { closeLauncherSettings(); previewHomeSetup() })
@@ -1691,7 +1785,7 @@ class MainActivity : Activity() {
                 APPS = list
                 sources = inputs
                 SOURCES = inputs
-                findViewById<View>(R.id.sourcesButton).visibility = if (inputs.isEmpty()) View.GONE else View.VISIBLE
+                applyTopBar()
                 renderApps()
             }
         }
@@ -2172,8 +2266,8 @@ class MainActivity : Activity() {
             v.parent === wifi.parent -> when (key) { // top bar
                 KeyEvent.KEYCODE_DPAD_DOWN -> apps ?: cards ?: v // the apps row can be empty (all hidden)
                 KeyEvent.KEYCODE_DPAD_UP -> v
-                KeyEvent.KEYCODE_DPAD_LEFT -> if (v.id == R.id.wifi) v else null
-                KeyEvent.KEYCODE_DPAD_RIGHT -> if (v.id == R.id.launcherSettings) v else null
+                KeyEvent.KEYCODE_DPAD_LEFT -> if (v === shownTopViews().firstOrNull()) v else null
+                KeyEvent.KEYCODE_DPAD_RIGHT -> if (v === shownTopViews().lastOrNull()) v else null
                 else -> null
             }
             v.parent === appRow -> when (key) { // Left on the first app jumps to the All apps tile at the other end

@@ -49,7 +49,10 @@ object Remap {
         "notifications" to (AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS to R.string.act_notifications),
         "quick" to (AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS to R.string.act_quick),
         "power" to (AccessibilityService.GLOBAL_ACTION_POWER_DIALOG to R.string.act_power),
-    )
+    ).apply {
+        // Android 9 and later: the lock screen action puts the screen to sleep.
+        if (android.os.Build.VERSION.SDK_INT >= 28) put("lock", AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN to R.string.act_screen_off)
+    }
 
     /** Places in Android's Settings that a key can open, though Settings is not in the apps list. */
     val OPEN = linkedMapOf(

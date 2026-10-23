@@ -33,6 +33,7 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 ### New
 - A long app name no longer runs past its tile. It scrolls slowly while the app is selected.
 - **Plume settings → App row → Icon style** has two new choices, **Banner** and **Monochrome banner**. Each app shows its own picture, as on Apple TV. With **Monochrome banner**, the pictures are grey until you select one. An app with no banner keeps its logo. Monochrome stays the default.
+- **Plume settings → Top bar** lets you choose which icons show at the top right, and their order. A new **Power** icon opens a menu to turn the screen off, open the power menu (power off, restart) or stop the running apps.
 - **Plume settings → Appearance → Glass** blurs the wallpaper behind the tiles, the menus, the cards and the settings panel, like frosted glass. It is off by default.
 - A key on the remote can open Android settings or the network settings. Select **Plume settings → Remote keys**, pick a key, then **Android settings** or **Network settings**.
 - All apps opens under the apps row. Select the tile at the right end of the row, or the grid icon in the top bar. Push Left on the first app to reach that tile at once. The row moves up and Continue Watching steps aside. It shows the apps that are not in the row. Hold OK on one to move it or add it to the row. The row and All apps share one order.

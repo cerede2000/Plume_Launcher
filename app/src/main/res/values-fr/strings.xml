@@ -236,4 +236,7 @@
     <string name="input_added">Ajoutée à la ligne.</string>
     <string name="input_removed">Retirée de la ligne.</string>
     <string name="sources_hint">Maintenez OK pour épingler une entrée à la ligne.</string>
+    <string name="section_top_bar">Barre du haut</string>
+    <string name="top_bar_hint">OK affiche ou masque l\'icône. Gauche et Droite la déplacent.</string>
+    <string name="act_screen_off">Éteindre l\'écran</string>
 </resources>
