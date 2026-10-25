@@ -246,7 +246,7 @@ class MainActivity : Activity() {
 
     private val loading = java.util.Collections.synchronizedSet(HashSet<String>())
     private val ui = Handler(Looper.getMainLooper())
-    private val posters = object : LruCache<String, Bitmap>(6 * 1024 * 1024) {
+    private val posters = object : LruCache<String, Bitmap>(2 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
 
@@ -255,6 +255,9 @@ class MainActivity : Activity() {
     private var sources = SOURCES ?: emptyList() // HDMI ports and the devices on them: the Sources list, not the apps
     private var appsDirty = APPS == null
     private var watchKey: String? = null
+    private var cardSources = emptyList<CardSource>() // the rows "One row per channel" pages through, see queryWatchNext
+    private var cardCurrent: CardSource? = null
+    private var pageDir = 0 // set while a row is being swapped for the next one down (+1) or up (-1)
     private var lastTop: View? = null // last focused view in each home row, so Up/Down return to it
     private var lastApp: View? = null
     private var lastCard: View? = null
@@ -276,6 +279,10 @@ class MainActivity : Activity() {
     private var titleAlpha = 1f // the row title's own alpha from the layout, read before placeRow fades it
     private var rowOut = false // "Show row: On Down": the bottom row has focus, so it's slid in
     private lateinit var allApps: View
+    private lateinit var rowBand: LinearLayout
+    private lateinit var topSpacer: View
+    private var moreTile: View? = null // the tile at the right end of the apps row that opens All apps
+    private var drawerFrom: View? = null // what opened All apps, focused again when it closes
     private lateinit var allAppsGrid: GridLayout
     private lateinit var wifi: ImageView
     private lateinit var glass: GlassLayer // paints the blurred wallpaper under glass tiles
@@ -346,6 +353,8 @@ class MainActivity : Activity() {
         titleAlpha = watchTitle.alpha
         watchScroll = findViewById(R.id.watchScroll)
         allApps = findViewById(R.id.allApps)
+        rowBand = findViewById(R.id.rowBand)
+        topSpacer = findViewById(R.id.topSpacer)
         allAppsGrid = findViewById(R.id.allAppsGrid)
         wifi = findViewById(R.id.wifi)
         applyTopBar()
@@ -364,7 +373,7 @@ class MainActivity : Activity() {
         for ((id, action) in listOf<Pair<Int, () -> Unit>>(
             R.id.wifi to { unlock { openSettings(Settings.ACTION_WIFI_SETTINGS) } },
             R.id.sourcesButton to { showSources(findViewById(R.id.sourcesButton)) },
-            R.id.allAppsButton to { openAllApps() },
+            R.id.allAppsButton to { toggleDrawer(null) },
             R.id.systemSettings to { unlock { openSettings(Settings.ACTION_SETTINGS) } },
             R.id.launcherSettings to { unlock { openLauncherSettings() } },
             R.id.powerButton to { powerDialog() },
@@ -809,7 +818,9 @@ class MainActivity : Activity() {
         // Must match the colour each wallpaper fades into, or the bottom edge shows a seam.
         ground = if (dark) DARK_BG else 0xFFF3F5F7.toInt()
         findViewById<View>(R.id.root).setBackgroundColor(ground)
-        allApps.setBackgroundColor(ground)
+        // All apps shows under the apps row over a veil: clear at the top, the background colour towards the bottom.
+        allApps.background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+            intArrayOf(ground and 0xFFFFFF, (ground and 0xFFFFFF) or 0xCC000000.toInt())).apply { setDither(true) }
         for (id in intArrayOf(R.id.clock, R.id.date, R.id.appsTitle, R.id.watchTitle, R.id.allAppsTitle, R.id.rowLabel, R.id.weather)) {
             findViewById<TextView>(id).setTextColor(fg)
         }
@@ -1441,7 +1452,7 @@ class MainActivity : Activity() {
         pageExit = null
         pageBack = null
         settingsScrim.visibility = View.GONE
-        homeFocusable(allApps.visibility != View.VISIBLE) // the PIN can open over All apps
+        homeFocusable(true)
         (panelFrom?.takeIf { it.isAttachedToWindow } ?: findViewById(R.id.launcherSettings)).requestFocus()
         panelFrom = null
     }
@@ -1497,6 +1508,12 @@ class MainActivity : Activity() {
                 placeRow(animate = false)
                 renderSettings(R.string.apps_when_hidden)
             },
+            R.string.cards_rows to { _ ->
+                prefs.edit().putBoolean("cards_stack", !cardsStack()).apply()
+                watchKey = null
+                refreshWatchNext()
+                renderSettings(R.string.cards_rows)
+            },
             R.string.show_icons to { _ ->
                 prefs.edit().putBoolean("cw_colour", !cwColour()).apply()
                 watchKey = null // rebuild the cards with the new source icons
@@ -1547,6 +1564,9 @@ class MainActivity : Activity() {
             R.string.cw_apps to Triple(getString(R.string.cw_apps), if (cwOff == 0) getString(R.string.all_on) else getString(R.string.n_off, cwOff)) { pickWatchSources() },
             R.string.cw_channels to Triple(getString(R.string.cw_channels), getString(R.string.n_on, channelsOn)) { pickChannels() },
             R.string.row_name to Triple(getString(R.string.row_name), rowName()) { pickRowName() },
+            R.string.cards_rows to Triple(getString(R.string.cards_rows), getString(if (cardsStack()) R.string.cards_each else R.string.cards_one)) {
+                steps[R.string.cards_rows]!!(1)
+            },
             R.string.show_icons to Triple(getString(R.string.show_icons), getString(if (cwColour()) R.string.colour else R.string.monochrome)) {
                 steps[R.string.show_icons]!!(1)
             },
@@ -1632,7 +1652,7 @@ class MainActivity : Activity() {
                 listOf(R.string.edit_apps_row, R.string.apps_in_row, R.string.sort_apps, R.string.icon_style, R.string.app_names, R.string.row_position)),
             // "Apps when row hides" only means something once the row can hide.
             Triple(R.string.bottom_row, rowName(), listOfNotNull(R.string.show_row, R.string.apps_when_hidden.takeIf { rowShow() != "always" },
-                R.string.row_name, R.string.show_icons, R.string.cw_apps, R.string.cw_channels, R.string.restore_hidden)),
+                R.string.row_name, R.string.show_icons, R.string.cw_apps, R.string.cw_channels, R.string.cards_rows, R.string.restore_hidden)),
             Triple(R.string.section_screensaver, rows[R.string.screensaver]!!.second, listOf(R.string.screensaver, R.string.test_screensaver, R.string.screensaver_timing)),
             Triple(R.string.section_remote_home, on(homeServiceOn() || isDefaultHome()),
                 listOf(R.string.home_button, R.string.smooth_volume, R.string.default_launcher, R.string.setup_home, R.string.section_keys)),
@@ -1662,6 +1682,7 @@ class MainActivity : Activity() {
                 R.string.show_row to ROW_SHOW.values.map { getString(it) to null },
                 R.string.apps_when_hidden to listOf(R.string.stays_put, R.string.moves_down).map { getString(it) to null },
                 R.string.show_icons to listOf(R.string.monochrome, R.string.colour).map { getString(it) to null },
+                R.string.cards_rows to listOf(R.string.cards_one, R.string.cards_each).map { getString(it) to null },
                 R.string.weather_units to listOf("°C" to null, "°F" to null),
             )
             val walls = mapOf(R.string.light_wallpaper to false, R.string.dark_wallpaper to true)
@@ -2360,7 +2381,7 @@ class MainActivity : Activity() {
     private fun alignRow() {
         val content = appRow.parent as View
         (content.layoutParams as FrameLayout.LayoutParams).gravity =
-            if (appTileCount() > ROW_TILES) Gravity.START else ROW_ALIGN[rowAlign()]!!.second
+            if (appTileCount() >= ROW_TILES) Gravity.START else ROW_ALIGN[rowAlign()]!!.second
         content.requestLayout()
     }
 
@@ -2379,6 +2400,13 @@ class MainActivity : Activity() {
             (layoutParams as LinearLayout.LayoutParams).bottomMargin = dp(-24) + (dp(76) - tileH) / 2
             requestLayout()
         }
+        val moreFocused = currentFocus === moreTile
+        moreTile?.let { rowBand.removeView(it) }
+        moreTile = tile(null, getDrawable(R.drawable.ic_apps)!!, true, "drawer") { toggleDrawer(moreTile) }.also {
+            it.contentDescription = getString(R.string.all_apps)
+            rowBand.addView(it, LinearLayout.LayoutParams(width, tileH))
+        }
+        if (moreFocused) moreTile?.requestFocus()
         appRow.removeAllViews()
         val hidden = rowHiddenSet()
         val tiles = sortedApps().filter { inRow(it.pkg, hidden) }.map { appTile(it, labeled = false) }
@@ -2698,7 +2726,13 @@ class MainActivity : Activity() {
             return true
         }
         if (editing && editKey(e, confirm)) return true
-        if (e.action == KeyEvent.ACTION_DOWN && settingsScrim.visibility != View.VISIBLE && allApps.visibility != View.VISIBLE) {
+        // One row per channel: Down on a card shows the next row, Up the one before (Up on the first goes to the apps).
+        if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0 && cardsStack() && settingsScrim.visibility != View.VISIBLE &&
+            allApps.visibility != View.VISIBLE && currentFocus?.getTag(R.id.watchRow) is Prog &&
+            (e.keyCode == KeyEvent.KEYCODE_DPAD_DOWN || e.keyCode == KeyEvent.KEYCODE_DPAD_UP) &&
+            pageSource(if (e.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) 1 else -1)
+        ) return true
+        if (e.action == KeyEvent.ACTION_DOWN && settingsScrim.visibility != View.VISIBLE) {
             currentFocus?.let { homeNav(it, e.keyCode) }?.let { it.requestFocus(); return true }
         }
         return super.dispatchKeyEvent(e)
@@ -2724,12 +2758,31 @@ class MainActivity : Activity() {
                 KeyEvent.KEYCODE_DPAD_RIGHT -> if (v.id == shownTop().last()) v else null
                 else -> null
             }
-            v.parent === appRow -> when (key) {
+            v.parent === appRow -> when (key) { // Left on the first app jumps to the All apps tile at the other end
                 KeyEvent.KEYCODE_DPAD_UP -> top
-                KeyEvent.KEYCODE_DPAD_DOWN -> cards ?: v
-                KeyEvent.KEYCODE_DPAD_LEFT -> if (appRow.indexOfChild(v) == 0) v else null
-                KeyEvent.KEYCODE_DPAD_RIGHT -> if (appRow.indexOfChild(v) == appRow.childCount - 1) v else null
+                KeyEvent.KEYCODE_DPAD_DOWN -> if (allApps.visibility == View.VISIBLE) allAppsGrid.getChildAt(0) ?: v else cards ?: v
+                KeyEvent.KEYCODE_DPAD_LEFT -> if (appRow.indexOfChild(v) == 0) moreTile ?: v else null
+                KeyEvent.KEYCODE_DPAD_RIGHT -> if (appRow.indexOfChild(v) == appRow.childCount - 1) moreTile ?: v else null
                 else -> null
+            }
+            v === moreTile -> when (key) {
+                KeyEvent.KEYCODE_DPAD_UP -> top
+                KeyEvent.KEYCODE_DPAD_DOWN -> if (allApps.visibility == View.VISIBLE) allAppsGrid.getChildAt(0) ?: v else cards ?: v
+                KeyEvent.KEYCODE_DPAD_LEFT -> appRow.getChildAt(appRow.childCount - 1) ?: v
+                KeyEvent.KEYCODE_DPAD_RIGHT -> v
+                else -> null
+            }
+            v.parent === allAppsGrid -> {
+                val i = allAppsGrid.indexOfChild(v)
+                val last = allAppsGrid.childCount - 1
+                when (key) {
+                    KeyEvent.KEYCODE_DPAD_UP -> if (i >= ROW_TILES) allAppsGrid.getChildAt(i - ROW_TILES) else apps ?: moreTile ?: v
+                    KeyEvent.KEYCODE_DPAD_DOWN -> if (i + ROW_TILES <= last) allAppsGrid.getChildAt(i + ROW_TILES)
+                        else if (i / ROW_TILES < last / ROW_TILES) allAppsGrid.getChildAt(last) else v
+                    KeyEvent.KEYCODE_DPAD_LEFT -> if (i % ROW_TILES == 0) v else allAppsGrid.getChildAt(i - 1)
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> if (i % ROW_TILES == ROW_TILES - 1 || i == last) v else allAppsGrid.getChildAt(i + 1)
+                    else -> null
+                }
             }
             v.getTag(R.id.watchRow) is Prog -> {
                 val i = watchRow.indexOfChild(v.parent as View)
@@ -2762,16 +2815,32 @@ class MainActivity : Activity() {
     private fun onHold(v: View) {
         val tag = v.tag as? String
         when {
-            allApps.visibility == View.VISIBLE && tag != null -> unlock { // grid: pin to the front of the row (unhiding it)
-                prefs.edit().putStringSet("row_hidden", rowHiddenSet() - tag).apply()
-                saveOrder(listOf(tag) + sortedApps().map { it.pkg }.filter { it != tag })
-                closeAllApps()
-                appRow.getChildAt(0)?.requestFocus() // show the app just pinned
-            }
+            v.parent === allAppsGrid && tag != null -> drawerMenu(v)
             v.parent === wifi.parent -> topMenu(v)
             v.parent === appRow -> appMenu(v)
             v.getTag(R.id.watchRow) is Prog -> watchMenu(v, v.getTag(R.id.watchRow) as Prog)
         }
+    }
+
+    /** Hold OK on an app in All apps: Move (OK places it), Add to the row, App info. */
+    private fun drawerMenu(v: View) {
+        val pkg = v.tag as String
+        if (locked()) return holdMenu(v, listOf(
+            getString(R.string.open) to { v.performClick(); Unit },
+            getString(R.string.unlock_to_edit) to { unlock { v.requestFocus(); drawerMenu(v) } },
+        ))
+        holdMenu(v, listOfNotNull(
+            getString(R.string.move) to { startEdit(grab = v, once = true, box = allAppsGrid) },
+            getString(R.string.add_to_row) to { // it leaves this list and joins the row
+                val at = allAppsGrid.indexOfChild(v)
+                prefs.edit().putStringSet("row_hidden", rowHiddenSet() - pkg).apply()
+                renderApps()
+                if (sortedApps().all { inRow(it.pkg, rowHiddenSet()) }) closeAllApps() else fillDrawer(at)
+            },
+            if (pkg.startsWith(HDMI)) null else getString(R.string.app_info) to {
+                openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null))
+            },
+        ))
     }
 
     /** Hold OK on a row app: Move (OK places it), Remove from row (stays in All apps), App info. Locked: Open only. */
@@ -2789,6 +2858,7 @@ class MainActivity : Activity() {
                 if (pkg.startsWith(HDMI)) prefs.edit().putStringSet("inputs_pinned", pinnedInputs() - pkg).apply()
                 else prefs.edit().putStringSet("row_hidden", rowHiddenSet() + pkg).apply()
                 renderApps()
+                if (allApps.visibility == View.VISIBLE) fillDrawer(allAppsGrid.childCount)
                 appRow.getChildAt(minOf(i, appRow.childCount - 1))?.requestFocus()
                 toast(getString(R.string.removed_from_row))
             },
@@ -3041,12 +3111,15 @@ class MainActivity : Activity() {
 
     private var moveOnce = false // moving one app from the hold menu: OK places it and editing ends
 
-    private fun startEdit(grab: View?, once: Boolean = false) {
+    private var editBox: ViewGroup? = null // the row, or the grid in All apps, being rearranged
+
+    private fun startEdit(grab: View?, once: Boolean = false, box: ViewGroup = appRow) {
         editing = true
+        editBox = box
         moveOnce = once
         appsTitle.text = if (once) getString(R.string.moving_hint) else getString(R.string.editing_hint)
         appsTitle.visibility = View.VISIBLE
-        (grab ?: appRow.getChildAt(0)).requestFocus()
+        (grab ?: box.getChildAt(0)).requestFocus()
         setGrabbed(grab)
     }
 
@@ -3061,8 +3134,11 @@ class MainActivity : Activity() {
         editing = false
         moveOnce = false
         appsTitle.visibility = View.GONE
-        val row = (0 until appTileCount()).map { appRow.getChildAt(it).tag as String }
+        val box = editBox ?: appRow
+        editBox = null
+        val row = (0 until box.childCount).map { box.getChildAt(it).tag as String }
         saveOrder(row + sortedApps().map { it.pkg }.filter { it !in row })
+        if (box === allAppsGrid) renderApps() // the row follows the new order
         currentFocus?.takeIf { it.parent === appRow }?.let { showRowLabel(it, true) } // the name was hidden while editing
     }
 
@@ -3073,32 +3149,42 @@ class MainActivity : Activity() {
             return true
         }
         val v = currentFocus ?: return false
-        val i = appRow.indexOfChild(v)
+        val box = editBox ?: appRow
+        val i = box.indexOfChild(v)
         if (confirm) {
-            if (e.action == KeyEvent.ACTION_UP && i in 0 until appTileCount()) {
+            if (e.action == KeyEvent.ACTION_UP && i in 0 until box.childCount) {
                 if (moveOnce) endEdit() else setGrabbed(if (grabbed === v) null else v)
             }
             return true
         }
         if (e.action != KeyEvent.ACTION_DOWN) return e.keyCode in EDIT_KEYS
+        // Swap layout params too, so the first tile keeps no leading margin.
+        fun move(j: Int) {
+            val other = box.getChildAt(j)
+            val lp = v.layoutParams
+            v.layoutParams = other.layoutParams
+            other.layoutParams = lp
+            box.removeViewAt(i)
+            box.addView(v, j)
+            if (box === appRow) showNames()
+            v.requestFocus()
+        }
         when (e.keyCode) {
-            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> return true
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> {
+                if (box === appRow) return true
+                if (grabbed !== v) return false // the grid: a line up or down
+                val j = if (e.keyCode == KeyEvent.KEYCODE_DPAD_UP) i - ROW_TILES else i + ROW_TILES
+                if (j in 0 until box.childCount) move(j)
+                return true
+            }
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
                 val j = if (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) i - 1 else i + 1
-                if (j !in 0 until appTileCount()) return true
+                if (j !in 0 until box.childCount) return box === appRow
                 if (grabbed === v) {
-                    // Swap layout params too, so the first tile keeps no leading margin.
-                    val other = appRow.getChildAt(j)
-                    val lp = v.layoutParams
-                    v.layoutParams = other.layoutParams
-                    other.layoutParams = lp
-                    appRow.removeViewAt(i)
-                    appRow.addView(v, j)
-                    showNames()
-                    v.requestFocus()
+                    move(j)
                     return true
                 }
-                return false // not holding anything: normal focus movement within the row
+                return false // not holding anything: normal focus movement
             }
         }
         return false
@@ -3179,28 +3265,61 @@ class MainActivity : Activity() {
 
     // ---------- all apps ----------
 
-    private fun openAllApps() {
+    private fun toggleDrawer(from: View?) = if (allApps.visibility == View.VISIBLE) closeAllApps() else openAllApps(from)
+
+    /**
+     * The apps that are not in the row; the ones in it are one key away. Same eight columns as the row, in the same
+     * order: moving an app here moves it in the row too. Rebuilt when one moves between the two.
+     */
+    private fun fillDrawer(focusAt: Int = 0) {
         allAppsGrid.removeAllViews()
-        val gap = dp(10)
-        val width = (resources.displayMetrics.widthPixels - dp(96) - gap * 5) / 6
-        for (a in sortedApps()) {
-            val t = appTile(a) // holding OK here pins it to the row (see onHold)
-            allAppsGrid.addView(t, GridLayout.LayoutParams().apply {
+        val gap = dp(GRID_GAP)
+        val width = rowTileWidth()
+        val hidden = rowHiddenSet()
+        val others = sortedApps().filter { !inRow(it.pkg, hidden) }
+        for ((n, a) in others.withIndex()) {
+            allAppsGrid.addView(appTile(a), GridLayout.LayoutParams().apply { // holding OK here opens the menu (see onHold)
                 this.width = width
                 height = dp(76)
-                setMargins(0, 0, gap, gap)
+                setMargins(0, 0, if (n % ROW_TILES == ROW_TILES - 1) 0 else gap, gap)
             })
         }
+        allAppsGrid.getChildAt(minOf(focusAt, allAppsGrid.childCount - 1))?.requestFocus()
+    }
+
+    /** All apps open under the apps row; Continue Watching steps aside. */
+    private fun openAllApps(from: View? = null) {
+        val hidden = rowHiddenSet()
+        if (sortedApps().all { inRow(it.pkg, hidden) }) {
+            toast(getString(R.string.all_in_row))
+            return
+        }
+        drawerFrom = from ?: findViewById<View>(R.id.allAppsButton)
+        fillDrawer()
+        (topSpacer.layoutParams as LinearLayout.LayoutParams).weight = 0f
+        (allApps.layoutParams as LinearLayout.LayoutParams).weight = 1f
+        watchTitle.visibility = View.GONE
+        watchScroll.visibility = View.GONE
         allApps.visibility = View.VISIBLE
-        homeFocusable(false)
-        allAppsGrid.getChildAt(0)?.requestFocus()
+        allApps.scrollTo(0, 0)
+        findViewById<View>(R.id.content).requestLayout()
+        allAppsGrid.getChildAt(0)?.requestFocus() // only a shown view takes focus
     }
 
     private fun closeAllApps() {
+        if (editing) endEdit()
+        val back = drawerFrom
+        drawerFrom = null
         allApps.visibility = View.GONE
-        homeFocusable(true)
+        allAppsGrid.removeAllViews() // a grid of every app costs memory only while it shows
+        (topSpacer.layoutParams as LinearLayout.LayoutParams).weight = 1f
+        (allApps.layoutParams as LinearLayout.LayoutParams).weight = 0f
+        watchKey = null
+        refreshWatchNext() // Continue Watching comes back
         renderApps()
-        findViewById<View>(R.id.allAppsButton).requestFocus() // back where it was opened from
+        findViewById<View>(R.id.content).requestLayout()
+        val target: View? = if (back?.tag == "drawer") moreTile else back?.takeIf { it.isAttachedToWindow } ?: findViewById<View>(R.id.allAppsButton)
+        target?.requestFocus()
     }
 
     // ---------- screensaver ----------
@@ -3632,19 +3751,31 @@ class MainActivity : Activity() {
     // ---------- continue watching (Android TV Watch Next) ----------
 
     private fun refreshWatchNext() {
+        noPoster.clear()
         if (checkSelfPermission(TV_LISTINGS) != PackageManager.PERMISSION_GRANTED) {
             showWatchNext(emptyList())
             return
         }
         io.execute {
-            val list = try {
+            val cards = try {
                 queryWatchNext()
             } catch (e: Exception) {
-                emptyList()
+                Cards(emptyList(), null, emptyList())
             }
-            ui.post { showWatchNext(list) }
+            ui.post {
+                cardSources = cards.sources
+                cardCurrent = cards.current
+                showWatchNext(cards.list)
+            }
         }
     }
+
+    /** One row of cards you can page to: Watch Next, or one app channel that is on. */
+    private class CardSource(val key: String, val title: String)
+
+    private class Cards(val sources: List<CardSource>, val current: CardSource?, val list: List<Prog>)
+
+    private fun cardsStack() = prefs.getBoolean("cards_stack", false)
 
     /**
      * Two sources, same columns:
@@ -3655,21 +3786,62 @@ class MainActivity : Activity() {
      *    so they use the time the app was last opened from Plume, keeping the app's own order among themselves.
      * Newest first across apps, each app's [PER_APP] newest ahead of the rest, so one app with ten shows can't bury the others.
      */
-    private fun queryWatchNext(): List<Prog> {
+    private fun queryWatchNext(): Cards {
         val hidden = prefs.getStringSet("hidden_watch", emptySet())!!
         val watchNextOn = WATCH_NEXT !in prefs.getStringSet("ch_flip", emptySet())!!
         val watchNext = if (watchNextOn) readPrograms(TvContract.WatchNextPrograms.CONTENT_URI, hidden) else emptyList()
         val on = continueChannels()
         autoRowName = if (watchNextOn) null
             else on.map { it.third }.distinct().singleOrNull()?.takeUnless { it.equals("Continue Watching", ignoreCase = true) }
+        val off = prefs.getStringSet("cw_off", emptySet())!!
+        if (cardsStack()) return stackedCards(watchNext, on, hidden, off)
         val channels = on.flatMap { (id) ->
             readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id").map { (_, p) -> watchSortKey(0, prefs.getLong("t_${p.pkg}", 0)) to p }
         }
         val all = watchNext + channels
         publishingPkgs = all.mapNotNull { it.second.pkg }.toSet()
-        val off = prefs.getStringSet("cw_off", emptySet())!!
-        return newestPerApp(all.filter { it.second.pkg !in off }.distinctBy { it.second.intent ?: it.second.title }, PER_APP) { it.group }
-            .take(20)
+        return Cards(emptyList(), null, newestPerApp(all.filter { it.second.pkg !in off }.distinctBy { it.second.intent ?: it.second.title }, PER_APP) { it.group }
+            .take(20))
+    }
+
+    /** "One row per channel": a row for Watch Next and one for each channel that is on, in the channel's own order. A row with nothing in it is left out. */
+    private fun stackedCards(watchNext: List<Pair<Long, Prog>>, on: List<Triple<Long, String, String>>, hidden: Set<String>, off: Set<String>): Cards {
+        val label = apps.associate { it.pkg to it.label }
+        val rows = ArrayList<Pair<CardSource, List<Prog>>>()
+        val seen = HashSet<String>()
+        fun add(key: String, title: String, items: List<Prog>) {
+            seen += items.mapNotNull { it.pkg }
+            val shown = items.filter { it.pkg !in off }.distinctBy { it.intent ?: it.title }.take(CHANNEL_CARDS)
+            if (shown.isNotEmpty()) rows += CardSource(key, title) to shown
+        }
+        add(WATCH_NEXT, getString(R.string.watch_next), newestPerApp(watchNext, PER_APP) { it.group })
+        for ((id, p, n) in on.distinctBy { (_, p, n) -> channelKey(p, n) }) {
+            val items = readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id", "weight DESC").map { it.second }
+            add(channelKey(p, n), if (n == label[p]) n else "${label[p] ?: p} · $n", items)
+        }
+        publishingPkgs = seen
+        val at = rows.indexOfFirst { it.first.key == prefs.getString("cards_src", null) }.coerceAtLeast(0)
+        return Cards(rows.map { it.first }, rows.getOrNull(at)?.first, rows.getOrNull(at)?.second ?: emptyList())
+    }
+
+    /** Down on a card shows the next row (+1), Up the one before (-1). False when there is none that way. */
+    private fun pageSource(d: Int): Boolean {
+        val at = cardSources.indexOfFirst { it.key == cardCurrent?.key }
+        if (at < 0 || at + d !in cardSources.indices) return false
+        pageDir = d
+        prefs.edit().putString("cards_src", cardSources[at + d].key).apply()
+        watchKey = null
+        refreshWatchNext()
+        return true
+    }
+
+    /** What the bottom row is called: in "One row per channel" the channel on show, with arrows to where the other rows are. */
+    private fun cardTitle(): String {
+        val cur = cardCurrent
+        if (!cardsStack() || cur == null) return rowName()
+        val at = cardSources.indexOfFirst { it.key == cur.key }
+        return if (cardSources.size < 2) cur.title
+            else cur.title + "  " + (if (at > 0) "↑" else "") + (if (at < cardSources.size - 1) "↓" else "")
     }
 
     /** Apps last seen publishing, so the settings list includes them even without the permission check. */
@@ -3736,12 +3908,12 @@ class MainActivity : Activity() {
         val field = textField(prefs.getString("row_name", null).orEmpty(), autoRowName ?: getString(R.string.continue_watching),
             InputType.TYPE_TEXT_FLAG_CAP_WORDS, EditorInfo.IME_ACTION_DONE) { name ->
             prefs.edit().putString("row_name", name).apply()
-            watchTitle.text = rowName()
+            watchTitle.text = cardTitle()
             renderSettings(R.string.row_name)
         }
         val auto = page(getString(R.string.automatic), if (prefs.getString("row_name", null).isNullOrEmpty()) CHOSEN else "") {
             prefs.edit().remove("row_name").apply()
-            watchTitle.text = rowName()
+            watchTitle.text = cardTitle()
             renderSettings(R.string.row_name)
         }
         // Opens on Automatic, so the keyboard only comes up when you go Up to the box to type.
@@ -3765,9 +3937,9 @@ class MainActivity : Activity() {
     }
 
     /** Pairs of (sort key, item), see [watchSortKey]; channel rows have no time of their own and get the type "continue". */
-    private fun readPrograms(uri: Uri, hidden: Set<String>, group: String? = null): List<Pair<Long, Prog>> {
+    private fun readPrograms(uri: Uri, hidden: Set<String>, group: String? = null, sort: String? = null): List<Pair<Long, Prog>> {
         val out = ArrayList<Pair<Long, Prog>>()
-        contentResolver.query(uri, null, null, null, null)?.use { c ->
+        contentResolver.query(uri, null, null, null, sort)?.use { c ->
             fun str(col: String) = c.getColumnIndex(col).let { if (it < 0 || c.isNull(it)) null else c.getString(it) }
             fun num(col: String) = c.getColumnIndex(col).let { if (it < 0 || c.isNull(it)) 0L else c.getLong(it) }
             while (c.moveToNext()) {
@@ -3802,14 +3974,34 @@ class MainActivity : Activity() {
         refreshWatchNext()
     }
 
+    /** The app's own icon cut round, for the details line when the icons are in colour. Tiny, kept per app. */
+    private val roundIcons = HashMap<String, Bitmap>()
+
+    private fun roundIcon(pkg: String, shown: Int = dp(12), scale: Int = 2): Drawable? = try {
+        BitmapDrawable(resources, roundIcons.getOrPut("$pkg/$shown/$scale") {
+            val size = shown * scale // twice the size it is shown at by default, so the edge stays smooth when scaled down
+            val icon = packageManager.getApplicationIcon(pkg)
+            Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also { bmp ->
+                val canvas = Canvas(bmp)
+                canvas.clipPath(Path().apply { addCircle(size / 2f, size / 2f, size / 2f, Path.Direction.CW) })
+                // An adaptive icon's layers are 108dp with the symbol in the middle 72: draw at 1.5x to show just that.
+                if (icon is AdaptiveIconDrawable) icon.setBounds(-size / 4, -size / 4, size * 5 / 4, size * 5 / 4) else icon.setBounds(0, 0, size, size)
+                icon.draw(canvas)
+            }
+        })
+    } catch (e: PackageManager.NameNotFoundException) {
+        null
+    }
+
     /** Small source-app mark for the details line: its logo when we have one (brand colour with colour icons), else its icon (greyscale unless colour). */
     private fun sourceIcon(pkg: String?): Drawable? {
         if (pkg == null) return null
         val colour = cwColour()
         val tint = BRAND_COLOURS[pkg]?.takeIf { colour } ?: fg
         LOGOS[pkg]?.takeIf { !it.second }?.let { return getDrawable(it.first)!!.mutate().apply { setTint(tint) } }
+        if (colour) roundIcon(pkg)?.let { return it }
         return try {
-            packageManager.getApplicationIcon(pkg).mutate().apply { if (!colour) colorFilter = GREYSCALE }
+            packageManager.getApplicationIcon(pkg).mutate().apply { colorFilter = GREYSCALE }
         } catch (e: PackageManager.NameNotFoundException) {
             null
         }
@@ -3821,7 +4013,7 @@ class MainActivity : Activity() {
     }
 
     private fun showWatchNext(list: List<Prog>) {
-        val key = list.joinToString("|") { "${it.title}/${it.sub}/${it.progress}/${it.image}" }
+        val key = cardCurrent?.key.orEmpty() + "|" + cardSources.size + "|" + list.joinToString("|") { "${it.title}/${it.sub}/${it.progress}/${it.image}" }
         if (key == watchKey) { // unchanged: keep views (and focus) as they are, just fill in missing posters
             retryPosters()
             return
@@ -3830,12 +4022,28 @@ class MainActivity : Activity() {
         watchList = list
         val focusedAt = watchRow.indexOfChild(currentFocus?.parent as? View)
         watchRow.removeAllViews()
-        watchTitle.text = rowName()
+        watchTitle.text = cardTitle()
         placeRow(animate = false)
+        val dir = pageDir.also { pageDir = 0 }
+        if (dir != 0 && watchScroll.visibility == View.VISIBLE) { // the new row slides in from where it was reached
+            for (v in arrayOf<View>(watchTitle, watchScroll)) {
+                val y = v.translationY
+                v.translationY = y + dir * dp(40)
+                v.animate().translationY(y).setDuration(220).start()
+            }
+            watchScroll.alpha = 0f
+            watchScroll.animate().alpha(1f).setDuration(220).start()
+        }
         // ~16 ms per card here and only four show at once: the first four now, the next four on the next frame.
         addCardsTo(3)
+        windowPosters(0)
         watchRow.post { fitInk() }
-        ui.post { if (watchKey == key) addCardsTo(CARDS_AHEAD - 1) } // unless a newer list replaced this one
+        ui.post { // unless a newer list replaced this one
+            if (watchKey == key) {
+                addCardsTo(CARDS_AHEAD - 1)
+                windowPosters(maxOf(0, watchRow.indexOfChild(lastCard?.parent as? View)))
+            }
+        }
         if (focusedAt >= 0) {
             ((watchRow.getChildAt(focusedAt.coerceAtMost(watchRow.childCount - 1)) as? LinearLayout)?.getChildAt(0)
                 ?: appRow.getChildAt(0))?.requestFocus()
@@ -3858,6 +4066,11 @@ class MainActivity : Activity() {
      * slide (translationY on a layer), so the move costs no layout or redraw, even on a slow TV.
      */
     private fun placeRow(animate: Boolean) {
+        if (allApps.visibility == View.VISIBLE) { // All apps takes the bottom row's place
+            watchTitle.visibility = View.GONE
+            watchScroll.visibility = View.GONE
+            return
+        }
         val show = rowShow()
         val has = watchList.isNotEmpty()
         val keepSpace = show != "always" && !rowDrops() // "Stays put": the apps keep their place, even with no shows
@@ -3872,7 +4085,7 @@ class MainActivity : Activity() {
         if (watchScroll.visibility != vis) { watchTitle.visibility = vis; watchScroll.visibility = vis }
         val hidden = show == "down" && has && !rowOut
         // From where the app row sits above the bottom row to where it would sit without it.
-        val drop = (watchScroll.bottom - appScroll.bottom).toFloat().coerceAtLeast(0f)
+        val drop = (watchScroll.bottom - rowBand.bottom).toFloat().coerceAtLeast(0f)
         val appY = if (hidden && rowDrops()) drop else 0f
         val rowY = if (!hidden) 0f else if (rowDrops()) drop else dp(24).toFloat()
         fun move(v: View, y: Float, a: Float) {
@@ -3881,7 +4094,7 @@ class MainActivity : Activity() {
             else { v.animate().cancel(); v.translationY = y; v.alpha = a }
         }
         move(appsTitle, appY, appsTitle.alpha)
-        move(appScroll, appY, 1f)
+        move(rowBand, appY, 1f)
         move(watchTitle, rowY, if (hidden) 0f else titleAlpha)
         move(watchScroll, rowY, if (hidden) 0f else 1f)
     }
@@ -3929,6 +4142,7 @@ class MainActivity : Activity() {
             if (focused) {
                 lastCard = frame
                 addCardsTo(watchRow.indexOfChild(col) + CARDS_AHEAD)
+                windowPosters(watchRow.indexOfChild(col))
             }
         }
         frame.contentDescription = p.title
@@ -3958,8 +4172,22 @@ class MainActivity : Activity() {
                 }
             })
         }
-        loadPoster(img, p.image)
+        img.tag = p.image // loaded by windowPosters, only while the card is near the one in focus
+        img.setTag(R.id.watchTitle, p.pkg) // the app whose icon stands in when the source has no picture
         return col
+    }
+
+    /**
+     * Posters are loaded for the focused card and the ones around it only, and dropped from the others, so a channel
+     * of 30 cards costs no more memory than one of four. The views keep their address and load again when you get near.
+     */
+    private fun windowPosters(center: Int) {
+        for (i in 0 until watchRow.childCount) {
+            val img = ((watchRow.getChildAt(i) as? ViewGroup)?.getChildAt(0) as? ViewGroup)?.getChildAt(0) as? ImageView ?: continue
+            if (i in center - 3..center + 4) { // four cards show at once: with focus on the last one, the three before it are still on screen
+                if (img.drawable == null) loadPoster(img, img.tag as? String)
+            } else if (img.drawable != null && img.tag !in noPoster) img.setImageDrawable(null) // a placeholder costs nothing to keep
+        }
     }
 
     private fun progressBarDrawable(): Drawable {
@@ -3983,32 +4211,51 @@ class MainActivity : Activity() {
         }
     }
 
+    /** Pictures the source doesn't have (a 404): not asked for again until the list is next refreshed. */
+    private val noPoster = java.util.Collections.synchronizedSet(HashSet<String>())
+
+    /** What a card shows while it has no picture, or when its source has none: the app's round icon on the card colour. */
+    private fun posterPlaceholder(v: ImageView, pkg: String?) {
+        v.setBackgroundColor(if (dark) 0xFF1C1C1E.toInt() else 0xFFCDD2D8.toInt())
+        v.scaleType = ImageView.ScaleType.CENTER
+        v.setImageDrawable(pkg?.let { roundIcon(it, dp(40), 1) }) // shown as it is, centred
+    }
+
     private fun loadPoster(v: ImageView, uri: String?) {
         if (uri == null) return
-        posters.get(uri)?.let { v.setImageBitmap(it); return }
+        if (uri in noPoster) return posterPlaceholder(v, v.getTag(R.id.watchTitle) as? String)
+        posters.get(uri)?.let {
+            v.scaleType = ImageView.ScaleType.CENTER_CROP
+            v.setImageBitmap(it)
+            return
+        }
         v.tag = uri
         if (!loading.add(uri)) return // already on its way
         posterIo.execute {
             val bmp = try {
                 decode(uri)
             } catch (e: Exception) {
-                android.util.Log.w("TvHome", "poster failed: $uri ($e)") // retried by retryPosters()
+                android.util.Log.w("TvHome", "poster failed: $uri ($e)") // retried when the list is refreshed
+                if (e is java.io.FileNotFoundException) noPoster += uri
                 null
             } finally {
                 loading.remove(uri)
-            } ?: return@execute
+            } ?: run {
+                if (uri in noPoster) ui.post { if (v.tag == uri) posterPlaceholder(v, v.getTag(R.id.watchTitle) as? String) }
+                return@execute
+            }
             posters.put(uri, bmp)
-            ui.post { if (v.tag == uri) v.setImageBitmap(bmp) }
+            ui.post {
+                if (v.tag == uri) {
+                    v.scaleType = ImageView.ScaleType.CENTER_CROP
+                    v.setImageBitmap(bmp)
+                }
+            }
         }
     }
 
     /** Cards whose poster never arrived (offline, server timeout) try again; loaded ones are left alone. */
-    private fun retryPosters() {
-        for (i in 0 until watchRow.childCount) {
-            val img = ((watchRow.getChildAt(i) as? ViewGroup)?.getChildAt(0) as? ViewGroup)?.getChildAt(0) as? ImageView ?: continue
-            if (img.drawable == null) loadPoster(img, img.tag as? String)
-        }
-    }
+    private fun retryPosters() = windowPosters(maxOf(0, watchRow.indexOfChild(lastCard?.parent as? View)))
 
     /** Downsample to card size in RGB_565 so a dozen posters stay around 1-2 MB. */
     private fun decode(uri: String): Bitmap? {
@@ -4180,7 +4427,7 @@ class MainActivity : Activity() {
             R.string.edit_apps_row to R.string.help_rearrange, R.string.apps_in_row to R.string.help_choose_apps,
             R.string.sort_apps to R.string.help_order, R.string.icon_style to R.string.help_icon_style,
             R.string.apps_when_hidden to R.string.help_apps_when_hidden, R.string.row_name to R.string.help_row_name,
-            R.string.show_icons to R.string.help_show_icons,
+            R.string.show_icons to R.string.help_show_icons, R.string.cards_rows to R.string.help_cards_rows,
             R.string.cw_apps to R.string.help_from_apps, R.string.cw_channels to R.string.help_channels,
             R.string.restore_hidden to R.string.help_hidden_shows, R.string.screensaver_timing to R.string.help_start_after,
             R.string.home_button to R.string.help_home_button, R.string.smooth_volume to R.string.help_smooth_volume,
@@ -4198,6 +4445,7 @@ class MainActivity : Activity() {
         // Translucent (70% at rest, 80% selected), so the wallpaper shows through the tiles like frosted glass.
         /** Android's own Watch Next list, listed with the channels so it can be turned off too. */
         const val WATCH_NEXT = "watchnext"
+        const val CHANNEL_CARDS = 30 // cards shown from one channel in "One row per channel"
         val DARK_CARD = intArrayOf(0xB30B0B0B.toInt(), 0xB3040404.toInt())
         val DARK_CARD_LIT = intArrayOf(0xCC141414.toInt(), 0xCC070707.toInt())
         const val RIM_TOP = 0x17FFFFFF // white 9%

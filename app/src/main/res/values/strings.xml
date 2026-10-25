@@ -297,4 +297,10 @@
     <string name="lang_downloading">Downloading…</string>
     <string name="lang_failed">Download failed</string>
     <string name="help_language">The language of Plume. A language is downloaded once, from the repository, and kept on the TV.</string>
+    <string name="cards_rows">Rows</string>
+    <string name="cards_one">One row</string>
+    <string name="cards_each">One row per channel</string>
+    <string name="help_cards_rows">One row mixes the shows of every source. One row per channel shows each source on its own row; press Down or Up on a card to change it.</string>
+    <string name="add_to_row">Add to row</string>
+    <string name="all_in_row">All apps are in the row</string>
 </resources>

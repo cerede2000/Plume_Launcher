@@ -285,3 +285,9 @@ language	Langue
 lang_downloading	Téléchargement…
 lang_failed	Échec du téléchargement
 help_language	La langue de Plume. Une langue se télécharge une fois depuis le dépôt et reste sur la TV.
+cards_rows	Rangées
+cards_one	Une rangée
+cards_each	Une rangée par chaîne
+help_cards_rows	Une rangée mélange les séries de toutes les sources. Une rangée par chaîne montre chaque source sur sa propre rangée ; Bas ou Haut sur une carte change de rangée.
+add_to_row	Ajouter à la ligne
+all_in_row	Toutes les applis sont dans la ligne
