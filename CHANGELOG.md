@@ -36,6 +36,7 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 - **New order in Plume settings.** The sections follow the home screen from top to bottom: **Wallpaper & theme**, **Clock & weather**, **Apps row** and **Shows row**. Then come **Screensaver**, **Remote & Home button**, **Lock layout** and **Updates**. Some settings have shorter names. Your settings do not change. If Home does not open Plume yet, a **Finish setup** card shows at the top.
 - Plume shows in the app list on Xiaomi TVs. It also shows in other launchers that show only phone apps.
 - **App animations.** An app opens out of the tile you press, and the row settles when you come back. It works for the app tiles, for Continue watching and for **All apps**. To turn it off, select **Plume settings → Wallpaper & theme → App animations**.
+- **Home returns to your app.** Press Home in an app. The home screen shows the tile of that app in focus, not the first tile. Press Home on the home screen to go back to the first tile.
 
 ## 1.5
 

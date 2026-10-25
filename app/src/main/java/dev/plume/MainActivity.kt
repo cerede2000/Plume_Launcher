@@ -277,6 +277,7 @@ class MainActivity : Activity() {
     private lateinit var glass: GlassLayer // paints the blurred wallpaper under glass tiles
 
     private var resumed = false
+    private var hidden = false // another app covered Plume: set when it stops, cleared when it is back in front
     private val refreshIfDirty = Runnable { if (appsDirty && !editing) refreshApps() } // not while a tile is being moved: onResume catches up
 
     private val packageReceiver = object : BroadcastReceiver() {
@@ -386,6 +387,7 @@ class MainActivity : Activity() {
         resumed = true
         openedFrom?.get()?.let { tile -> ui.post { if (tile.isAttachedToWindow) settleRow(tile) } }
         openedFrom = null
+        hidden = false
         ensureHomeService()
         homeSetupResumed()
         if (wantDark() != dark) {
@@ -442,6 +444,7 @@ class MainActivity : Activity() {
     }
 
     override fun onStop() {
+        hidden = true
         unlockedUntil = 0L // leaving the home screen locks it again (onPause would also fire for permission dialogs)
         Remap.learn = null // never keep swallowing keys for a page that's no longer on screen
         if (homeTest != 0) leftDuringTest = true
@@ -745,6 +748,9 @@ class MainActivity : Activity() {
         if (editing) endEdit()
         if (settingsScrim.visibility == View.VISIBLE) closeLauncherSettings()
         if (allApps.visibility == View.VISIBLE) closeAllApps()
+        // Home from an app comes back to the tile it was opened from: focus stayed there. Home on Plume itself starts again at the
+        // first tile. (Plume is paused when this runs in both cases, so what tells them apart is that an app had hidden it.)
+        if (hidden) return
         watchScroll.scrollTo(0, 0)
         appRow.getChildAt(0)?.requestFocus()
     }
