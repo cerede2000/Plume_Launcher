@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - 'app/src/main/res/values*/strings.xml'
+      - 'lang/**'
       - 'tools/lang.py'
   workflow_dispatch:
 
@@ -20,4 +21,4 @@ jobs:
       - name: Translations against English
         continue-on-error: true
         run: |
-          { echo '### Translations against English'; echo; python3 tools/lang.py check --table; } >> "$GITHUB_STEP_SUMMARY"
+          { echo '### Translations against English'; echo; python3 tools/lang.py packs; } >> "$GITHUB_STEP_SUMMARY"

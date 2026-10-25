@@ -30,6 +30,10 @@ Plume replaces the cluttered stock home screen with the two things you actually 
 - **Continue Watching.** Resume shows and films from Android TV's Watch Next list and from apps that publish their own "Continue Watching" channel, such as Stremio.
 - **Clean apps row.** Monochrome logos (or the same logos in brand colour, or each app's own banner) in a single row, with names on focus, always or never. Rearrange it by holding OK, sort by most used, or hide apps you don't use (they stay in All apps). An optional PIN locks the layout so small hands can't rearrange it.
 - **Sources list.** The Sources icon in the top bar opens the list of the TV inputs. A console or set-top box that names itself over HDMI-CEC (for example "PlayStation 5") shows with its logo, and selecting it switches the TV to that input. A port with no signal says so. Hold OK on an input to put it in the apps row, and again to take it out.
+- **All apps under the row.** The tile at the right end of the row, or the grid icon in the top bar, opens the apps that are not in the row. Hold OK on one to move it, add it to the row or open its app info.
+- **One row per channel.** Each source of the shows row (Watch Next and every channel that is on) can have its own row. Push Down or Up on a card to change the row. Posters load only near the focus, so a long channel costs no extra memory.
+- **Optional memory clean-up.** Plume can end the Google TV home screen, or other apps you choose, to free memory. See [Free memory](#free-memory).
+- **Languages on demand.** English is built in. Other languages are text files in this repository that Plume downloads when you pick the language. See [Language](#language).
 - **Remote keys.** Change what a button on your remote does, for example the TV, Netflix or Settings button. A key can do one thing on a press and another when you hold it. See [Remote keys](#remote-keys).
 - **Light, dark or automatic theme**, each with its own wallpaper. Auto follows sunrise and sunset where you are (from 7:00 to 19:00 until Plume has a location; it keeps that location if you turn the weather off later). Add your own photos from your phone by scanning a QR code, or show a folder of photos from the TV or a USB drive that changes on a timer.
 - **Optional Gallery screensaver.** Public-domain landscape paintings in 16:9, downloaded only if you choose it, or a folder of your own photos.
@@ -137,6 +141,28 @@ Android 13 and newer grey out the Accessibility switch for apps installed outsid
 - **Do nothing**
 
 Back, OK, the arrows, Home, Power and the volume keys can't be changed, so the remote can't be locked out. While any key is set, **Smooth volume** is off. A key you set stops doing its usual job. **Remove this key** gives it back. The keys work through the Home button service, so **Plume: Home button** must be on in Accessibility settings.
+
+### Free memory
+
+**Plume settings → Memory** has three rows:
+
+- **Stop other home screens** ends the Google TV home screen each time Plume starts.
+- **Apps to stop** picks more apps for Plume to end.
+- **Stop running apps** ends them now.
+
+Android 14 lets an app end only itself, so Plume does what you would do: it opens each app's page in Settings and taps **Force stop**. A black screen covers this and shows the progress and the memory freed. Push **Back** to cancel. This needs **Plume: Home button** turned on in Accessibility settings. After an update, turn it off and on again once.
+
+### One row per channel
+
+**Plume settings → Shows row → Rows → One row per channel** gives each source its own row: Android TV Watch Next and every channel that is on in **Channels**. Push **Down** on a card to see the next row, and **Up** to go back. A row with nothing in it is left out. The title shows the channel and arrows to the other rows.
+
+### Language
+
+English is in the app. For another language, select **Plume settings → Language**. Plume downloads that language from this repository (`lang/<code>.txt`, about 10 KB), keeps it on the TV and uses it from then on. Picking another language deletes the old one, so one language is kept at a time. On its first start, Plume asks GitHub for the file of your TV's language: if it is there, Plume downloads it and uses it, if not it stays in English. A TV in English asks for nothing, and any other TV asks once a day at most until a file exists. Once a day it asks GitHub whether the file changed, so a fixed text arrives with no new version. Without a network, Plume keeps the saved language, or shows English.
+
+The languages on offer come from `lang/index.txt`, which Plume downloads too. **A new language needs no new version of Plume:** add `lang/<code>.txt` and its line in `lang/index.txt` (`tools/lang.py new <code> <Name>` starts both), and the language shows in the list.
+
+To add or fix a translation, edit `lang/<code>.txt`. Each line is a key, a tab and the text. A key the file lacks shows in English, and a key Plume does not know is ignored. Never change what a key means: add a new key. Run `tools/lang.py packs` to list what is missing in each language. The unit tests check every file in `lang/`, a new one too: they stop a file that has an unknown key, an empty text or the wrong `%d` and `%s` markers, and a file with no line in the index.
 
 ### Custom wallpapers
 
