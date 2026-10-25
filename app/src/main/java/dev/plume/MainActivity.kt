@@ -1170,7 +1170,7 @@ class MainActivity : Activity() {
     // ---------- folder wallpapers ----------
 
     private var afterPhotoAccess: (() -> Unit)? = null // what asked, while Android's permission prompt is up
-    private val deck = ArrayDeque<Long>() // photos not shown yet this round; io thread only
+    private val deck = java.util.ArrayDeque<Long>() // Java's, not Kotlin's, which is 4 KB of code; photos not shown yet this round; io thread only
 
     private fun photoKey(forDark: Boolean = dark) = if (forDark) "wp_photo_dark" else "wp_photo_light"
     private fun photoAtKey(forDark: Boolean = dark) = if (forDark) "wp_photo_at_dark" else "wp_photo_at_light"
@@ -1311,9 +1311,9 @@ class MainActivity : Activity() {
         val ids = folderPhotos(contentResolver, choice)
         val all = ids.toHashSet()
         prefs.getLong(photoKey(), -1).takeIf { it in all }?.let { return it }
-        deck.removeAll { it !in all } // deleted, or another folder's
+        deck.removeIf { it !in all } // deleted, or another folder's
         if (deck.isEmpty()) deck.addAll(ids.shuffled())
-        return deck.removeFirstOrNull()?.also { prefs.edit().putLong(photoKey(), it).apply() }
+        return deck.pollFirst()?.also { prefs.edit().putLong(photoKey(), it).apply() }
     }
 
     /** Every folder with photos in it, internal storage and USB drives alike: (bucket id, name, photo count). */
