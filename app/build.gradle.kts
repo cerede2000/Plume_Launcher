@@ -63,6 +63,12 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.addAll("-Xno-param-assertions", "-Xno-call-assertions", "-Xno-receiver-assertions")
+    }
+}
+
 dependencies {
     testImplementation("junit:junit:4.13.2")
 }
