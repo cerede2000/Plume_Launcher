@@ -3,6 +3,7 @@ package dev.plume
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.ActivityManager
+import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
 import android.graphics.Color
@@ -29,6 +30,15 @@ import android.widget.TextView
  * opens it (e.g. Back out of the last app).
  */
 class HomeOverride : AccessibilityService() {
+    override fun attachBaseContext(base: Context) {
+        Lang.use(base, base.getSharedPreferences("home", MODE_PRIVATE).getString("lang", null))
+        super.attachBaseContext(base)
+    }
+
+    private var packRes: PackResources? = null
+
+    override fun getResources(): Resources = Lang.resources(super.getResources(), packRes).also { packRes = it as? PackResources }
+
     override fun onServiceConnected() {
         running = this
         applyKeyFilter()

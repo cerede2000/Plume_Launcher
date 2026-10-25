@@ -1,0 +1,287 @@
+override_desc	Ouvre Plume dès que l'écran d'accueil Google TV apparaît, pour que le bouton Accueil arrive ici. Appuie aussi sur Forcer l'arrêt dans les paramètres, derrière un écran, quand vous demandez à Plume d'arrêter des applis.
+delete_photo	Supprimer « %1$s » ?
+photo_added	« %1$s » ajoutée. Envoyez-en une autre ou appuyez sur Terminé.
+n_of_m	%1$d sur %2$d
+n_off	%1$d désactivées
+update_available_row	%1$s disponible
+up_to_date_row	À jour (%1$s)
+too_many_tries	Trop d'essais. Réessayez dans %1$d s.
+downloading_paintings	Téléchargement des tableaux de la Galerie (%1$s)…
+update_available_toast	Plume %1$s est disponible. Mettez à jour depuis les paramètres de Plume.
+no_places	Aucun lieu nommé « %1$s ».
+time_left_hm	%1$d h %2$d min restantes
+time_left_m	%1$d min restantes
+folder_name	Dossier : %1$s
+wp_rockies_day	Rocheuses (jour)
+wp_rockies_dusk	Rocheuses (crépuscule)
+wp_pure_black	Noir pur
+wp_soft_white	Blanc doux
+every_1	Toutes les minutes
+every_5	Toutes les 5 min
+every_10	Toutes les 10 min
+every_15	Toutes les 15 min
+every_30	Toutes les 30 min
+every_60	Toutes les heures
+every_1440	Tous les jours
+unlock_to_edit	Déverrouiller pour modifier…
+add_from_phone	Ajouter depuis le téléphone…
+choose_from_tv	Choisir un dossier sur cette TV…
+remove_photo_row	Retirer une photo…
+photos_permission	Plume a besoin d'accéder aux photos pour afficher vos dossiers
+home_off_hint	Désactivez « Plume : bouton Accueil » dans Paramètres → Système → Accessibilité
+home_on_hint	Activez « Plume : bouton Accueil » dans Paramètres → Système → Accessibilité
+dark_wallpaper	Fond d'écran du mode sombre
+light_wallpaper	Fond d'écran du mode clair
+folder_photo_changes	Changement de photo du dossier
+no_photos	Aucune photo trouvée. Copiez-en sur la TV ou branchez une clé USB contenant des photos.
+choose_folder	Choisir un dossier
+remove_photo_title	Retirer une photo
+cancel	Annuler
+delete	Supprimer
+connect_network	Connectez d'abord la TV au Wi-Fi ou à l'Ethernet
+waiting_photo	En attente d'une photo…
+upload_failed	Impossible de démarrer la page d'envoi
+scan_hint	Scannez avec l'appareil photo de votre téléphone, ou ouvrez cette adresse. Le téléphone et la TV doivent être sur le même Wi-Fi.
+add_from_your_phone	Ajouter depuis votre téléphone
+done	Terminé
+edit_apps_row	Modifier la ligne d'applis
+theme	Thème
+app_animations	Animations des applis
+fade_top	Fondu en haut
+fade_bottom	Fondu en bas
+glass	Verre dépoli
+sort_apps	Trier les applis
+manual	Manuel
+most_used	Les plus utilisées
+apps_in_row	Applis dans la ligne
+all	Toutes
+app_names	Noms des applis
+on_focus	À la sélection
+always	Toujours
+never	Jamais
+icon_style	Style des icônes
+colour	Couleur
+monochrome	Monochrome
+banner	Bannière
+banner_mono	Bannière monochrome
+restore_hidden	Restaurer les contenus masqués
+none_hidden	Aucun masqué
+cw_apps	Applis de Reprendre la lecture
+all_on	Toutes activées
+weather	Météo
+weather_units	Unités météo
+screensaver	Écran de veille
+downloading_gallery	Téléchargement de la Galerie…
+gallery	Galerie
+test_screensaver	Tester l'écran de veille
+screensaver_timing	Délai de l'écran de veille
+home_button	Bouton Accueil
+default_launcher	Lanceur par défaut
+plume_press_change	Plume : appuyez pour changer
+press_to_set	Appuyez pour définir
+updates	Mises à jour
+updating	Mise à jour…
+checking	Vérification…
+lock_layout	Verrouiller la disposition
+plume_settings	Paramètres de Plume
+enter_pin	Saisissez le code PIN
+wrong_pin	Code PIN incorrect
+choose_pin	Choisissez un code PIN
+enter_again	Saisissez-le à nouveau
+pins_mismatch	Les codes PIN ne correspondent pas. Choisissez-en un à nouveau.
+layout_locked	Disposition verrouillée. Les paramètres de Plume et les modifications de l'écran d'accueil demandent désormais le code PIN.
+pin_hint	▲ ▼ changer  ·  ◀ ▶ déplacer  ·  OK valider. Les touches numériques fonctionnent aussi.
+pin_forgot	Oublié ? Paramètres Android → Applis → Plume → Effacer les données supprime le verrou, ainsi que votre disposition et vos paramètres.
+tip_move	Astuce : maintenez OK sur une appli pour réorganiser la ligne
+open	Ouvrir
+hide	Masquer
+add_icon	Ajouter une icône
+icon_hidden	Masquée. Pour la remettre, maintenez OK sur une icône et choisissez Ajouter une icône.
+shows_with_input	S'affiche quand la TV a une entrée
+top_bar_hint	Maintenez OK sur une icône de la barre du haut pour la déplacer, la masquer ou en ajouter.
+power	Alimentation
+power_needs_home	Activez le bouton Accueil
+move	Déplacer
+remove_from_row	Retirer de la ligne
+removed_from_row	Retirée de la ligne. Elle reste dans Toutes les applis.
+app_info	Infos sur l'appli
+uninstall	Désinstaller
+cant_uninstall	Impossible de désinstaller cette appli
+remove_from_cw	Retirer de Reprendre la lecture
+open_app	Ouvrir l'appli
+moving_hint	Déplacement :  ◀ ▶ déplacer  ·  OK placer
+editing_hint	Modification de la ligne d'applis :  OK prendre / déposer  ·  ◀ ▶ déplacer  ·  Retour terminer
+shown	Affiché
+hidden	Masqué
+off	Désactivé
+on	Activé
+system_default	Par défaut (système)
+gallery_paintings	Tableaux de la Galerie
+downloading	Téléchargement…
+your_photos	Vos photos
+choose_gallery_hint	Choisissez « Galerie » comme écran de veille ici
+paintings_failed	Impossible de télécharger les tableaux. Vérifiez la connexion et réessayez.
+cant_dream	Cette TV ne peut pas lancer l'écran de veille à la demande
+update_check_failed	Impossible de vérifier les mises à jour. Vérifiez la connexion.
+up_to_date_toast	Plume est à jour
+allow_installs	Activez Plume dans la liste suivante, puis appuyez de nouveau sur Mises à jour
+update_download_failed	Impossible de télécharger la mise à jour. Vérifiez la connexion et réessayez.
+update_install_failed	L'installation de la mise à jour a échoué
+city_hint	Saisissez une ville, puis Rechercher
+automatic_ip	Automatique (d'après votre adresse Internet)
+weather_location	Lieu de la météo
+searching	Recherche…
+search_failed	Recherche impossible. Vérifiez la connexion et réessayez.
+wx_clear	Dégagé
+wx_partly_cloudy	Partiellement nuageux
+wx_cloudy	Nuageux
+wx_fog	Brouillard
+wx_drizzle	Bruine
+wx_rain	Pluie
+wx_snow	Neige
+wx_thunderstorm	Orage
+no_cw_apps	Aucune appli installée ne prend en charge Reprendre la lecture
+hidden_from_cw	Masqué de Reprendre la lecture
+network_settings	Paramètres réseau
+all_apps	Toutes les applis
+settings	Paramètres
+continue_watching	Reprendre la lecture
+home_service_label	Plume : bouton Accueil
+theme_light	Clair
+theme_dark	Sombre
+theme_auto	Auto
+season_episode	S%1$s E%2$s
+setup_home	Configurer le bouton Accueil
+preview_home_setup	Aperçu des fenêtres de configuration Accueil
+setup_step	Étape %1$d sur 3
+setup_role_title	Faire de Plume votre écran d'accueil
+setup_role_body	Android va demander quelle appli utiliser comme écran d'accueil. Choisissez Plume.
+setup_test_title	Appuyez sur Accueil sur votre télécommande
+setup_test_body	Plume vérifie que le bouton Accueil vous ramène ici. Si un autre écran d'accueil s'ouvre à la place, rouvrez Plume depuis vos applis et la configuration essaiera la méthode suivante.
+setup_service_title	Activer le bouton Accueil de Plume
+setup_service_body	Les paramètres d'accessibilité vont s'ouvrir. Sélectionnez « Plume : bouton Accueil », activez-le, puis appuyez sur Retour pour revenir ici.
+setup_adb_title	Déverrouiller une fois avec ADB
+setup_adb_body	Cette TV bloque le réglage du bouton Accueil pour les applis installées hors du Play Store. Activez le débogage réseau dans les Options pour les développeurs, puis exécutez ces commandes depuis un ordinateur ou une appli ADB sur téléphone. Plume s'occupe du reste.
+setup_scan_help	Aide pas à pas
+setup_done_title	Accueil configuré
+setup_done_body	Le bouton Accueil de votre télécommande ouvre maintenant Plume.
+setup_done_body_service	Le bouton Accueil de votre télécommande ouvre maintenant Plume. Maintenez Accueil pour le tableau de bord Google TV.
+setup_continue	Continuer
+setup_not_now	Plus tard
+setup_skip_check	Passer cette vérification
+setup_open_accessibility	Ouvrir l'accessibilité
+setup_try_again	Réessayer
+setup_close	Fermer
+setup_done	Terminé
+whats_new_title	Nouveautés de %1$s
+whats_new_card_title	Nouveautés de Plume %1$s
+see_all_changes	Voir toutes les modifications
+check_updates	Rechercher des mises à jour
+install_update	Installer %1$s
+row_position	Position de la ligne d'applis
+show_row	Afficher la ligne
+on_down	Avec Bas
+apps_when_hidden	Ligne d'applis si masquée
+stays_put	Ne bouge pas
+moves_down	Descend
+align_left	Gauche
+align_centre	Centre
+align_right	Droite
+section_appearance	Apparence
+section_app_row	Ligne d'applis
+section_screensaver	Écran de veille
+sources	Sources
+no_signal	Pas de signal
+in_row	Dans la ligne
+input_added	Ajoutée à la ligne.
+input_removed	Retirée de la ligne.
+sources_hint	Maintenez OK pour épingler une entrée à la ligne.
+bing_daily	Image Bing du jour
+section_keys	Touches de la télécommande
+key_add	Ajouter une touche
+key_press_prompt	Appuyez sur la touche à changer sur votre télécommande. Retour, OK et les flèches ne peuvent pas être changés. Une touche réglée ici ne fait plus son travail habituel.
+key_short	Appui
+key_long	Appui long
+key_unset	Non réglée
+key_block	Ne rien faire
+key_open_app	Ouvrir une appli ou une entrée…
+key_remove	Retirer cette touche
+key_number	Touche %1$d
+act_play_pause	Lecture / Pause
+act_next	Suivant
+act_previous	Précédent
+act_stop	Arrêt
+act_rewind	Retour rapide
+act_forward	Avance rapide
+act_back	Retour
+act_recents	Applis récentes
+act_notifications	Notifications
+act_quick	Réglages rapides
+act_power	Menu d'alimentation
+act_settings	Paramètres Android
+act_network	Paramètres réseau
+n_on	Actives : %1$d
+cw_channels	Chaînes
+row_name	Nom de la rangée
+watch_next	À suivre (Android TV)
+bottom_row	Rangée du bas
+automatic	Automatique
+help_memory	Libérer la mémoire : arrêter les autres accueils, les applis choisies, ou toutes les applis en cours avec une touche.
+section_memory	Mémoire
+stop_homes	Arrêter les autres accueils
+stop_apps	Applis à arrêter
+stop_now	Arrêter les applis en cours
+freeing_memory	Libération de la mémoire…
+freed_result	%1$d applis arrêtées · %2$d Mo libérés
+freed_none	Rien à arrêter
+stop_needs_service	Désactivez puis réactivez « Plume : bouton Accueil » dans les paramètres d'accessibilité, puis réessayez
+smooth_volume	Volume fluide
+auto_note_sun	Auto est clair du lever au coucher du soleil à %1$s. Aujourd'hui : de %2$s à %3$s.
+auto_note_up	Auto reste clair aujourd'hui : le soleil ne se couche pas à %1$s.
+auto_note_down	Auto reste sombre aujourd'hui : le soleil ne se lève pas à %1$s.
+auto_note_clock	Auto est clair de %1$s à %2$s. Indiquez un lieu dans Horloge et météo pour suivre le lever et le coucher du soleil.
+your_area	votre région
+help_appearance	Clair ou sombre, et l'image derrière vos applis.
+help_clock_weather	La météo sous l'horloge, et le lieu concerné.
+help_apps_row	Les applis de la ligne, leur ordre et leur apparence.
+help_shows_row	La rangée sous vos applis : Reprendre la lecture et les chaînes que vos applis ajoutent.
+help_screensaver	Ce que la TV affiche quand personne ne s'en sert pendant un moment.
+help_remote_home	Faire ouvrir Plume par Accueil, et changer ce que font les touches de la télécommande.
+help_lock	Un code PIN qui empêche les autres de modifier votre écran d'accueil.
+help_updates	Plume cherche une nouvelle version une fois par jour. Installez-la ici.
+help_finish_setup	Accueil ouvre encore l'écran d'accueil de la TV. Réglez-le pour qu'il ouvre Plume.
+help_fade_top	Assombrit le haut de vos photos pour que l'horloge et les icônes restent lisibles. Appuyez sur Gauche ou Droite pour changer.
+help_fade_bottom	Fond le bas de vos photos dans l'arrière-plan, derrière les applis et la rangée du bas. Appuyez sur Gauche ou Droite pour changer.
+help_location	Pour la météo, et pour le lever et le coucher du soleil en Auto. Automatique la trouve avec votre adresse internet.
+help_rearrange	Déplacez les applis de la ligne. Vous pouvez aussi maintenir OK sur une appli.
+help_choose_apps	Choisissez les applis de la ligne. Les autres restent dans Toutes les applis.
+help_order	Manuel garde votre ordre. Les plus utilisées met en premier les applis que vous ouvrez le plus.
+help_icon_style	Appuyez sur ‹ › pour essayer chaque style. La ligne change pendant que vous appuyez.
+help_apps_when_hidden	Quand la rangée du bas se masque, les applis restent en place ou descendent.
+help_show_icons	La petite icône de l'appli sur chaque carte. Couleur l'affiche dans la couleur de l'appli.
+help_row_name	Le nom au-dessus de la rangée. Automatique reprend le nom que vos applis lui donnent.
+help_from_apps	Choisissez les applis qui peuvent ajouter des contenus à cette rangée.
+help_channels	Activez ou désactivez les chaînes que les applis ajoutent, comme Recommandations.
+help_hidden_shows	Les contenus que vous avez masqués de la rangée. Appuyez sur OK pour tous les réafficher.
+help_start_after	Ouvre les paramètres Android où vous réglez le délai d'attente de la TV.
+help_home_button	Accueil ouvre Plume. Maintenez Accueil pour ouvrir le tableau de bord de la TV.
+help_default_launcher	Sur Android TV, Plume peut être l'écran d'accueil. Google TV garde le sien : utilisez le bouton Accueil.
+help_run_setup	Refaire la configuration du bouton Accueil.
+help_smooth_volume	Maintenir Volume continue de le changer. Accueil affiche alors Google TV environ une seconde avant l'ouverture de Plume. Désactivé quand des touches de la télécommande sont réglées.
+help_remote_keys	Change ce que fait une touche de votre télécommande quand vous l'appuyez ou la maintenez.
+show_icons	Icônes
+section_clock_weather	Horloge et météo
+section_remote_home	Télécommande et bouton Accueil
+section_lock	Verrouiller la disposition
+lock_note	Un code PIN protège les paramètres de Plume, le Wi-Fi et les paramètres Android, et les changements de l'écran d'accueil. Les applis s'ouvrent toujours.
+finish_setup	Terminer la configuration
+finish_setup_value	Faire ouvrir Plume par Accueil
+photo_count:one	%d photo
+photo_count:many	%d de photos
+photo_count:other	%d photos
+n_keys:one	%d touche
+n_keys:other	%d touches
+language	Langue
+lang_downloading	Téléchargement…
+lang_failed	Échec du téléchargement
+help_language	La langue de Plume. Une langue se télécharge une fois depuis le dépôt et reste sur la TV.

@@ -1,0 +1,265 @@
+override_desc	Abre Plume cada vez que aparece la pantalla de inicio de Google TV, para que el botón Inicio te lleve aquí.
+delete_photo	¿Eliminar "%1$s"?
+photo_added	Se añadió "%1$s". Envía otra o pulsa Listo.
+n_of_m	%1$d de %2$d
+n_off	%1$d desactivadas
+n_on	%1$d activas
+update_available_row	%1$s disponible
+up_to_date_row	Al día (%1$s)
+too_many_tries	Demasiados intentos. Inténtalo de nuevo en %1$d s.
+downloading_paintings	Descargando cuadros de la Galería (%1$s)…
+update_available_toast	Plume %1$s está disponible. Actualízalo en los ajustes de Plume.
+no_places	No hay lugares llamados "%1$s".
+time_left_hm	Quedan %1$d h %2$d min
+time_left_m	Quedan %1$d min
+folder_name	Carpeta: %1$s
+wp_rockies_day	Montañas Rocosas (día)
+wp_rockies_dusk	Montañas Rocosas (atardecer)
+wp_pure_black	Negro puro
+wp_soft_white	Blanco suave
+every_1	Cada minuto
+every_5	Cada 5 min
+every_10	Cada 10 min
+every_15	Cada 15 min
+every_30	Cada 30 min
+every_60	Cada hora
+every_1440	Cada día
+unlock_to_edit	Desbloquear para editar…
+add_from_phone	Añadir desde el teléfono…
+choose_from_tv	Elegir una carpeta en esta TV…
+remove_photo_row	Quitar una foto…
+photos_permission	Plume necesita acceso a las fotos para mostrar tus carpetas
+home_off_hint	Desactiva "Plume: botón Inicio" en Ajustes → Sistema → Accesibilidad
+home_on_hint	Activa "Plume: botón Inicio" en Ajustes → Sistema → Accesibilidad
+dark_wallpaper	Fondo oscuro
+light_wallpaper	Fondo claro
+folder_photo_changes	Cambiar foto cada
+no_photos	No se encontraron fotos. Copia algunas a la TV o conecta una memoria USB con fotos.
+choose_folder	Elegir una carpeta
+remove_photo_title	Quitar una foto
+cancel	Cancelar
+delete	Eliminar
+connect_network	Conecta primero la TV a Wi-Fi o Ethernet
+waiting_photo	Esperando una foto…
+upload_failed	No se pudo iniciar la página de subida
+scan_hint	Escanea con la cámara de tu teléfono o abre esta dirección. El teléfono y la TV deben estar en el mismo Wi-Fi.
+add_from_your_phone	Añadir desde tu teléfono
+done	Listo
+edit_apps_row	Reordenar apps
+theme	Tema
+fade_top	Degradado superior
+fade_bottom	Degradado inferior
+glass	Cristal
+sort_apps	Orden
+manual	Manual
+most_used	Más usadas
+apps_in_row	Elegir apps
+all	Todas
+app_names	Nombres de apps
+on_focus	Al enfocar
+always	Siempre
+never	Nunca
+icon_style	Estilo de iconos
+colour	Color
+monochrome	Monocromo
+banner	Banner
+banner_mono	Banner monocromo
+restore_hidden	Contenidos ocultos
+none_hidden	Ninguno oculto
+cw_apps	Desde apps
+cw_channels	Canales
+row_name	Nombre de la fila
+watch_next	Seguir viendo de Android TV
+bottom_row	Fila de contenidos
+automatic	Automático
+all_on	Todas activas
+weather	Clima
+weather_units	Unidades
+screensaver	Salvapantallas
+downloading_gallery	Descargando Galería…
+gallery	Galería
+test_screensaver	Vista previa
+screensaver_timing	Empezar tras
+home_button	Botón Inicio
+default_launcher	Lanzador predeterminado
+plume_press_change	Plume: pulsa para cambiar
+press_to_set	Pulsa para configurar
+updates	Actualizaciones
+updating	Actualizando…
+checking	Comprobando…
+lock_layout	Bloquear diseño
+plume_settings	Ajustes de Plume
+enter_pin	Introduce el PIN
+wrong_pin	PIN incorrecto
+choose_pin	Elige un PIN
+enter_again	Introdúcelo de nuevo
+pins_mismatch	Los PIN no coinciden. Elige uno de nuevo.
+layout_locked	Diseño bloqueado. Los ajustes de Plume y los cambios en la pantalla de inicio ahora requieren el PIN.
+pin_hint	▲ ▼ cambiar  ·  ◀ ▶ mover  ·  OK confirmar. Los botones numéricos también funcionan.
+pin_forgot	¿Lo olvidaste? Ajustes de Android → Aplicaciones → Plume → Borrar datos elimina el bloqueo, junto con tu diseño y ajustes.
+tip_move	Consejo: mantén pulsado OK sobre una app para reordenar la fila
+open	Abrir
+move	Mover
+remove_from_row	Quitar de la fila
+removed_from_row	Quitada de la fila. Sigue disponible en Todas las apps.
+app_info	Información de la app
+uninstall	Desinstalar
+cant_uninstall	No se puede desinstalar esta app
+remove_from_cw	Quitar de Seguir viendo
+open_app	Abrir app
+moving_hint	Moviendo:  ◀ ▶ mover  ·  OK colocar
+editing_hint	Editando fila de apps:  OK tomar / soltar  ·  ◀ ▶ mover  ·  Atrás listo
+shown	Mostrado
+hidden	Oculto
+off	Desactivado
+on	Activado
+system_default	Predeterminado del sistema
+gallery_paintings	Cuadros de la Galería
+downloading	Descargando…
+your_photos	Tus fotos
+choose_gallery_hint	Elige "Galería" como salvapantallas aquí
+paintings_failed	No se pudieron descargar los cuadros. Comprueba la conexión e inténtalo de nuevo.
+cant_dream	Esta TV no puede iniciar el salvapantallas bajo demanda
+update_check_failed	No se pudieron buscar actualizaciones. Comprueba la conexión.
+up_to_date_toast	Plume está al día
+allow_installs	Activa Plume en la siguiente lista y luego vuelve a pulsar Actualizaciones
+update_download_failed	No se pudo descargar la actualización. Comprueba la conexión e inténtalo de nuevo.
+update_install_failed	Error al instalar la actualización
+city_hint	Escribe una ciudad y pulsa Buscar
+automatic_ip	Automático (según tu dirección de internet)
+weather_location	Ubicación
+searching	Buscando…
+search_failed	No se pudo buscar. Comprueba la conexión e inténtalo de nuevo.
+wx_clear	Despejado
+wx_partly_cloudy	Parcialmente nublado
+wx_cloudy	Nublado
+wx_fog	Niebla
+wx_drizzle	Llovizna
+wx_rain	Lluvia
+wx_snow	Nieve
+wx_thunderstorm	Tormenta
+no_cw_apps	Ninguna app instalada es compatible con Seguir viendo
+hidden_from_cw	Oculto de Seguir viendo
+network_settings	Ajustes de red
+all_apps	Todas las apps
+settings	Ajustes
+continue_watching	Seguir viendo
+home_service_label	Plume: botón Inicio
+theme_light	Claro
+theme_dark	Oscuro
+theme_auto	Auto
+auto_note_sun	Auto usa el tema claro desde el amanecer hasta el atardecer en %1$s. Hoy: de %2$s a %3$s.
+auto_note_up	Auto se queda en claro hoy: el sol no se pone en %1$s.
+auto_note_down	Auto se queda en oscuro hoy: el sol no sale en %1$s.
+auto_note_clock	Auto usa el tema claro de %1$s a %2$s. Elige una ubicación en Reloj y clima para seguir el amanecer y el atardecer.
+your_area	tu zona
+help_appearance	Claro u oscuro, y la imagen detrás de tus apps.
+help_clock_weather	El clima debajo del reloj y el lugar al que corresponde.
+help_apps_row	Qué apps hay en la fila, su orden y su aspecto.
+help_shows_row	La fila debajo de tus apps: Seguir viendo y los canales que añaden tus apps.
+help_screensaver	Lo que muestra la TV cuando nadie la usa durante un rato.
+help_remote_home	Haz que Inicio abra Plume y cambia lo que hacen los botones del control remoto.
+help_lock	Un PIN que impide que otras personas cambien tu pantalla de inicio.
+help_updates	Plume busca una versión nueva una vez al día. Instálala aquí.
+help_finish_setup	Inicio todavía abre la pantalla de inicio propia de la TV. Configúralo para que abra Plume.
+help_fade_top	Oscurece la parte superior de tus fotos para que el reloj y los iconos se lean bien. Pulsa Izquierda o Derecha para cambiarlo.
+help_fade_bottom	Funde la parte inferior de tus fotos con el fondo, detrás de las apps y de la fila de contenidos. Pulsa Izquierda o Derecha para cambiarlo.
+help_location	Para el clima y para el amanecer y el atardecer en Auto. Automático la obtiene de tu dirección de internet.
+help_rearrange	Mueve las apps de la fila. También puedes mantener pulsado OK sobre una app.
+help_choose_apps	Elige las apps de la fila. Las demás siguen en Todas las apps.
+help_order	Manual mantiene tu orden. Más usadas pone primero las apps que más abres.
+help_icon_style	Pulsa ‹ › para probar cada estilo. La fila cambia mientras pulsas.
+help_apps_when_hidden	Cuando la fila de contenidos se oculta, las apps se quedan en su sitio o bajan.
+help_show_icons	El icono pequeño de la app en cada tarjeta. Color lo muestra con el color propio de la app.
+help_row_name	El nombre encima de la fila. Automático usa el nombre que le dan tus apps.
+help_from_apps	Elige las apps que pueden añadir contenidos a esta fila.
+help_channels	Activa o desactiva los canales que añaden las apps, como Recomendados.
+help_hidden_shows	Contenidos que ocultaste de la fila. Pulsa OK para volver a mostrarlos todos.
+help_start_after	Abre los ajustes de Android donde eliges cuánto espera la TV.
+help_home_button	Inicio abre Plume. Mantén pulsado Inicio para abrir el panel propio de la TV.
+help_default_launcher	En Android TV, Plume puede ser la pantalla de inicio. Google TV mantiene la suya, así que usa el botón Inicio.
+help_run_setup	Vuelve a configurar el botón Inicio.
+help_remote_keys	Cambia lo que hace un botón del control remoto al pulsarlo o mantenerlo pulsado.
+season_episode	T%1$s E%2$s
+setup_home	Repetir configuración
+preview_home_setup	Vista previa de configuración de Inicio
+setup_step	Paso %1$d de 3
+setup_role_title	Haz que Plume sea tu pantalla de inicio
+setup_role_body	Android preguntará qué aplicación usar como pantalla de inicio. Elige Plume.
+setup_test_title	Pulsa Inicio en tu control remoto
+setup_test_body	Plume comprueba que el botón Inicio te traiga de vuelta aquí. Si se abre otra pantalla de inicio, vuelve a abrir Plume desde tus apps y el asistente probará el siguiente método.
+setup_service_title	Activa el botón Inicio de Plume
+setup_service_body	Se abrirán los ajustes de accesibilidad. Selecciona "Plume: botón Inicio", actívalo y pulsa Atrás para volver aquí.
+setup_adb_title	Desbloquéalo una vez con ADB
+setup_adb_body	Esta TV bloquea el cambio del botón Inicio para apps instaladas fuera de Play Store. Activa la depuración por red en Opciones de desarrollador y ejecuta estos comandos desde una computadora o una app ADB en el teléfono. Plume hace el resto.
+setup_scan_help	Ayuda paso a paso
+setup_done_title	Inicio configurado
+setup_done_body	El botón Inicio de tu control remoto ahora abre Plume.
+setup_done_body_service	El botón Inicio de tu control remoto ahora abre Plume. Mantén pulsado Inicio para abrir el panel de Google TV.
+setup_continue	Continuar
+setup_not_now	Ahora no
+setup_skip_check	Omitir esta comprobación
+setup_open_accessibility	Abrir Accesibilidad
+setup_try_again	Intentar de nuevo
+setup_close	Cerrar
+setup_done	Listo
+whats_new_title	Novedades de %1$s
+whats_new_card_title	Nuevo en Plume %1$s
+see_all_changes	Ver todos los cambios
+check_updates	Buscar actualizaciones
+install_update	Instalar %1$s
+row_position	Posición
+show_row	Mostrar fila
+on_down	Al pulsar Abajo
+apps_when_hidden	Apps al ocultar la fila
+show_icons	Iconos
+stays_put	Se quedan
+moves_down	Bajan
+align_left	Izquierda
+align_centre	Centro
+align_right	Derecha
+section_appearance	Fondo y tema
+section_app_row	Fila de apps
+section_screensaver	Salvapantallas
+sources	Entradas
+no_signal	Sin señal
+in_row	En la fila
+input_added	Añadida a la fila.
+input_removed	Quitada de la fila.
+sources_hint	Mantén pulsado OK para fijar una entrada en la fila.
+bing_daily	Imagen del día de Bing
+section_clock_weather	Reloj y clima
+section_remote_home	Control remoto y botón Inicio
+section_lock	Bloquear diseño
+lock_note	Un PIN protege los ajustes de Plume, el Wi-Fi, los ajustes de Android y los cambios en la pantalla de inicio. Las apps se siguen abriendo.
+finish_setup	Terminar configuración
+finish_setup_value	Haz que Inicio abra Plume
+section_keys	Botones del control
+key_add	Añadir un botón
+key_press_prompt	Pulsa en tu control remoto el botón que quieras cambiar. Atrás, OK y las flechas no se pueden cambiar. Un botón configurado aquí deja de hacer su función habitual.
+key_short	Pulsar
+key_long	Mantener
+key_unset	Sin asignar
+key_block	No hacer nada
+key_open_app	Abrir una app o entrada…
+key_remove	Quitar este botón
+key_number	Botón %1$d
+act_play_pause	Reproducir / Pausar
+act_next	Siguiente
+act_previous	Anterior
+act_stop	Detener
+act_rewind	Rebobinar
+act_forward	Avance rápido
+act_back	Atrás
+act_recents	Apps recientes
+act_notifications	Notificaciones
+act_quick	Ajustes rápidos
+act_power	Menú de apagado
+act_settings	Ajustes de Android
+act_network	Ajustes de red
+show_again:one	Mostrar %d de nuevo
+show_again:other	Mostrar %d de nuevo
+photo_count:one	%d foto
+photo_count:other	%d fotos
+n_keys:one	%d botón
+n_keys:other	%d botones

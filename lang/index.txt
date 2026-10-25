@@ -1,0 +1,4 @@
+fr	Français
+tr	Türkçe
+ar	العربية
+es	Español

@@ -20,6 +20,7 @@ import android.content.pm.PackageInstaller
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -309,9 +310,33 @@ class MainActivity : Activity() {
         }
     }
 
+    override fun attachBaseContext(base: Context) {
+        Lang.use(base, base.getSharedPreferences("home", MODE_PRIVATE).getString("lang", null))
+        super.attachBaseContext(base)
+    }
+
+    private var packRes: PackResources? = null
+
+    override fun getResources(): Resources = Lang.resources(super.getResources(), packRes).also { packRes = it as? PackResources }
+
+    /** The texts written in the layout come from the APK: put the language's own on them. */
+    private fun layoutTexts() {
+        if (!Lang.active) return
+        for ((id, str) in listOf(R.id.wifi to R.string.network_settings, R.id.sourcesButton to R.string.sources,
+            R.id.allAppsButton to R.string.all_apps, R.id.systemSettings to R.string.settings,
+            R.id.launcherSettings to R.string.plume_settings, R.id.powerButton to R.string.power)) {
+            findViewById<View>(id).contentDescription = getString(str)
+        }
+        for ((id, str) in listOf(R.id.allAppsTitle to R.string.all_apps, R.id.watchTitle to R.string.continue_watching,
+            R.id.settingsTitle to R.string.plume_settings)) {
+            findViewById<TextView>(id).text = getString(str)
+        }
+    }
+
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         setContentView(R.layout.activity_main)
+        layoutTexts()
         glass = GlassLayer(this)
         findViewById<ViewGroup>(R.id.root).addView(glass, 1, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)) // over the wallpaper, under the home screen
         for (id in intArrayOf(R.id.appScroll, R.id.watchScroll, R.id.allApps)) findViewById<View>(id).setOnScrollChangeListener { _, _, _, _, _ -> glass.kick(150) }
@@ -410,6 +435,7 @@ class MainActivity : Activity() {
         // Gallery chosen but its paintings missing (updated from a version that bundled them): fetch them.
         if (galleryOn() && photoScreensaver() == null && !paintingsReady(this)) downloadPaintings {}
         checkUpdate(force = false)
+        firstLanguage()
         Bing.onChanged = bingChanged
         Bing.refresh(applicationContext, prefs)
         ui.post { updateBadge() } // after layout, so the icon has its size
@@ -1660,6 +1686,8 @@ class MainActivity : Activity() {
             } +
             Triple(R.string.updates, rows[R.string.updates]!!.let { (t, v, a) -> page(t, "›", a) },
                 RowStyle(R.drawable.ic_update, rows[R.string.updates]!!.second, help = getString(R.string.help_updates))) +
+            Triple(R.string.language, page(getString(R.string.language), "›") { pickLang() },
+                RowStyle(R.drawable.ic_language, prefs.getString("lang", null)?.let { Lang.available[it] ?: it } ?: "English", help = getString(R.string.help_language))) +
             listOfNotNull(if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) null
                 else Triple(R.string.preview_home_setup, page(getString(R.string.preview_home_setup)) { closeLauncherSettings(); previewHomeSetup() }, null))
         val hint = label(getString(R.string.top_bar_hint), 13f).apply {
@@ -1686,6 +1714,72 @@ class MainActivity : Activity() {
             Sun.Day.AlwaysUp -> getString(R.string.auto_note_up, city)
             Sun.Day.AlwaysDown -> getString(R.string.auto_note_down, city)
             is Sun.Day.Times -> getString(R.string.auto_note_sun, city, time.format(Date(d.rise)), time.format(Date(d.set)))
+        }
+    }
+
+    /** Switches to [code] (null: English), once its pack is on the TV; the old pack is deleted. */
+    private fun setLang(code: String?) {
+        prefs.edit().putBoolean("lang_chosen", true).apply { if (code == null) remove("lang") else putString("lang", code) }.apply()
+        Lang.prune(this, code)
+        recreate()
+    }
+
+    private var langShown = false // the Language page is on screen, so a new list of languages can redraw it
+
+    /** The languages come from the index in the repository: a new file there is a new language here, with no new version. */
+    private fun pickLang() {
+        if (Lang.available.isEmpty()) {
+            toast(getString(R.string.lang_downloading))
+            Lang.fetchIndex(this, force = true) { ok -> ui.post { if (ok) langPage() else toast(getString(R.string.lang_failed)) } }
+            return
+        }
+        langPage()
+        val before = Lang.available
+        Lang.fetchIndex(this, force = false) { ui.post { if (langShown && Lang.available != before) langPage() } }
+    }
+
+    /** English, then each language on offer: a pack is downloaded the first time it is picked. */
+    private fun langPage() {
+        val cur = prefs.getString("lang", null)
+        showPage(getString(R.string.language), listOf(page("English", if (cur == null) CHOSEN else "") { setLang(null) }) +
+            Lang.available.map { (code, name) ->
+                page(name, if (cur == code) CHOSEN else "") {
+                    if (Lang.has(this, code)) setLang(code) else {
+                        toast(getString(R.string.lang_downloading))
+                        Lang.fetch(this, code, force = true) { ok -> ui.post { if (ok) setLang(code) else toast(getString(R.string.lang_failed)) } }
+                    }
+                }
+            }, back = { renderSettings(R.string.language) })
+        langShown = true
+        pageExit = { langShown = false }
+    }
+
+    /**
+     * No choice made yet: ask GitHub for the file of the TV's language. If it is there, use it; if not, stay in English. An English
+     * TV asks for nothing, and any other asks once a day at most, so the day a language is added, a TV in that language gets it.
+     */
+    private fun firstLanguage() {
+        if (prefs.getBoolean("lang_chosen", false)) return
+        val codes = Lang.systemCandidates()
+        if (codes.isEmpty() || System.currentTimeMillis() - prefs.getLong("lang_first_try", 0) < 24 * 3600_000L) return
+        prefs.edit().putLong("lang_first_try", System.currentTimeMillis()).apply()
+        firstLanguageFrom(codes)
+    }
+
+    private fun firstLanguageFrom(codes: List<String>) {
+        val code = codes.firstOrNull() ?: return
+        Lang.fetch(this, code, force = true) { ok ->
+            if (!ok) return@fetch firstLanguageFrom(codes.drop(1))
+            ui.post { if (!prefs.getBoolean("lang_chosen", false)) setLang(code) }
+        }
+    }
+
+    /** The daily check also asks if the list and the saved pack changed: a fixed text or a new language arrives with no release. */
+    private fun refreshLang() {
+        val code = prefs.getString("lang", null)
+        Lang.fetchIndex(this, force = false) {}
+        if (code != null) Lang.fetch(this, code, force = false) { ok ->
+            if (ok) ui.post { Lang.use(this, code); packRes = null }
         }
     }
 
@@ -3242,6 +3336,7 @@ class MainActivity : Activity() {
     private fun checkUpdate(force: Boolean) {
         if (checking || !force && System.currentTimeMillis() - prefs.getLong("upd_time", 0) < 24 * 3600_000L) return
         checking = true
+        refreshLang()
         if (force) renderSettings(R.string.updates)
         io.execute {
             val latest = try {
