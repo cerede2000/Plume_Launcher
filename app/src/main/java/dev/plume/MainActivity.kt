@@ -319,6 +319,8 @@ class MainActivity : Activity() {
 
     private var resumed = false
     private var hidden = false // another app covered Plume: set when it stops, cleared when it is back in front
+    private var picturesFreed = false // the wallpaper and the posters were let go while another app was in front
+    private val freePictures = Runnable { if (hidden) letPicturesGo() }
     private val refreshIfDirty = Runnable { if (appsDirty && !editing) refreshApps() } // not while a tile is being moved: onResume catches up
 
     private val packageReceiver = object : BroadcastReceiver() {
@@ -455,6 +457,8 @@ class MainActivity : Activity() {
         openedFrom?.get()?.let { tile -> ui.post { if (tile.isAttachedToWindow) settleRow(tile) } }
         openedFrom = null
         hidden = false
+        ui.removeCallbacks(freePictures)
+        if (picturesFreed) bringPicturesBack()
         ensureHomeService()
         homeSetupResumed()
         if (wantDark() != dark) {
@@ -514,6 +518,7 @@ class MainActivity : Activity() {
 
     override fun onStop() {
         hidden = true
+        ui.postDelayed(freePictures, FREE_PICTURES_AFTER)
         unlockedUntil = 0L // leaving the home screen locks it again (onPause would also fire for permission dialogs)
         Remap.learn = null // never keep swallowing keys for a page that's no longer on screen
         if (homeTest != 0) leftDuringTest = true
@@ -1023,7 +1028,30 @@ class MainActivity : Activity() {
         else -> choice.substringAfter(':').substringBeforeLast('.').let { n -> WALLPAPER_NAMES[n]?.let { getString(it) } ?: n }
     }
 
-    private fun loadWallpaper() {
+    /**
+     * Another app has been in front for a while: the wallpaper (6 MB of graphics memory with the bundled one) and the
+     * posters are of no use until Plume is back, so they go. A moment's absence keeps them, so Home stays quick.
+     */
+    private fun letPicturesGo() {
+        picturesFreed = true
+        val view = findViewById<ImageView>(R.id.wallpaper)
+        val shown = (view.drawable as? BitmapDrawable)?.bitmap
+        view.setImageDrawable(null)
+        shown?.recycle()
+        glass.setBlur(null)
+        glassSurfaces.forEach { it.get()?.setBlur(null) }
+        posters.evictAll()
+        windowPosters(-100) // every card's picture, the placeholders apart
+    }
+
+    /** Back in front: the wallpaper is read again and fades in, the posters come back with the cards. */
+    private fun bringPicturesBack() {
+        picturesFreed = false
+        loadWallpaper(fadeIn = true)
+        retryPosters()
+    }
+
+    private fun loadWallpaper(fadeIn: Boolean = false) {
         val view = findViewById<ImageView>(R.id.wallpaper)
         val choice = currentWallpaper()
         if (choice.startsWith("plain:")) { // the root's ground colour shows through
@@ -1062,7 +1090,14 @@ class MainActivity : Activity() {
                 fadesOn = own != null && !choice.startsWith("res:")
                 refreshFades()
                 val old = view.drawable
-                if (old == null || shown == null) return@post view.setImageBitmap(shown)
+                if (old == null || shown == null) {
+                    view.setImageBitmap(shown)
+                    if (fadeIn && shown != null) {
+                        view.alpha = 0f
+                        view.animate().alpha(1f).setDuration(200).start()
+                    }
+                    return@post
+                }
                 // Soft change from one photo to the next; then drop the old one so only one stays in memory.
                 val fade = TransitionDrawable(arrayOf(old, BitmapDrawable(resources, shown))).apply { isCrossFadeEnabled = true }
                 view.setImageDrawable(fade)
@@ -4509,6 +4544,7 @@ class MainActivity : Activity() {
         const val UNLOCKED_MS = 5 * 60_000L
         const val MEDIA_REQUEST = 3
         const val PER_APP = 3 // Continue Watching items per app ahead of the rest
+        const val FREE_PICTURES_AFTER = 30_000L // ms in the background before the wallpaper and the posters are let go
         const val CARDS_AHEAD = 8 // Continue Watching cards built past the focused one (see addCardsTo)
         val READ_PHOTOS = if (Build.VERSION.SDK_INT >= 33) "android.permission.READ_MEDIA_IMAGES" else "android.permission.READ_EXTERNAL_STORAGE"
         /** Minutes between folder photos. */
