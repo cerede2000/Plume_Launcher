@@ -42,6 +42,7 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 - **One row per channel.** Select **Plume settings → Shows row → Rows → One row per channel**. Each source you chose (Android TV Watch Next and every channel that is on) gets its own row. Push Down or Up on a card to change the row. A row with nothing in it is left out. The title shows the channel and arrows to the other rows.
 - **Posters near the focus only.** Plume loads the posters of the focused card and the three or four around it, and drops the others. A channel with 30 cards uses no more memory than one with four. A card whose picture is missing shows the round icon of its app.
 - **All apps under the row.** Select the tile at the right end of the apps row, or the grid icon in the top bar. Push Left on the first app to reach that tile at once. The row stays and All apps opens under it, in place of the shows row. It lists the apps that are not in the row. Hold OK on one to move it, add it to the row, or open its app info.
+- **Plume settings and Settings in All apps.** Both have a tile in All apps, so you can hide their icons in the top bar and still reach them. The top bar keeps at least one icon. The settings a TV saved with the fork's earlier top bar and cards rows carry over once.
 
 ## 1.5
 

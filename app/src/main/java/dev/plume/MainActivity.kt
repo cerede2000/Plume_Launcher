@@ -236,7 +236,37 @@ class MainActivity : Activity() {
     private class Prog(val title: String, val sub: String, val progress: Int, val image: String?, val intent: String?, val pkg: String?,
                        val group: String? = pkg)
 
-    private val prefs by lazy { getSharedPreferences("home", MODE_PRIVATE) }
+    private val prefs by lazy { getSharedPreferences("home", MODE_PRIVATE).also { migrateFork(it) } }
+
+    /**
+     * Settings this fork saved under other names before its top bar and cards rows followed the maintainer's design, carried
+     * over once so nothing changes on a TV that already runs the fork. The old values stay, for going back to the old build.
+     */
+    private fun migrateFork(p: SharedPreferences) {
+        if (p.getBoolean("fork_migrated", false)) return
+        val e = p.edit().putBoolean("fork_migrated", true)
+        if (p.contains("top_order") || p.contains("top_hidden")) {
+            val all = listOf("wifi", "sources", "apps", "system", "plume", "power")
+            val old = p.getString("top_order", null)?.split(',')?.map { if (it == "android") "system" else it }?.filter { it in all }?.distinct().orEmpty()
+            val hidden = (p.getStringSet("top_hidden", null) ?: setOf("power")).map { if (it == "android") "system" else it }.toSet()
+            e.putString("top_bar", ((old + (all - old.toSet())) - hidden).joinToString(","))
+        }
+        when (p.getString("cards_mode", null)) {
+            "stack" -> e.putBoolean("cards_stack", true)
+            "off" -> e.putString("row_show", "never").putBoolean("row_drop", true)
+        }
+        p.getStringSet("ch_on", null)?.let { on ->
+            // A channel named "Continue Watching" starts on here; every other one is on only when flipped.
+            e.putStringSet("ch_flip", p.getStringSet("ch_flip", emptySet())!! + on.filter { !it.endsWith("/Continue Watching", ignoreCase = true) })
+        }
+        if (p.getString("cards_src", null) == "cw") e.putString("cards_src", WATCH_NEXT)
+        // The two settings entries are new: they start in All apps, so the home row is as it was.
+        if (!p.getBoolean("settings_entries", false)) {
+            e.putBoolean("settings_entries", true)
+                .putStringSet("row_hidden", p.getStringSet("row_hidden", emptySet())!! + setOf(PLUME_SETTINGS, ANDROID_SETTINGS))
+        }
+        e.apply()
+    }
     private val io = idlePool(1)
     // Posters get their own threads: one slow image server must not hold up the rest (or the row data).
     private val posterIo = idlePool(3)
@@ -1222,7 +1252,7 @@ class MainActivity : Activity() {
 
     private fun pickApp(id: String, hold: Boolean, now: String) {
         // Every input counts, with or without a signal: sortedApps() has only the ones pinned to the row.
-        showPage(getString(R.string.key_open_app), (sources + sortedApps().filter { !it.pkg.startsWith(HDMI) }).map { a ->
+        showPage(getString(R.string.key_open_app), (sources + sortedApps().filter { !isOwnMark(it.pkg) }).map { a ->
             val action = if (a.pkg.startsWith(HDMI)) "hdmi:" + a.pkg.removePrefix(HDMI) else "app:" + a.pkg
             page(a.label, if (action == now) CHOSEN else "") { setAction(id, hold, action) }
         }) { pickAction(id, hold) }
@@ -2291,8 +2321,20 @@ class MainActivity : Activity() {
                     a.loadIcon(pm),
                     load = { a.loadIcon(pm) },
                 )
-            }
+            } + settingsEntries()
     }
+
+    /**
+     * Plume settings and Android's Settings as entries of the apps list, in the style of the tiles of the inputs. They
+     * are the way back to the settings when their top bar icons are hidden, so they can't be left out of All apps.
+     */
+    private fun settingsEntries() = listOf(
+        App(PLUME_SETTINGS, getString(R.string.plume_tile), Intent(), getDrawable(R.drawable.ic_tune)!!), // short: a tile is about 13 letters wide
+        App(ANDROID_SETTINGS, getString(R.string.settings), Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), getDrawable(R.drawable.ic_settings)!!),
+    )
+
+    /** Entries that are not apps (the inputs, the settings): drawn from our own marks, and without App info. */
+    private fun isOwnMark(pkg: String) = pkg.startsWith(HDMI) || pkg.startsWith(SETTINGS_PREFIX)
 
     /**
      * One entry per HDMI port, keyed by the port's input id. A device that names itself over CEC (the PS5 shows up
@@ -2449,7 +2491,7 @@ class MainActivity : Activity() {
      * tile, or it would be upscaled and soft (4K); null then, and the tile shows the app's mark as usual.
      */
     private fun bannerTile(a: App): View? {
-        if (a.pkg.startsWith(HDMI)) return null
+        if (isOwnMark(a.pkg)) return null
         val banner = try {
             packageManager.getActivityBanner(a.launch)
         } catch (e: Exception) {
@@ -2500,11 +2542,12 @@ class MainActivity : Activity() {
         val colour = colourIcons()
         // A banner style, an app with no banner: its own colour behind its mark in white, so the row doesn't mix pictures
         // and grey squares. HDMI tiles keep the plain mark.
-        val onColour = !labeled && isBannerStyle(iconStyle()) && !a.pkg.startsWith(HDMI)
+        val onColour = !labeled && isBannerStyle(iconStyle()) && !isOwnMark(a.pkg)
         val t = when {
             custom != null -> tile(name, custom, false, a.pkg) { launch(a) }
             a.pkg.startsWith(HDMI) -> tile(name, a.icon, true, a.pkg,
                 tint = BRAND_COLOURS[hdmiIcon(a.label, true)]?.takeIf { colour }) { launch(a) }
+            a.pkg.startsWith(SETTINGS_PREFIX) -> tile(name, a.icon, true, a.pkg) { launch(a) }
             logo != null -> tile(name.takeIf { !logo.second }, getDrawable(logo.first)!!, true, a.pkg,
                 wordmarkInset = if (!logo.second) null else dp(if (labeled) 28 else 14),
                 tint = if (onColour && BRAND_COLOURS[a.pkg] != null) Color.WHITE else BRAND_COLOURS[a.pkg]?.takeIf { colour }) { launch(a) }
@@ -2749,7 +2792,7 @@ class MainActivity : Activity() {
         val apps = alive(lastApp)?.takeIf { it.parent === appRow } ?: appRow.getChildAt(0)
         val cards = if (watchScroll.visibility != View.VISIBLE) null
             else alive(lastCard) ?: (watchRow.getChildAt(0) as? ViewGroup)?.getChildAt(0)
-        val top = alive(lastTop) ?: findViewById(R.id.launcherSettings)
+        val top = alive(lastTop)?.takeIf { it.visibility == View.VISIBLE } ?: shownTop().lastOrNull()?.let { findViewById<View>(it) }
         return when {
             v.parent === wifi.parent -> when (key) { // top bar
                 KeyEvent.KEYCODE_DPAD_DOWN -> apps ?: cards ?: v // the apps row can be empty (all hidden)
@@ -2837,7 +2880,7 @@ class MainActivity : Activity() {
                 renderApps()
                 if (sortedApps().all { inRow(it.pkg, rowHiddenSet()) }) closeAllApps() else fillDrawer(at)
             },
-            if (pkg.startsWith(HDMI)) null else getString(R.string.app_info) to {
+            if (isOwnMark(pkg)) null else getString(R.string.app_info) to {
                 openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null))
             },
         ))
@@ -2862,7 +2905,7 @@ class MainActivity : Activity() {
                 appRow.getChildAt(minOf(i, appRow.childCount - 1))?.requestFocus()
                 toast(getString(R.string.removed_from_row))
             },
-            if (pkg.startsWith(HDMI)) null else getString(R.string.app_info) to {
+            if (isOwnMark(pkg)) null else getString(R.string.app_info) to {
                 openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null))
             },
             if (canUninstall(pkg)) getString(R.string.uninstall) to { uninstall(pkg) } else null,
@@ -2871,7 +2914,7 @@ class MainActivity : Activity() {
 
     /** Apps the user installed, and system apps that have an update on top. Never Plume or an HDMI tile. */
     private fun canUninstall(pkg: String): Boolean {
-        if (pkg == packageName || pkg.startsWith(HDMI)) return false
+        if (pkg == packageName || isOwnMark(pkg)) return false
         return try {
             val flags = packageManager.getApplicationInfo(pkg, 0).flags
             flags and ApplicationInfo.FLAG_SYSTEM == 0 || flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0
@@ -2950,7 +2993,7 @@ class MainActivity : Activity() {
     private fun topOrder(): List<Int> {
         val all = TOP_KEYS.values.toList()
         // Power is not on the bar until someone adds it.
-        return keys(TopBar.parse(prefs.getString("top_bar", null), all, all - "power", "plume"))
+        return keys(TopBar.parse(prefs.getString("top_bar", null), all, all - "power", ""))
     }
 
     /** What is really on screen: Sources stays out while the TV has no input. */
@@ -2997,7 +3040,7 @@ class MainActivity : Activity() {
         val hidden = TOP_KEYS.keys - topOrder().toSet()
         holdMenu(v, listOfNotNull(
             getString(R.string.move) to { startTopMove(v) },
-            if (v.id == R.id.launcherSettings) null else getString(R.string.hide) to { hideTop(v) },
+            if (shownTop().size <= 1) null else getString(R.string.hide) to { hideTop(v) }, // the bar is never empty
             if (hidden.isEmpty()) null else getString(R.string.add_icon) to { addIconMenu(v) },
         ), below = true)
     }
@@ -3219,6 +3262,7 @@ class MainActivity : Activity() {
     }
 
     private fun launch(a: App) {
+        if (a.pkg == PLUME_SETTINGS) return unlock { openLauncherSettings() }
         prefs.edit().putInt("n_" + a.pkg, prefs.getInt("n_" + a.pkg, 0) + 1).putLong("t_" + a.pkg, System.currentTimeMillis()).apply()
         if (prefs.getString("sort", "manual") == "usage") appsDirty = true
         val from = currentFocus?.takeIf { it.tag == a.pkg } // the tile that was pressed, not one a remote key opened it from
@@ -4478,6 +4522,9 @@ class MainActivity : Activity() {
         const val WRITE_EPG ="com.android.providers.tv.permission.WRITE_EPG_DATA"
         const val TV_SETTINGS = "com.android.tv.settings"
         const val HDMI = "hdmi:" // App.pkg prefix for HDMI device tiles; the rest is the TV input id
+        const val SETTINGS_PREFIX = "settings:" // App.pkg prefix of the entries for Plume settings and Android's Settings
+        const val PLUME_SETTINGS = "settings:plume"
+        const val ANDROID_SETTINGS = "settings:android"
         const val ROW_TILES = 8
         /** Icon style setting -> its name. */
         val ICON_STYLES = linkedMapOf(ICON_STYLE_KEYS[0] to R.string.monochrome, ICON_STYLE_KEYS[1] to R.string.colour, ICON_STYLE_KEYS[2] to R.string.banner, ICON_STYLE_KEYS[3] to R.string.banner_mono)

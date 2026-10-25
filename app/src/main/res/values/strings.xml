@@ -303,4 +303,5 @@
     <string name="help_cards_rows">One row mixes the shows of every source. One row per channel shows each source on its own row; press Down or Up on a card to change it.</string>
     <string name="add_to_row">Add to row</string>
     <string name="all_in_row">All apps are in the row</string>
+    <string name="plume_tile">Plume</string>
 </resources>

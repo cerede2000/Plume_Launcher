@@ -17,6 +17,7 @@ class TopBarTest {
     @Test fun plumeSettingsIsNeverMissing() {
         assertEquals(listOf("wifi", "plume"), TopBar.parse("wifi", known, known, "plume"))
         assertEquals(listOf("plume"), TopBar.parse("", known, known, "plume")) // the bar is never empty
+        assertEquals(listOf("wifi", "apps"), TopBar.parse("wifi,apps", known, known, "")) // nothing required: Plume settings can be hidden
     }
 
     @Test fun anIconSlidesPastTheOnesOnScreen() {

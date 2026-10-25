@@ -5,10 +5,10 @@ package dev.plume
  * the home screen turns the keys into its views.
  */
 internal object TopBar {
-    /** The saved list ("wifi,apps,plume") without unknown or repeated keys, or [default]. [required] is always on the bar. */
+    /** The saved list ("wifi,apps,plume") without unknown or repeated keys, or [default]. [required] is always on the bar (empty: none is). */
     fun parse(saved: String?, known: List<String>, default: List<String>, required: String): List<String> {
         val order = saved?.split(',')?.filter { it in known }?.distinct() ?: default
-        return if (required in order) order else order + required
+        return if (required.isEmpty() || required in order) order else order + required
     }
 
     /** [key] one place to [dir] (-1 or 1) among the icons that [shown]; the others keep their places in [order]. */
