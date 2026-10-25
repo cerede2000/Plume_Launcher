@@ -63,6 +63,12 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.addAll("-Xlambdas=class", "-Xsam-conversions=class")
+    }
+}
+
 dependencies {
     testImplementation("junit:junit:4.13.2")
 }
