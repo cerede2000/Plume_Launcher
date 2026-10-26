@@ -41,7 +41,7 @@
     </queries>
 
     <application
-        android:label="Plume"
+        android:label="Plume AN"
         android:banner="@drawable/banner"
         android:icon="@drawable/ic_launcher"
         android:usesCleartextTraffic="true"
@@ -55,11 +55,6 @@
             android:clearTaskOnLaunch="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.HOME" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
