@@ -476,7 +476,7 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         resumed = true
-        if (hero != null) ui.post { foldHero() } // back from the app: its panel shrinks into the tile
+        if (hero != null) ui.postDelayed({ foldHero() }, foldDelay()) // back from the app: its panel shrinks into the tile once the app's window is gone
         hidden = false
         ensureHomeService()
         homeSetupResumed()
@@ -3652,6 +3652,9 @@ class MainActivity : Activity() {
         ui.removeCallbacks(heroTimeout)
         ui.postDelayed(heroTimeout, 2500)
     }
+
+    /** How long the app's own window takes to close over us (about 220 ms): the panel shrinks after that, so it is seen. */
+    private fun foldDelay() = (220 * Settings.Global.getFloat(contentResolver, Settings.Global.WINDOW_ANIMATION_SCALE, 1f)).toLong()
 
     /** The tile where it is now on the screen, with its focus lift: null when it is not on screen. */
     private fun tileRect(v: View): RectF? {
