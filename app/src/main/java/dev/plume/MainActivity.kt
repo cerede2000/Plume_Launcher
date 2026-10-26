@@ -476,6 +476,7 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         resumed = true
+        android.util.Log.i("HERO", "onResume hero=${hero != null}")
         if (hero != null) ui.post { foldHero() } // back from the app: its panel shrinks into the tile
         hidden = false
         ensureHomeService()
@@ -534,6 +535,7 @@ class MainActivity : Activity() {
 
     override fun onPause() {
         resumed = false
+        android.util.Log.i("HERO", "onPause hero=${hero != null}")
         ui.removeCallbacks(heroTimeout) // the app is taking over: the panel stays until Plume is back
         ui.removeCallbacks(refreshIfDirty)
         ui.removeCallbacks(weatherTick)
@@ -3667,6 +3669,7 @@ class MainActivity : Activity() {
 
     /** The panel shrinks into the tile the app came from, then goes; Plume's own row is under it and shows as it shrinks. */
     private fun foldHero() {
+        android.util.Log.i("HERO", "foldHero hero=${hero != null}")
         val h = hero ?: return
         hero = null
         ui.removeCallbacks(heroTimeout)
