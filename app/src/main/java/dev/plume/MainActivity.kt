@@ -3323,8 +3323,18 @@ class MainActivity : Activity() {
         order.filter { (it != R.id.sourcesButton || sources.isNotEmpty()) && (it != R.id.playButton || featuredTitle() != null) }
 
     /** Puts the icons in [order], hides the others, and gives the first one on screen no left margin. */
+    private var topSig = "" // the order and the icons shown the last time the bar was laid out
+
     private fun applyTopBar(order: List<Int> = topOrder()) {
         val bar = wifi.parent as LinearLayout
+        // Home from an app asks for this each time: when nothing changed, the icons stay where they are (no layout pass, no lost focus).
+        val sig = order.joinToString(",") + "|" + shownTop(order).joinToString(",")
+        if (sig == topSig) {
+            updateBatteryIcon()
+            refreshRemoteBattery()
+            return
+        }
+        topSig = sig
         // Found before they leave the bar: findViewById cannot see a view that has been removed.
         val views = TOP_KEYS.keys.associateWith { findViewById<View>(it) }
         val start = views.values.minOf { bar.indexOfChild(it) }
@@ -3621,25 +3631,19 @@ class MainActivity : Activity() {
     }
 
     /**
-     * Back from an app: the row of the tile it came from settles in, a little larger and dimmer at first. It settles
-     * around that tile when it is on screen, and around the middle of the row's window when Home has moved the row.
+     * Back from an app: the row of the tile it came from fades in from a little dimmer.
      */
     private fun settleRow(tile: View) {
         // A Continue watching card sits in a column of its own: the row is the one that holds the columns.
         val row = (if (tile.getTag(R.id.watchRow) is Prog) watchRow else tile.parent) as? ViewGroup ?: return
         row.animate().cancel()
-        val at = Rect(0, 0, tile.width, tile.height)
-        row.offsetDescendantRectToMyCoords(tile, at) // the tile's place in the row, whatever sits between them
-        var pivot = at.exactCenterX()
-        val scroll = generateSequence(row.parent) { it.parent }.firstOrNull { it is HorizontalScrollView } as? HorizontalScrollView
-        if (scroll != null && (at.left < scroll.scrollX || at.right > scroll.scrollX + scroll.width)) pivot = scroll.scrollX + scroll.width / 2f
-        row.pivotX = pivot
-        row.pivotY = at.exactCenterY()
-        row.scaleX = 1.12f
-        row.scaleY = 1.12f
-        row.alpha = 0.4f
-        // A moment late: the app's own window is still fading out over us for the first part.
-        row.animate().scaleX(1f).scaleY(1f).alpha(1f).setStartDelay(90).setDuration(420).setInterpolator(DECELERATE).start()
+        // A fade, not a scale: a scale around the tile pushes the tiles at the ends of the row past the edge of the
+        // scroller, where they are cut (the first app on the left). Short, because the app's own window is still
+        // closing over us and the row must be there when it is gone.
+        row.scaleX = 1f
+        row.scaleY = 1f
+        row.alpha = 0.5f
+        row.animate().alpha(1f).setStartDelay(30).setDuration(200).setInterpolator(DECELERATE).start()
     }
 
     // ---------- all apps ----------
