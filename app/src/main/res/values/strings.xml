@@ -304,4 +304,12 @@
     <string name="add_to_row">Add to row</string>
     <string name="all_in_row">All apps are in the row</string>
     <string name="plume_tile">Plume</string>
+    <string name="shows_wallpaper">Shows from your apps</string>
+    <string name="wp_sources">Wallpaper from</string>
+    <string name="wp_usable">%1$d usable of %2$d</string>
+    <string name="featured_now">Featured: %1$s</string>
+    <string name="play_featured">Play the featured show</string>
+    <string name="nothing_featured">No show is featured yet</string>
+    <string name="shows_with_wallpaper">Shows with the Shows wallpaper</string>
+    <string name="help_wp_sources">The sources whose pictures become the wallpaper: Android TV Watch Next, or a channel of an app. Only wide pictures count (posters and squares are left out), and one that cannot be fetched is passed over. The wallpaper changes as often as a folder of photos does.</string>
 </resources>
