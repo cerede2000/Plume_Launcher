@@ -1094,21 +1094,33 @@ class MainActivity : Activity() {
             }
         } ?: return null
         // Bing's pictures are often bright daylight, which fights true black: dim them in dark mode.
-        if (dark && (choice == Bing.CHOICE || choice == ShowsWall.CHOICE)) dimFor(bmp).let { if (it > 0) Canvas(bmp).drawColor(Color.argb(it, 0, 0, 0)) }
+        if (dark && (choice == Bing.CHOICE || choice == ShowsWall.CHOICE)) tonePicture(bmp)
         return bmp
     }
 
     /** "wp_dim": "auto" or the percentage of black laid over a picture in dark mode. */
     private fun wpDim() = prefs.getString("wp_dim", "auto")!!.takeIf { it in DIMS } ?: "auto"
 
-    /** The black over a Bing or shows picture in dark mode, as an alpha: the setting, or in Auto what brings this picture to a pleasant brightness. */
-    private fun dimFor(bmp: Bitmap): Int {
+    /**
+     * Brings a Bing or shows picture to a pleasant brightness in dark mode. A fixed strength lays that much black over it.
+     * Auto looks at the picture: a bright one gets black, and a very dark one, which the fades would leave almost
+     * invisible, is lifted a little (the shadows only: lights stay where they are).
+     */
+    private fun tonePicture(bmp: Bitmap) {
         val d = wpDim()
-        if (d != "auto") return d.toInt() * 255 / 100
+        if (d != "auto") {
+            val alpha = d.toInt() * 255 / 100
+            if (alpha > 0) Canvas(bmp).drawColor(Color.argb(alpha, 0, 0, 0))
+            return
+        }
         val small = Bitmap.createScaledBitmap(bmp, 48, 27, true)
         val px = IntArray(48 * 27).also { small.getPixels(it, 0, 48, 0, 0, 48, 27) }
         small.recycle()
-        return ShowsWall.autoDim(ShowsWall.meanLuma(px))
+        val mean = ShowsWall.meanLuma(px)
+        val black = ShowsWall.autoDim(mean)
+        val lift = ShowsWall.autoLift(mean)
+        if (black > 0) Canvas(bmp).drawColor(Color.argb(black, 0, 0, 0))
+        if (lift > 0) Canvas(bmp).drawColor(Color.rgb(lift, lift, lift), PorterDuff.Mode.SCREEN)
     }
 
     // ---------- fades over your own photos ----------

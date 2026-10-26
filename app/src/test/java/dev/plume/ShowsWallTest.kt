@@ -48,4 +48,13 @@ class ShowsWallTest {
         assertEquals(153, ShowsWall.autoDim(1f)) // never more than 60 %
         assertTrue(ShowsWall.autoDim(0.6f) > ShowsWall.autoDim(0.5f)) // brighter, more black
     }
+
+    @Test fun aVeryDarkPictureIsLiftedAndOthersAreNot() {
+        assertEquals(0, ShowsWall.autoLift(0.16f))
+        assertEquals(0, ShowsWall.autoLift(0.4f))
+        assertEquals(30, ShowsWall.autoLift(0.0f)) // the most: 12 % grey
+        assertTrue(ShowsWall.autoLift(0.1f) in 1..29)
+        assertTrue(ShowsWall.autoLift(0.05f) > ShowsWall.autoLift(0.1f)) // darker, more lift
+        for (m in listOf(0f, 0.05f, 0.1f, 0.3f, 0.6f, 1f)) assertTrue(ShowsWall.autoDim(m) == 0 || ShowsWall.autoLift(m) == 0) // never both
+    }
 }

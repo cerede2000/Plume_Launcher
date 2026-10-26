@@ -305,4 +305,4 @@ dim_none	Aucun
 dim_light	Léger
 dim_medium	Moyen
 dim_strong	Fort
-help_wp_dim	Le noir posé sur une image Bing ou Séries en mode sombre, pour que l'horloge, les icônes et les cartes restent lisibles. Auto regarde chaque image : une image claire reçoit plus de noir, une image sombre aucun.
+help_wp_dim	Le noir posé sur une image Bing ou Séries en mode sombre, pour que l'horloge, les icônes et les cartes restent lisibles. Auto regarde chaque image : une image claire reçoit plus de noir, une image très sombre est un peu éclaircie, les autres restent telles quelles.
