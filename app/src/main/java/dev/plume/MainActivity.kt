@@ -1337,9 +1337,14 @@ class MainActivity : Activity() {
         }
     }
 
+    /** Pictures that could not be used, until when they are left alone: a dead address or a picture that is not wide for hours, a failed network for minutes. */
+    private val showFailed = HashMap<String, Long>() // the io thread only
+
     /**
      * Takes the next show's picture from the sources that are on: the first one, after the last shown, that is wide
-     * enough and can be fetched (a dead address is passed over), and keeps it as the wallpaper's picture.
+     * enough and can be fetched. A picture that cannot is left alone for a while and the next one is tried, along the
+     * whole list (a run of shows without a picture must not hold the wallpaper). After three network failures in a row
+     * it stops until the next time: the network is probably down.
      */
     private fun refreshShows() {
         if (checkSelfPermission(TV_LISTINGS) != PackageManager.PERMISSION_GRANTED) return
@@ -1350,7 +1355,21 @@ class MainActivity : Activity() {
                 emptyList()
             }
             val byKey = list.associateBy { showKey(it) }
-            val chosen = ShowsWall.order(byKey.keys.toList(), prefs.getString("wp_show_key", null)).take(6).firstNotNullOfOrNull { k -> byKey[k]?.takeIf { fetchShow(it) } }
+            val now = System.currentTimeMillis()
+            var chosen: Prog? = null
+            var network = 0
+            for (k in ShowsWall.order(byKey.keys.toList(), prefs.getString("wp_show_key", null))) {
+                if (ShowsWall.skipped(showFailed, k, now)) continue
+                val p = byKey[k] ?: continue
+                when (fetchShow(p)) {
+                    FETCH_OK -> { chosen = p; break }
+                    FETCH_DEAD -> showFailed[k] = now + ShowsWall.DEAD_MS
+                    else -> {
+                        showFailed[k] = now + ShowsWall.NETWORK_MS
+                        if (++network >= 3) break
+                    }
+                }
+            }
             val edit = prefs.edit().putLong("wp_show_at", System.currentTimeMillis())
             if (chosen != null) {
                 edit.putString("wp_show_key", showKey(chosen)).putString("wp_show_title", chosen.title).putString("wp_show_sub", chosen.sub)
@@ -1364,19 +1383,22 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun fetchShow(p: Prog): Boolean = try {
+    /** [FETCH_OK] when the picture is on disk now, [FETCH_DEAD] when it will never do (not found, not wide, too big), [FETCH_NETWORK] when it failed this time. */
+    private fun fetchShow(p: Prog): Int = try {
         val bytes = openStream(p.image!!).use { it.readBytes() }
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
         if (bytes.size > 12_000_000 || !ShowsWall.fits(bounds.outWidth, bounds.outHeight)) {
-            false
+            FETCH_DEAD
         } else {
             val part = File(filesDir, "shows.part")
             part.writeBytes(bytes)
-            part.renameTo(ShowsWall.file(this)).also { if (!it) part.delete() }
+            if (part.renameTo(ShowsWall.file(this))) FETCH_OK else { part.delete(); FETCH_NETWORK }
         }
+    } catch (e: java.io.FileNotFoundException) {
+        FETCH_DEAD
     } catch (e: Exception) {
-        false
+        FETCH_NETWORK
     }
 
     /** No wallpaper uses the shows any more: the picture and what Plume remembers about it go, at once. */
@@ -4869,6 +4891,9 @@ class MainActivity : Activity() {
         val DIMS = linkedMapOf("auto" to R.string.dim_auto, "0" to R.string.dim_none, "20" to R.string.dim_light, "45" to R.string.dim_medium, "65" to R.string.dim_strong)
         /** "Rows" of the shows row: mixed, switched by its title, or one per channel. */
         val CARDS_ROWS = linkedMapOf("mixed" to R.string.cards_one, "title" to R.string.cards_title, "stack" to R.string.cards_each)
+        const val FETCH_OK = 0
+        const val FETCH_DEAD = 1
+        const val FETCH_NETWORK = 2
         const val CARDS_AHEAD = 8 // Continue Watching cards built past the focused one (see addCardsTo)
         val READ_PHOTOS = if (Build.VERSION.SDK_INT >= 33) "android.permission.READ_MEDIA_IMAGES" else "android.permission.READ_EXTERNAL_STORAGE"
         /** Minutes between folder photos. */

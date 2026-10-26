@@ -49,4 +49,13 @@ internal object ShowsWall {
 
     /** The grey (0 to 255) screened over a very dark picture of mean brightness [mean], so that its shadows are not lost: none from [FLOOR] up. */
     fun autoLift(mean: Float): Int = (((FLOOR - mean) / (1f - mean)).coerceIn(0f, LIFT_MAX) * 255).toInt()
+
+    /** How long a picture that can never be used (not found, not wide, too big) is left alone: 6 hours. */
+    const val DEAD_MS = 6 * 3_600_000L
+
+    /** How long a picture that failed because of the network is left alone: 5 minutes. */
+    const val NETWORK_MS = 5 * 60_000L
+
+    /** Whether [key] is being left alone at [now], given when each failed picture may be tried again. */
+    fun skipped(failedUntil: Map<String, Long>, key: String, now: Long) = (failedUntil[key] ?: 0L) > now
 }

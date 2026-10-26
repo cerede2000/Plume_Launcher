@@ -57,4 +57,22 @@ class ShowsWallTest {
         assertTrue(ShowsWall.autoLift(0.05f) > ShowsWall.autoLift(0.1f)) // darker, more lift
         for (m in listOf(0f, 0.05f, 0.1f, 0.3f, 0.6f, 1f)) assertTrue(ShowsWall.autoDim(m) == 0 || ShowsWall.autoLift(m) == 0) // never both
     }
+
+    @Test fun aFailedPictureIsLeftAloneUntilItsTime() {
+        val failed = mapOf("a" to 1_000L)
+        assertTrue(ShowsWall.skipped(failed, "a", 999))
+        assertFalse(ShowsWall.skipped(failed, "a", 1_000)) // its time is up
+        assertFalse(ShowsWall.skipped(failed, "b", 0)) // never failed
+        assertTrue(ShowsWall.DEAD_MS > ShowsWall.NETWORK_MS) // a dead address waits longer than a network failure
+    }
+
+    @Test fun theWalkSkipsWhatFailedAndFindsTheNextThatWorks() {
+        // The list after "c" is c-done: d, e, f are dead, g works. A walk of only six would stop at f; the whole list reaches g.
+        val keys = listOf("a", "b", "c", "d", "e", "f", "g", "h")
+        val dead = setOf("d", "e", "f")
+        val first = ShowsWall.order(keys, "c").firstOrNull { it !in dead }
+        assertEquals("g", first)
+        // Next time, with the dead left alone, the walk from "g" goes on to "h".
+        assertEquals("h", ShowsWall.order(keys, "g").firstOrNull { it !in dead })
+    }
 }
