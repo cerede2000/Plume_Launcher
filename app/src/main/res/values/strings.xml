@@ -320,6 +320,6 @@
     <string name="dim_strong">Strong</string>
     <string name="help_wp_dim">The black laid over a Bing or shows picture in dark mode, so that the clock, the icons and the cards stay easy to read. Auto looks at each picture: a bright one gets more black, a very dark one is lifted a little, the others are left alone.</string>
     <string name="remote_battery">Remote battery</string>
-    <string name="remote_battery_value">Remote battery: %1$d%%</string>
+    <string name="remote_battery_value">Remote battery: %1$s</string>
     <string name="remote_not_found">No Bluetooth remote answered</string>
 </resources>
