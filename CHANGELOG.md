@@ -1,7 +1,7 @@
 # Changelog
 
 Plume shows the section for its own version in **Plume settings → Updates** after an update.
-After an update, a card on the home screen shows the first 3 entries. Put the 3 most interesting changes first.
+After an update, a card on the home screen shows the first 4 entries. Put the 4 most interesting changes first.
 The build stops if `versionName` has no section here.
 
 Write every entry in ASD-STE100 Simplified Technical English:
@@ -16,25 +16,8 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 
 ## Unreleased
 
-- **Set how strong the fades are.** Select **Plume settings → Appearance → Top fade** or **Bottom fade**. Press Left or Right to change the fade from 0% to 100%. The fade on your photo changes while you watch. 0% turns the fade off.
-- **Settings show what they change.** In **Plume settings**, the home screen behind the panel goes darker. The part that the selected section changes stays bright, for example the clock or the apps row. Pages slide in when you open them and slide back when you press Back.
-- **Clearer Plume settings.** Each section has an icon. Under its name, each section shows its settings. Settings with two or three choices show all of them. **Theme** shows a sun for **Light**, a moon for **Dark** and a half circle for **Auto**. **Light wallpaper** and **Dark wallpaper** show as small pictures. A line at the bottom tells what the selected setting does.
-- **Auto follows the sun.** With **Theme** set to **Auto**, Plume changes to dark at sunset. It changes to light at sunrise. Plume calculates the times on the TV. It uses the location in **Plume settings → Clock & weather → Location**. Plume keeps this location when you turn off the weather. If Plume has no location, it uses 7:00 and 19:00 as before. **Plume settings → Wallpaper & theme** shows today's times.
-- **Hide the Shows row.** Select **Plume settings → Shows row → Show row**. Choose **On Down** to show only the apps and the wallpaper. Press Down to slide the row in, and Up to hide it. Choose **Never** to remove the row. **Apps when row hides** keeps the apps in place or moves them down.
-- **Colour icons on the Shows row.** Select **Plume settings → Shows row → Icons** and choose **Colour**. The small app icon on each card then shows in the app's own colour, for example a red Netflix logo. This setting does not change the apps row. **Monochrome** stays the default.
-- **Text that fits the wallpaper.** The clock, the date, the weather and the Continue watching text change to white or dark to match the wallpaper behind them. You can read them on a bright photo and on a dark photo.
-- **Less memory.** Plume keeps the wallpaper and the app icons once instead of twice. On a test TV, it uses about 11 MB less.
 - **Edit the top bar.** Hold **OK** on an icon at the top of the home screen. Select **Move**, **Hide** or **Add icon**. In **Move**, press Left or Right to slide the icon. Press **OK** to place it. Press Back to cancel. **Add icon** shows the icons that you hid. **Plume settings** stays on the bar, so you can always bring the icons back.
 - **Power icon.** Hold **OK** on a top-bar icon and select **Add icon**, then **Power**. Select the icon to open the Android power menu. It needs the Home button turned on. If it is off, the icon offers to turn it on.
-- A new **Sources** icon in the top bar opens the list of the TV inputs. Select an input to switch to it. A device that names itself over HDMI, like a PS5, shows with its logo. A port with no signal says so. Hold OK on an input to put it in the row or take it out. Inputs that were in the row before the update stay there.
-- **Remote keys.** Change what a button on your remote does. Select **Plume settings → Remote & Home button → Remote keys → Add a key**. Press the key on your remote. Then choose what a press does and what a hold does. A key can play or pause, go back, or open an app or an input. It can also open Android settings or the network settings, or do nothing. If you set a PIN in **Lock layout**, Plume asks for it first.
-- **Glass.** Select **Plume settings → Appearance → Glass**. Plume blurs the wallpaper behind the tiles, the menus, the cards, the settings panel and the short messages. It looks like frosted glass. It is off by default.
-- A long app name no longer runs past its tile. It scrolls slowly while the app is selected.
-- **Uninstall an app.** Hold **OK** on an app in the row. Select **Uninstall**. Plume does not show this for system apps, for Plume, or when the layout is locked.
-- **Plume settings → Apps row → Icon style** has a new choice, **Banner**. Each app shows its own picture, as on Apple TV. An app with no banner gets its own colour behind a white mark. Monochrome stays the default.
-- **Plume settings → Apps row → Icon style** has a fourth choice, **Monochrome banner**. The pictures are grey until you select one. An app with no banner gets its own colour behind a white mark, as with **Banner**.
-- **New order in Plume settings.** The sections follow the home screen from top to bottom: **Wallpaper & theme**, **Clock & weather**, **Apps row** and **Shows row**. Then come **Screensaver**, **Remote & Home button**, **Lock layout** and **Updates**. Some settings have shorter names. Your settings do not change. If Home does not open Plume yet, a **Finish setup** card shows at the top.
-- Plume shows in the app list on Xiaomi TVs. It also shows in other launchers that show only phone apps.
 - **App animations.** An app opens out of the tile you press, and the row settles when you come back. It works for the app tiles, for Continue watching and for **All apps**. To turn it off, select **Plume settings → Wallpaper & theme → App animations**.
 - **Home returns to your app.** Press Home in an app. The home screen shows the tile of that app in focus, not the first tile. Press Home on the home screen to go back to the first tile.
 - **Memory.** Plume can end other apps to free memory. Plume ends the Google TV home screen each time it starts. Select **Plume settings → Memory** to turn that off, to pick more apps, or to stop the running apps now. A key on the remote can do the same: select **Plume settings → Remote & Home button → Remote keys**. A black screen shows the progress and the memory freed while Plume taps Force stop in Settings for each app.
@@ -45,6 +28,34 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 - **Plume settings and Settings in All apps.** Both have a tile in All apps, so you can hide their icons in the top bar and still reach them. The top bar keeps at least one icon. The settings a TV saved with the fork's earlier top bar and cards rows carry over once.
 - **Shows wallpaper.** Pick **Shows from your apps** in the light or dark wallpaper list. The picture of a show that your apps publish (Watch Next, or the channels you choose in **Wallpaper from**) becomes the wallpaper and changes as often as a folder of photos does. Only wide pictures count. **Featured: …** shows under the weather. Add the **Play** icon to the top bar, or give a remote key **Play the featured show**, to start it. In dark mode a black layer keeps it readable: **Darkening** is Auto (a bright picture gets more black, a very dark one is lifted a little, the others are left alone) or a fixed strength. Nothing is fetched until you pick it.
 - **Remote battery.** Hold OK on a top-bar icon, select **Add icon**, then **Remote battery**. The icon shows the battery level of your Bluetooth remote and turns red at 20 % or less. Hold OK on it to choose the low-battery alert: 20 % (the default), 15 % or off. At or under that level a message shows once a day. Select it to read the level now. The first time, Android asks to allow Bluetooth: Plume needs it to read the level from the remote. It reads at most once in ten minutes while the icon is on the bar, and not at all when it is off.
+
+## 1.6
+
+### Design
+- **Glass.** A frosted-glass blur behind the tiles and menus. Plume blurs the wallpaper behind the tiles, menus, cards and the settings panel. Glass is on after the update. To turn it off, select **Plume settings → Appearance → Glass**.
+- **A new Plume settings.** Each section has an icon and a live preview. Under its name, each section shows its settings. While you change a setting, the part of the home screen it changes stays bright.
+- **Banner icons.** Each app shows its own picture, as on Apple TV. An app with no banner gets its own colour behind a white mark. Select **Plume settings → Apps row → Icon style**.
+- **Hide the Shows row.** Show only your apps and wallpaper, and press Down for your shows. Press Up to hide the row again. Select **Plume settings → Shows row → Show row**.
+- **Auto follows the sun.** With **Theme** set to **Auto**, Plume changes to dark at sunset and to light at sunrise.
+- **Text that fits the wallpaper.** The clock, the weather and the Continue watching text change to white or dark to match your photo.
+- **Set how strong the fades are.** Select **Plume settings → Appearance → Top fade** or **Bottom fade**. Choose from 0% to 100%.
+- **Colour icons on the Shows row.** Each card can show the app's logo in its own colour. Select **Plume settings → Shows row → Icons**.
+- **Monochrome banner.** A fourth icon style. The pictures are grey until you select one.
+
+### New
+- **Sources.** A new icon in the top bar lists your TV inputs. A device such as a PS5 shows with its logo.
+- **Remote keys.** Choose what a button on your remote does when you press it or hold it. Select **Plume settings → Remote & Home button → Remote keys**.
+- **Uninstall an app.** Hold **OK** on an app in the row and select **Uninstall**.
+
+### Easier to use
+- **Setup fits your TV.** The Home button setup starts with the step that works on your TV.
+- **Settings in home screen order.** The sections follow the home screen from top to bottom. Your settings do not change.
+- A long app name scrolls slowly while the app is selected. It no longer runs past its tile.
+- Plume shows in the app list on Xiaomi TVs.
+
+### Fixes
+- **Less memory.** Plume no longer runs twice after an update. It also keeps each picture only once.
+- On a Fire TV, an HDMI tile switches to its input. Before, it opened Live TV.
 
 ## 1.5
 

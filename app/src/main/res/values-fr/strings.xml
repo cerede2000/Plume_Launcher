@@ -2,5 +2,5 @@
     <!-- Only what the system reads before Plume runs: the rest of the text is in lang/fr.txt. -->
     <string name="gallery">Galerie</string>
     <string name="home_service_label">Plume : bouton Accueil</string>
-    <string name="override_desc">Ouvre Plume dès que l\'écran d\'accueil Google TV apparaît, pour que le bouton Accueil arrive ici. Appuie aussi sur Forcer l\'arrêt dans les paramètres, derrière un écran, quand vous demandez à Plume d\'arrêter des applis.</string>
+    <string name="override_desc">Ouvre Plume dès que l\'écran d\'accueil Google TV apparaît, pour que le bouton Accueil arrive ici.</string>
 </resources>

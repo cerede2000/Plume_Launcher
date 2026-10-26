@@ -1,4 +1,4 @@
-override_desc	Ouvre Plume dès que l'écran d'accueil Google TV apparaît, pour que le bouton Accueil arrive ici. Appuie aussi sur Forcer l'arrêt dans les paramètres, derrière un écran, quand vous demandez à Plume d'arrêter des applis.
+override_desc	Ouvre Plume dès que l'écran d'accueil Google TV apparaît, pour que le bouton Accueil arrive ici.
 delete_photo	Supprimer « %1$s » ?
 photo_added	« %1$s » ajoutée. Envoyez-en une autre ou appuyez sur Terminé.
 n_of_m	%1$d sur %2$d
@@ -153,7 +153,7 @@ theme_auto	Auto
 season_episode	S%1$s E%2$s
 setup_home	Configurer le bouton Accueil
 preview_home_setup	Aperçu des fenêtres de configuration Accueil
-setup_step	Étape %1$d sur 3
+setup_step	Étape %1$d sur %2$d
 setup_role_title	Faire de Plume votre écran d'accueil
 setup_role_body	Android va demander quelle appli utiliser comme écran d'accueil. Choisissez Plume.
 setup_test_title	Appuyez sur Accueil sur votre télécommande
@@ -313,3 +313,9 @@ remote_low_alert	Alerte de pile faible : %1$s
 remote_low_value	à %1$d%%
 remote_low_off	désactivée
 remote_low_warning	Pile de la télécommande faible : %1$d%%
+setup_restricted_title	Autoriser le bouton Accueil de Plume
+setup_restricted_body	Cette TV grise l'interrupteur pour les applis installées hors du Play Store. Dans Infos sur l'appli, sélectionnez "Autoriser les paramètres restreints". Sur certaines TV, c'est dans le menu ⋮. Puis appuyez sur Retour pour revenir ici.
+setup_open_app_info	Ouvrir Infos sur l'appli
+setup_no_menu	Je ne le trouve pas
+fire_os_no_input	Fire TV n'a pas laissé Plume changer d'entrée. Maintenez Accueil et choisissez Entrées.
+fire_os_no_input	Fire TV n'a pas laissé Plume passer sur cette entrée. Maintenez Accueil et choisissez Entrées.

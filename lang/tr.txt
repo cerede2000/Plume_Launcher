@@ -140,7 +140,7 @@ theme_auto	Otomatik
 season_episode	S%1$s B%2$s
 setup_home	Ana Ekran tuşunu ayarla
 preview_home_setup	Ana Ekran kurulum pencerelerini önizle
-setup_step	%1$d / 3. Adım
+setup_step	%1$d / %2$d. Adım
 setup_role_title	Plume'u ana ekranınız yapın
 setup_role_body	Android hangi uygulamanın ana ekran olacağını soracak. Plume'u seçin.
 setup_test_title	Kumandanızdaki Ana Ekran tuşuna basın
@@ -185,3 +185,8 @@ input_removed	Satırdan kaldırıldı.
 sources_hint	Bir girişi satıra sabitlemek için OK tuşunu basılı tutun.
 photo_count:one	%d fotoğraf
 photo_count:other	%d fotoğraf
+setup_restricted_title	Plume'un Ana Ekran tuşuna izin verin
+setup_restricted_body	Bu TV, Play Store dışından yüklenen uygulamalar için anahtarı devre dışı bırakır. Uygulama bilgilerinde "Kısıtlanmış ayarlara izin ver"i seçin. Bazı TV'lerde ⋮ menüsündedir. Ardından buraya dönmek için Geri'ye basın.
+setup_open_app_info	Uygulama bilgilerini aç
+setup_no_menu	Bulamıyorum
+fire_os_no_input	Fire TV, Plume'un bu girişe geçmesine izin vermedi. Ana Ekran tuşunu basılı tutup Girişler'i seçin.

@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Settings is listed for the Memory feature: the service taps Force stop there (see HomeOverride.stopApps). -->
+<!-- Content can be read for the Memory feature: the service taps Force stop in Settings (see HomeOverride.stopApps). Events stay window changes only. -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
-    android:packageNames="com.google.android.apps.tv.launcherx,com.android.tv.settings,com.android.settings"
+    android:accessibilityEventTypes="typeWindowStateChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:notificationTimeout="0"
     android:canRetrieveWindowContent="true"

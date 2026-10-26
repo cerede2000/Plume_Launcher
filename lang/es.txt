@@ -183,7 +183,7 @@ help_remote_keys	Cambia lo que hace un botón del control remoto al pulsarlo o m
 season_episode	T%1$s E%2$s
 setup_home	Repetir configuración
 preview_home_setup	Vista previa de configuración de Inicio
-setup_step	Paso %1$d de 3
+setup_step	Paso %1$d de %2$d
 setup_role_title	Haz que Plume sea tu pantalla de inicio
 setup_role_body	Android preguntará qué aplicación usar como pantalla de inicio. Elige Plume.
 setup_test_title	Pulsa Inicio en tu control remoto
@@ -263,3 +263,7 @@ photo_count:one	%d foto
 photo_count:other	%d fotos
 n_keys:one	%d botón
 n_keys:other	%d botones
+setup_restricted_title	Permite el botón Inicio de Plume
+setup_restricted_body	Esta TV atenúa el interruptor para apps instaladas fuera de Play Store. En Información de la app, selecciona "Permitir ajustes restringidos". En algunas TV está en el menú ⋮. Luego pulsa Atrás para volver aquí.
+setup_open_app_info	Abrir Información de la app
+setup_no_menu	No lo encuentro
