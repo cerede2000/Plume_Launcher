@@ -534,6 +534,7 @@ class MainActivity : Activity() {
 
     override fun onPause() {
         resumed = false
+        ui.removeCallbacks(heroTimeout) // the app is taking over: the panel stays until Plume is back
         ui.removeCallbacks(refreshIfDirty)
         ui.removeCallbacks(weatherTick)
         ui.removeCallbacks(themeTick)
@@ -3621,7 +3622,7 @@ class MainActivity : Activity() {
 
     private var hero: AppHero? = null // the panel of the app that was opened, until it folds back into its tile
     private var heroTile: WeakReference<View>? = null // the tile or card it came from
-    private val heroTimeout = Runnable { if (!hidden) foldHero() } // the app never came to the front (a dialog, a refusal): the panel goes back
+    private val heroTimeout = Runnable { if (resumed) foldHero() } // Plume was never paused: the app did not come to the front (a refusal), the panel goes back
 
     /**
      * Starts an app. With [from] and the animations on, the tile grows into a panel that covers the screen while the app
