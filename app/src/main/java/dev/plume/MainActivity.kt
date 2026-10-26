@@ -3636,14 +3636,14 @@ class MainActivity : Activity() {
     private fun settleRow(tile: View) {
         // A Continue watching card sits in a column of its own: the row is the one that holds the columns.
         val row = (if (tile.getTag(R.id.watchRow) is Prog) watchRow else tile.parent) as? ViewGroup ?: return
-        row.animate().cancel()
-        // A fade, not a scale: a scale around the tile pushes the tiles at the ends of the row past the edge of the
-        // scroller, where they are cut (the first app on the left). Short, because the app's own window is still
-        // closing over us and the row must be there when it is gone.
-        row.scaleX = 1f
-        row.scaleY = 1f
-        row.alpha = 0.5f
-        row.animate().alpha(1f).setStartDelay(30).setDuration(200).setInterpolator(DECELERATE).start()
+        // The scroller fades, not the row: a view that fades is drawn into a layer of its own size, which cuts what sticks
+        // out of it. The focused tile at the end of the row sticks out (its focus lift), and lost its left corners. The
+        // scroller has room for the lift all round.
+        val target = generateSequence<View>(row) { it.parent as? View }.firstOrNull { it is HorizontalScrollView } ?: row
+        target.animate().cancel()
+        target.alpha = 0.5f
+        // Short, because the app's own window is still closing over us and the row must be there when it is gone.
+        target.animate().alpha(1f).setStartDelay(30).setDuration(200).setInterpolator(DECELERATE).start()
     }
 
     // ---------- all apps ----------
