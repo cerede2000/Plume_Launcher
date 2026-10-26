@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Plume while an app opens: it stays as it is, so that the panel growing over it shows. -->
-<alpha xmlns:android="http://schemas.android.com/apk/res/android"
-    android:duration="320"
-    android:fromAlpha="1"
-    android:toAlpha="1" />
