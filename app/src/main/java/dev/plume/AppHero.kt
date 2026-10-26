@@ -9,7 +9,7 @@ import android.view.View
 
 /**
  * The panel of an app that opens or closes: it starts as the tile the app was opened from, with the tile's own picture
- * on it, and grows to cover the screen in the tile's colour. Going back, it shrinks into the tile. Plume draws all of
+ * on it, and grows to cover the screen in the home screen's own ground colour, so that nothing flashes light. Going back, it shrinks into the tile. Plume draws all of
  * it, in its own window, above every row: so nothing is cut at the edge of a scroller, and the opening and the return
  * are the same movement run one way and the other.
  *
@@ -54,17 +54,5 @@ internal class AppHero(
         /** The tile's picture is on show at the start and gone by the time the panel is half over the screen. */
         fun pictureAlpha(progress: Float) = (1f - progress * 2f).coerceIn(0f, 1f)
 
-        /** The colour of a tile: its picture's mean over the home screen's ground, so that a see-through tile gives its look. */
-        fun meanColor(picture: Bitmap, ground: Int): Int {
-            val flat = Bitmap.createBitmap(picture.width, picture.height, Bitmap.Config.ARGB_8888)
-            val c = Canvas(flat)
-            c.drawColor(ground)
-            c.drawBitmap(picture, 0f, 0f, null)
-            val one = Bitmap.createScaledBitmap(flat, 1, 1, true)
-            val px = one.getPixel(0, 0)
-            flat.recycle()
-            if (one !== flat) one.recycle()
-            return px or 0xFF000000.toInt()
-        }
     }
 }

@@ -3640,7 +3640,7 @@ class MainActivity : Activity() {
         startActivity(intent, ActivityOptions.makeCustomAnimation(this, R.anim.app_in, R.anim.app_hold).toBundle())
         val root = findViewById<ViewGroup>(R.id.root)
         val screen = RectF(0f, 0f, root.width.toFloat(), root.height.toFloat())
-        val h = AppHero(this, picture, picture?.let { AppHero.meanColor(it, ground) } ?: ground, tileRect(source) ?: screen, screen, dp(10).toFloat())
+        val h = AppHero(this, picture, ground, tileRect(source) ?: screen, screen, dp(10).toFloat())
         root.addView(h, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         hero = h
         heroTile = WeakReference(source)
