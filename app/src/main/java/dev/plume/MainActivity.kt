@@ -272,7 +272,11 @@ class MainActivity : Activity() {
     private val posterIo = idlePool(3)
     /** [n] threads that end after a few idle seconds, so a home screen at rest keeps none (and their stacks). */
     private fun idlePool(n: Int) = java.util.concurrent.ThreadPoolExecutor(n, n, 3, java.util.concurrent.TimeUnit.SECONDS,
-        java.util.concurrent.LinkedBlockingQueue()).apply { allowCoreThreadTimeOut(true) }
+        java.util.concurrent.LinkedBlockingQueue()).apply {
+            allowCoreThreadTimeOut(true)
+            // A post that runs after onDestroy (a theme change recreates the screen) must not crash on the pools that were shut down.
+            setRejectedExecutionHandler(java.util.concurrent.ThreadPoolExecutor.DiscardPolicy())
+        }
 
     private val loading = java.util.Collections.synchronizedSet(HashSet<String>())
     private val ui = Handler(Looper.getMainLooper())
