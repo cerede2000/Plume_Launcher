@@ -29,4 +29,18 @@ internal object ShowsWall {
         val at = keys.indexOf(current)
         return if (at < 0) keys else keys.drop(at + 1) + keys.take(at + 1)
     }
+
+    private const val TARGET = 0.30f // the mean brightness a picture is brought to in dark mode
+    private const val MOST = 0.6f // the most black Auto lays over a picture
+
+    /** Mean brightness, 0 to 1, of ARGB [pixels]. */
+    fun meanLuma(pixels: IntArray): Float {
+        if (pixels.isEmpty()) return 0f
+        var sum = 0.0
+        for (p in pixels) sum += 0.2126 * (p shr 16 and 255) + 0.7152 * (p shr 8 and 255) + 0.0722 * (p and 255)
+        return (sum / pixels.size / 255.0).toFloat()
+    }
+
+    /** The alpha (0 to 255) of black that brings a picture of mean brightness [mean] down to [TARGET]: none for a picture that is darker already. */
+    fun autoDim(mean: Float): Int = ((1f - TARGET / mean.coerceAtLeast(0.01f)).coerceIn(0f, MOST) * 255).toInt()
 }

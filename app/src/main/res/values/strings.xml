@@ -306,10 +306,17 @@
     <string name="plume_tile">Plume</string>
     <string name="shows_wallpaper">Shows from your apps</string>
     <string name="wp_sources">Wallpaper from</string>
-    <string name="wp_usable">%1$d usable of %2$d</string>
+    <string name="wp_usable">%1$d/%2$d</string>
     <string name="featured_now">Featured: %1$s</string>
     <string name="play_featured">Play the featured show</string>
     <string name="nothing_featured">No show is featured yet</string>
     <string name="shows_with_wallpaper">Shows with the Shows wallpaper</string>
     <string name="help_wp_sources">The sources whose pictures become the wallpaper: Android TV Watch Next, or a channel of an app. Only wide pictures count (posters and squares are left out), and one that cannot be fetched is passed over. The wallpaper changes as often as a folder of photos does.</string>
+    <string name="wp_dim">Darkening</string>
+    <string name="dim_auto">Auto</string>
+    <string name="dim_none">None</string>
+    <string name="dim_light">Light</string>
+    <string name="dim_medium">Medium</string>
+    <string name="dim_strong">Strong</string>
+    <string name="help_wp_dim">The black laid over a Bing or shows picture in dark mode, so that the clock, the icons and the cards stay easy to read. Auto looks at each picture: a bright one gets more black, a dark one none.</string>
 </resources>

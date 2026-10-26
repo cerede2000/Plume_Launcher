@@ -1094,8 +1094,21 @@ class MainActivity : Activity() {
             }
         } ?: return null
         // Bing's pictures are often bright daylight, which fights true black: dim them in dark mode.
-        if (dark && (choice == Bing.CHOICE || choice == ShowsWall.CHOICE)) Canvas(bmp).drawColor(Color.argb(DARK_DIM, 0, 0, 0))
+        if (dark && (choice == Bing.CHOICE || choice == ShowsWall.CHOICE)) dimFor(bmp).let { if (it > 0) Canvas(bmp).drawColor(Color.argb(it, 0, 0, 0)) }
         return bmp
+    }
+
+    /** "wp_dim": "auto" or the percentage of black laid over a picture in dark mode. */
+    private fun wpDim() = prefs.getString("wp_dim", "auto")!!.takeIf { it in DIMS } ?: "auto"
+
+    /** The black over a Bing or shows picture in dark mode, as an alpha: the setting, or in Auto what brings this picture to a pleasant brightness. */
+    private fun dimFor(bmp: Bitmap): Int {
+        val d = wpDim()
+        if (d != "auto") return d.toInt() * 255 / 100
+        val small = Bitmap.createScaledBitmap(bmp, 48, 27, true)
+        val px = IntArray(48 * 27).also { small.getPixels(it, 0, 48, 0, 0, 48, 27) }
+        small.recycle()
+        return ShowsWall.autoDim(ShowsWall.meanLuma(px))
     }
 
     // ---------- fades over your own photos ----------
@@ -1188,7 +1201,7 @@ class MainActivity : Activity() {
         fun app(p: String) = label[p] ?: try { packageManager.getApplicationLabel(packageManager.getApplicationInfo(p, 0)).toString() } catch (e: PackageManager.NameNotFoundException) { p }
         return listOf(Triple(WATCH_NEXT, null as Long?, getString(R.string.watch_next))) +
             appChannels().distinctBy { (_, p, n) -> channelKey(p, n) }
-                .map { (id, p, n) -> Triple(channelKey(p, n), id as Long?, if (n == app(p)) n else "${app(p)} · $n") }.sortedBy { it.third.lowercase() }
+                .map { (id, p, n) -> Triple(channelKey(p, n), id as Long?, if (n == app(p) || app(p).isBlank()) n else "${app(p)} · $n") }.sortedBy { it.third.lowercase() }
     }
 
     /** Only Watch Next is on to start with; "wp_flip" holds the sources switched from there. */
@@ -1650,6 +1663,11 @@ class MainActivity : Activity() {
                 renderApps()
                 renderSettings(R.string.app_names)
             },
+            R.string.wp_dim to { d ->
+                prefs.edit().putString("wp_dim", DIMS.keys.toList().step(wpDim(), d)).apply()
+                loadWallpaper()
+                renderSettings(R.string.wp_dim)
+            },
             R.string.show_row to { d ->
                 prefs.edit().putString("row_show", ROW_SHOW.keys.toList().step(rowShow(), d)).apply()
                 placeRow(animate = false)
@@ -1692,6 +1710,7 @@ class MainActivity : Activity() {
                 renderSettings(R.string.app_animations)
             },
             R.string.folder_photo_changes to Triple(getString(R.string.folder_photo_changes), getString(PHOTO_EVERY[photoEvery()]!!)) { pickPhotoEvery() },
+            R.string.wp_dim to Triple(getString(R.string.wp_dim), getString(DIMS.getValue(wpDim()))) { steps[R.string.wp_dim]!!(1) },
             R.string.wp_sources to Triple(getString(R.string.wp_sources), getString(R.string.n_on, wpSourceList().count { wpSourceOn(it.first) })) { pickWpSources() },
             R.string.sort_apps to Triple(getString(R.string.sort_apps), if (sort == "manual") getString(R.string.manual) else getString(R.string.most_used)) {
                 prefs.edit().putString("sort", if (sort == "manual") "usage" else "manual").apply()
@@ -1794,10 +1813,11 @@ class MainActivity : Activity() {
         val photo = walls.any { !it.startsWith("res:") && !it.startsWith("plain:") }
         val folder = walls.any { it.startsWith("folder:") }
         val shows = walls.any { it == ShowsWall.CHOICE }
+        val dimmed = shows || walls.any { it == Bing.CHOICE }
         // In the order things sit on the home screen, top to bottom, then what isn't on it.
         val sections = listOf(
             Triple(R.string.section_appearance, "${rows[R.string.theme]!!.second} · ${wallpaperName(currentWallpaper(dark))}",
-                listOfNotNull(R.string.theme, R.string.light_wallpaper, R.string.dark_wallpaper, R.string.fade_top.takeIf { photo },
+                listOfNotNull(R.string.theme, R.string.light_wallpaper, R.string.dark_wallpaper, R.string.wp_dim.takeIf { dimmed }, R.string.fade_top.takeIf { photo },
                     R.string.fade_bottom.takeIf { photo }, R.string.glass, R.string.app_animations,
                     R.string.folder_photo_changes.takeIf { folder || shows }, R.string.wp_sources.takeIf { shows })),
             Triple(R.string.section_clock_weather, if (weather == "off") on(false) else "${rows[R.string.weather_units]!!.second} · ${rows[R.string.weather_location]!!.second}",
@@ -4600,7 +4620,7 @@ class MainActivity : Activity() {
             R.string.apps_when_hidden to R.string.help_apps_when_hidden, R.string.row_name to R.string.help_row_name,
             R.string.show_icons to R.string.help_show_icons, R.string.cards_rows to R.string.help_cards_rows,
             R.string.cw_apps to R.string.help_from_apps, R.string.cw_channels to R.string.help_channels,
-            R.string.wp_sources to R.string.help_wp_sources, R.string.restore_hidden to R.string.help_hidden_shows, R.string.screensaver_timing to R.string.help_start_after,
+            R.string.wp_sources to R.string.help_wp_sources, R.string.wp_dim to R.string.help_wp_dim, R.string.restore_hidden to R.string.help_hidden_shows, R.string.screensaver_timing to R.string.help_start_after,
             R.string.home_button to R.string.help_home_button, R.string.smooth_volume to R.string.help_smooth_volume,
             R.string.default_launcher to R.string.help_default_launcher,
             R.string.setup_home to R.string.help_run_setup, R.string.section_keys to R.string.help_remote_keys,
@@ -4636,6 +4656,8 @@ class MainActivity : Activity() {
         const val UNLOCKED_MS = 5 * 60_000L
         const val MEDIA_REQUEST = 3
         const val PER_APP = 3 // Continue Watching items per app ahead of the rest
+        /** "Darkening" of a Bing or shows picture in dark mode: Auto, or a percentage of black. */
+        val DIMS = linkedMapOf("auto" to R.string.dim_auto, "0" to R.string.dim_none, "20" to R.string.dim_light, "45" to R.string.dim_medium, "65" to R.string.dim_strong)
         const val CARDS_AHEAD = 8 // Continue Watching cards built past the focused one (see addCardsTo)
         val READ_PHOTOS = if (Build.VERSION.SDK_INT >= 33) "android.permission.READ_MEDIA_IMAGES" else "android.permission.READ_EXTERNAL_STORAGE"
         /** Minutes between folder photos. */
