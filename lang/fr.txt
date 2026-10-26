@@ -309,3 +309,7 @@ help_wp_dim	Le noir posé sur une image Bing ou Séries en mode sombre, pour que
 remote_battery	Pile de la télécommande
 remote_battery_value	Pile de la télécommande : %1$s
 remote_not_found	Aucune télécommande Bluetooth n'a répondu
+remote_low_alert	Alerte de pile faible : %1$s
+remote_low_value	à %1$d%%
+remote_low_off	désactivée
+remote_low_warning	Pile de la télécommande faible : %1$d%%
