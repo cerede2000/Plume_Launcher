@@ -3936,7 +3936,24 @@ class MainActivity : Activity() {
         emptyList()
     }
 
-    private fun probeChannels() { for ((id, p, n) in appChannels()) android.util.Log.i("PROBE", "channel id=$id pkg=$p name=$n") }
+    private fun probeChannels() {
+        val seen = HashSet<String>()
+        for ((id, p, n) in appChannels()) {
+            android.util.Log.i("PROBE", "channel id=$id pkg=$p name=$n")
+            val items = try { readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), emptySet(), "probe") } catch (e: Exception) { emptyList() }
+            android.util.Log.i("PROBE", "channel id=$id has ${items.size} programs")
+            for ((_, prog) in items.take(3)) {
+                val img = prog.image ?: continue
+                if (!seen.add("$p/$n")) break
+                try {
+                    val b = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    val bytes = openStream(img).use { it.readBytes() }
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, b)
+                    android.util.Log.i("PROBE", "size channel=$id pkg=$p ${b.outWidth}x${b.outHeight} bytes=${bytes.size}")
+                } catch (e: Exception) { android.util.Log.i("PROBE", "size channel=$id pkg=$p failed $e") }
+            }
+        }
+    }
 
     private fun channelKey(pkg: String, name: String) = "$pkg/$name"
 
