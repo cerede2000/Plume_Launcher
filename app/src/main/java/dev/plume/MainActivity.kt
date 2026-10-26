@@ -365,7 +365,8 @@ class MainActivity : Activity() {
         if (!Lang.active) return
         for ((id, str) in listOf(R.id.wifi to R.string.network_settings, R.id.sourcesButton to R.string.sources,
             R.id.allAppsButton to R.string.all_apps, R.id.systemSettings to R.string.settings,
-            R.id.launcherSettings to R.string.plume_settings, R.id.powerButton to R.string.power, R.id.playButton to R.string.play_featured)) {
+            R.id.launcherSettings to R.string.plume_settings, R.id.powerButton to R.string.power, R.id.playButton to R.string.play_featured,
+            R.id.batteryButton to R.string.remote_battery)) {
             findViewById<View>(id).contentDescription = getString(str)
         }
         for ((id, str) in listOf(R.id.allAppsTitle to R.string.all_apps, R.id.watchTitle to R.string.continue_watching,
@@ -412,6 +413,7 @@ class MainActivity : Activity() {
             R.id.launcherSettings to { unlock { openLauncherSettings() } },
             R.id.powerButton to { powerDialog() },
             R.id.playButton to { playFeatured() },
+            R.id.batteryButton to { refreshRemoteBattery(force = true) },
         )) findViewById<ImageView>(id).apply {
             setColorFilter(fg)
             val ring = GradientDrawable().apply { shape = GradientDrawable.OVAL }
@@ -477,6 +479,8 @@ class MainActivity : Activity() {
         ui.removeCallbacks(wallpaperTick)
         ui.post(wallpaperTick)
         updateFeatured()
+        updateBatteryIcon()
+        refreshRemoteBattery()
         // Gallery chosen but its paintings missing (updated from a version that bundled them): fetch them.
         if (galleryOn() && photoScreensaver() == null && !paintingsReady(this)) downloadPaintings {}
         checkUpdate(force = false)
@@ -494,6 +498,10 @@ class MainActivity : Activity() {
     }
 
     override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, results: IntArray) {
+        if (code == BLUETOOTH_REQUEST) { // the permission to read the remote's battery
+            if (results.firstOrNull() == PackageManager.PERMISSION_GRANTED) refreshRemoteBattery(force = true) else updateBatteryIcon()
+            return
+        }
         if (code != MEDIA_REQUEST) return refreshWatchNext()
         if (results.firstOrNull() == PackageManager.PERMISSION_GRANTED) afterPhotoAccess?.invoke()
         else toast(getString(R.string.photos_permission), long = true)
@@ -1309,6 +1317,34 @@ class MainActivity : Activity() {
         v.text = title?.let { getString(R.string.featured_now, it) }.orEmpty()
         v.visibility = if (title == null) View.GONE else View.VISIBLE
         applyTopBar()
+    }
+
+    // ---------- the remote's battery in the top bar (see RemoteBattery) ----------
+
+    private fun remoteLevel() = prefs.getInt("rb_level", -1).takeIf { it >= 0 }
+
+    private fun updateBatteryIcon() {
+        findViewById<ImageView>(R.id.batteryButton).setImageDrawable(RemoteBatteryIcon(resources.displayMetrics.density, remoteLevel()))
+    }
+
+    /**
+     * Reads the remote's level when its icon is on the bar. Selecting the icon reads it now, and asks for the Bluetooth
+     * permission the first time (Android 12 and newer: reading a device's services needs it).
+     */
+    private fun refreshRemoteBattery(force: Boolean = false) {
+        if (R.id.batteryButton !in shownTop()) return
+        if (!RemoteBattery.allowed(this)) {
+            updateBatteryIcon()
+            if (force) requestPermissions(arrayOf(android.Manifest.permission.BLUETOOTH_CONNECT), BLUETOOTH_REQUEST)
+            return
+        }
+        if (!force && RemoteBattery.fresh(prefs.getLong("rb_at", 0), System.currentTimeMillis())) return
+        RemoteBattery.read(this, prefs) { level ->
+            if (isDestroyed) return@read
+            if (level != null) prefs.edit().putInt("rb_level", level).putLong("rb_at", System.currentTimeMillis()).apply()
+            updateBatteryIcon()
+            if (force) toast(if (level == null) getString(R.string.remote_not_found) else getString(R.string.remote_battery_value, level))
+        }
     }
 
     private fun playFeatured() {
@@ -3143,7 +3179,8 @@ class MainActivity : Activity() {
 
     /** The bar's icons in their default order, with the key each is saved under. */
     private val TOP_KEYS = linkedMapOf(R.id.wifi to "wifi", R.id.sourcesButton to "sources", R.id.allAppsButton to "apps",
-        R.id.systemSettings to "system", R.id.launcherSettings to "plume", R.id.powerButton to "power", R.id.playButton to "play")
+        R.id.systemSettings to "system", R.id.launcherSettings to "plume", R.id.powerButton to "power", R.id.playButton to "play",
+        R.id.batteryButton to "battery")
 
     private var movingTop: View? = null // the icon being moved, while Left and Right slide it
     private var topLive: List<Int> = emptyList() // the order while moving; saved when OK places the icon
@@ -3152,8 +3189,8 @@ class MainActivity : Activity() {
     /** The icons the bar shows, in order: the saved list, or all of them. Plume settings is always on it. */
     private fun topOrder(): List<Int> {
         val all = TOP_KEYS.values.toList()
-        // Power and Play are not on the bar until someone adds them.
-        return keys(TopBar.parse(prefs.getString("top_bar", null), all, all - "power" - "play", ""))
+        // Power, Play and the remote's battery are not on the bar until someone adds them.
+        return keys(TopBar.parse(prefs.getString("top_bar", null), all, all - "power" - "play" - "battery", ""))
     }
 
     /** What is really on screen: Sources stays out while the TV has no input. */
@@ -3175,6 +3212,8 @@ class MainActivity : Activity() {
             v.visibility = if (id in shown) View.VISIBLE else View.GONE
             bar.addView(v, start + i, lp)
         }
+        updateBatteryIcon() // an icon just added has no picture yet
+        refreshRemoteBattery()
     }
 
     private fun saveTopOrder(order: List<Int>) {
@@ -4671,6 +4710,7 @@ class MainActivity : Activity() {
         const val PIN_TRIES = 5 // wrong PINs before a 30 s wait
         const val UNLOCKED_MS = 5 * 60_000L
         const val MEDIA_REQUEST = 3
+        const val BLUETOOTH_REQUEST = 4
         const val PER_APP = 3 // Continue Watching items per app ahead of the rest
         /** "Darkening" of a Bing or shows picture in dark mode: Auto, or a percentage of black. */
         val DIMS = linkedMapOf("auto" to R.string.dim_auto, "0" to R.string.dim_none, "20" to R.string.dim_light, "45" to R.string.dim_medium, "65" to R.string.dim_strong)
