@@ -3831,6 +3831,7 @@ class MainActivity : Activity() {
      * Newest first across apps, each app's [PER_APP] newest ahead of the rest, so one app with ten shows can't bury the others.
      */
     private fun queryWatchNext(): Cards {
+        probeChannels()
         val hidden = prefs.getStringSet("hidden_watch", emptySet())!!
         val watchNextOn = WATCH_NEXT !in prefs.getStringSet("ch_flip", emptySet())!!
         val watchNext = if (watchNextOn) readPrograms(TvContract.WatchNextPrograms.CONTENT_URI, hidden) else emptyList()
@@ -3935,6 +3936,8 @@ class MainActivity : Activity() {
         emptyList()
     }
 
+    private fun probeChannels() { for ((id, p, n) in appChannels()) android.util.Log.i("PROBE", "channel id=$id pkg=$p name=$n") }
+
     private fun channelKey(pkg: String, name: String) = "$pkg/$name"
 
     private fun continueChannels(): List<Triple<Long, String, String>> {
@@ -4001,12 +4004,15 @@ class MainActivity : Activity() {
                 ).joinToString(" - ")
                 val progress = if (duration > 0 && position >= 1000) (position * 100 / duration).toInt().coerceIn(0, 100) else 0
                 val pkg = str("package_name")
+                android.util.Log.i("PROBE", "program pkg=$pkg ratio=${str("poster_art_aspect_ratio")} thumb=${uriKind(str("thumbnail_uri"))} poster=${uriKind(str("poster_art_uri"))} type=${str("type")} src=$uri")
                 val prog = Prog(title, sub, progress, str("thumbnail_uri") ?: str("poster_art_uri"), str("intent_uri"), pkg, group ?: pkg)
                 out += watchSortKey(num("watch_next_type"), num("last_engagement_time_utc_millis")) to prog
             }
         }
         return out
     }
+
+    private fun uriKind(u: String?) = u?.let { android.net.Uri.parse(it).let { p -> "${p.scheme}://${p.host}" } } ?: "none"
 
     private fun hideKey(pkg: String?, title: String) = "$pkg/$title"
 
