@@ -244,6 +244,14 @@ class MainActivity : Activity() {
      * over once so nothing changes on a TV that already runs the fork. The old values stay, for going back to the old build.
      */
     private fun migrateFork(p: SharedPreferences) {
+        if (!p.getBoolean("fork_migrated2", false)) { // the fork's "One row" was a row you switch by its title: that is "By title"
+            val rows = when {
+                p.getBoolean("cards_stack", false) || p.getString("cards_mode", null) == "stack" -> "stack"
+                p.getString("cards_mode", null) == "one" -> "title"
+                else -> null
+            }
+            p.edit().putBoolean("fork_migrated2", true).apply { rows?.let { putString("cards_rows", it) } }.apply()
+        }
         if (p.getBoolean("fork_migrated", false)) return
         val e = p.edit().putBoolean("fork_migrated", true)
         if (p.contains("top_order") || p.contains("top_hidden")) {
@@ -252,10 +260,7 @@ class MainActivity : Activity() {
             val hidden = (p.getStringSet("top_hidden", null) ?: setOf("power")).map { if (it == "android") "system" else it }.toSet()
             e.putString("top_bar", ((old + (all - old.toSet())) - hidden).joinToString(","))
         }
-        when (p.getString("cards_mode", null)) {
-            "stack" -> e.putBoolean("cards_stack", true)
-            "off" -> e.putString("row_show", "never").putBoolean("row_drop", true)
-        }
+        if (p.getString("cards_mode", null) == "off") e.putString("row_show", "never").putBoolean("row_drop", true)
         p.getStringSet("ch_on", null)?.let { on ->
             // A channel named "Continue Watching" starts on here; every other one is on only when flipped.
             e.putStringSet("ch_flip", p.getStringSet("ch_flip", emptySet())!! + on.filter { !it.endsWith("/Continue Watching", ignoreCase = true) })
@@ -387,6 +392,15 @@ class MainActivity : Activity() {
         watchRow = findViewById(R.id.watchRow)
         watchTitle = findViewById(R.id.watchTitle)
         titleAlpha = watchTitle.alpha
+        // Focusable only by title with more than one source. The pill it lights up on is padded in and pulled back out.
+        style(watchTitle, dp(8), card = false, lift = 1.04f) { watchTitle.text = cardTitle() }
+        watchTitle.isFocusable = false
+        watchTitle.setPadding(dp(10), dp(4), dp(10), dp(4))
+        (watchTitle.layoutParams as LinearLayout.LayoutParams).apply {
+            marginStart = -dp(10)
+            topMargin -= dp(4)
+            bottomMargin -= dp(4)
+        }
         watchScroll = findViewById(R.id.watchScroll)
         allApps = findViewById(R.id.allApps)
         rowBand = findViewById(R.id.rowBand)
@@ -1807,8 +1821,8 @@ class MainActivity : Activity() {
                 placeRow(animate = false)
                 renderSettings(R.string.apps_when_hidden)
             },
-            R.string.cards_rows to { _ ->
-                prefs.edit().putBoolean("cards_stack", !cardsStack()).apply()
+            R.string.cards_rows to { d ->
+                prefs.edit().putString("cards_rows", CARDS_ROWS.keys.toList().step(cardsMode(), d)).apply()
                 watchKey = null
                 refreshWatchNext()
                 renderSettings(R.string.cards_rows)
@@ -1865,7 +1879,7 @@ class MainActivity : Activity() {
             R.string.cw_apps to Triple(getString(R.string.cw_apps), if (cwOff == 0) getString(R.string.all_on) else getString(R.string.n_off, cwOff)) { pickWatchSources() },
             R.string.cw_channels to Triple(getString(R.string.cw_channels), getString(R.string.n_on, channelsOn)) { pickChannels() },
             R.string.row_name to Triple(getString(R.string.row_name), rowName()) { pickRowName() },
-            R.string.cards_rows to Triple(getString(R.string.cards_rows), getString(if (cardsStack()) R.string.cards_each else R.string.cards_one)) {
+            R.string.cards_rows to Triple(getString(R.string.cards_rows), getString(CARDS_ROWS.getValue(cardsMode()))) {
                 steps[R.string.cards_rows]!!(1)
             },
             R.string.show_icons to Triple(getString(R.string.show_icons), getString(if (cwColour()) R.string.colour else R.string.monochrome)) {
@@ -1985,7 +1999,7 @@ class MainActivity : Activity() {
                 R.string.show_row to ROW_SHOW.values.map { getString(it) to null },
                 R.string.apps_when_hidden to listOf(R.string.stays_put, R.string.moves_down).map { getString(it) to null },
                 R.string.show_icons to listOf(R.string.monochrome, R.string.colour).map { getString(it) to null },
-                R.string.cards_rows to listOf(R.string.cards_one, R.string.cards_each).map { getString(it) to null },
+                R.string.cards_rows to CARDS_ROWS.values.map { getString(it) to null },
                 R.string.weather_units to listOf("°C" to null, "°F" to null),
             )
             val walls = mapOf(R.string.light_wallpaper to false, R.string.dark_wallpaper to true)
@@ -3041,6 +3055,12 @@ class MainActivity : Activity() {
             if (e.action == KeyEvent.ACTION_DOWN) (currentFocus?.tag as? (Int) -> Unit)?.invoke(if (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) -1 else 1)
             return true
         }
+        if (currentFocus === watchTitle && e.action == KeyEvent.ACTION_DOWN &&
+            (confirm || e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT || e.keyCode == KeyEvent.KEYCODE_DPAD_RIGHT)
+        ) {
+            cycleSource(if (e.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) -1 else 1)
+            return true
+        }
         if (editing && editKey(e, confirm)) return true
         // One row per channel: Down on a card shows the next row, Up the one before (Up on the first goes to the apps).
         if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0 && cardsStack() && settingsScrim.visibility != View.VISIBLE &&
@@ -3066,6 +3086,7 @@ class MainActivity : Activity() {
         val cards = if (watchScroll.visibility != View.VISIBLE) null
             else alive(lastCard) ?: (watchRow.getChildAt(0) as? ViewGroup)?.getChildAt(0)
         val top = alive(lastTop)?.takeIf { it.visibility == View.VISIBLE } ?: shownTop().lastOrNull()?.let { findViewById<View>(it) }
+        val title = watchTitle.takeIf { it.isFocusable && it.visibility == View.VISIBLE }
         return when {
             v.parent === wifi.parent -> when (key) { // top bar
                 KeyEvent.KEYCODE_DPAD_DOWN -> apps ?: cards ?: v // the apps row can be empty (all hidden)
@@ -3076,14 +3097,14 @@ class MainActivity : Activity() {
             }
             v.parent === appRow -> when (key) { // Left on the first app jumps to the All apps tile at the other end
                 KeyEvent.KEYCODE_DPAD_UP -> top
-                KeyEvent.KEYCODE_DPAD_DOWN -> if (allApps.visibility == View.VISIBLE) allAppsGrid.getChildAt(0) ?: v else cards ?: v
+                KeyEvent.KEYCODE_DPAD_DOWN -> if (allApps.visibility == View.VISIBLE) allAppsGrid.getChildAt(0) ?: v else title ?: cards ?: v
                 KeyEvent.KEYCODE_DPAD_LEFT -> if (appRow.indexOfChild(v) == 0) moreTile ?: v else null
                 KeyEvent.KEYCODE_DPAD_RIGHT -> if (appRow.indexOfChild(v) == appRow.childCount - 1) moreTile ?: v else null
                 else -> null
             }
             v === moreTile -> when (key) {
                 KeyEvent.KEYCODE_DPAD_UP -> top
-                KeyEvent.KEYCODE_DPAD_DOWN -> if (allApps.visibility == View.VISIBLE) allAppsGrid.getChildAt(0) ?: v else cards ?: v
+                KeyEvent.KEYCODE_DPAD_DOWN -> if (allApps.visibility == View.VISIBLE) allAppsGrid.getChildAt(0) ?: v else title ?: cards ?: v
                 KeyEvent.KEYCODE_DPAD_LEFT -> appRow.getChildAt(appRow.childCount - 1) ?: v
                 KeyEvent.KEYCODE_DPAD_RIGHT -> v
                 else -> null
@@ -3100,10 +3121,15 @@ class MainActivity : Activity() {
                     else -> null
                 }
             }
+            v === watchTitle -> when (key) {
+                KeyEvent.KEYCODE_DPAD_UP -> apps ?: top
+                KeyEvent.KEYCODE_DPAD_DOWN -> cards ?: v
+                else -> null
+            }
             v.getTag(R.id.watchRow) is Prog -> {
                 val i = watchRow.indexOfChild(v.parent as View)
                 when (key) {
-                    KeyEvent.KEYCODE_DPAD_UP -> apps ?: top
+                    KeyEvent.KEYCODE_DPAD_UP -> title ?: apps ?: top
                     KeyEvent.KEYCODE_DPAD_DOWN -> v
                     KeyEvent.KEYCODE_DPAD_LEFT -> if (i == 0) v else null
                     KeyEvent.KEYCODE_DPAD_RIGHT -> if (i == watchRow.childCount - 1) v else null
@@ -4126,7 +4152,12 @@ class MainActivity : Activity() {
 
     private class Cards(val sources: List<CardSource>, val current: CardSource?, val list: List<Prog>)
 
-    private fun cardsStack() = prefs.getBoolean("cards_stack", false)
+    /** "mixed" (every source in one row), "title" (one row you switch with its title) or "stack" (one row per source, Down and Up). */
+    private fun cardsMode() = prefs.getString("cards_rows", "mixed")!!.takeIf { it in CARDS_ROWS } ?: "mixed"
+
+    private fun cardsStack() = cardsMode() == "stack"
+
+    private fun cardsSplit() = cardsMode() != "mixed"
 
     /**
      * Two sources, same columns:
@@ -4145,7 +4176,7 @@ class MainActivity : Activity() {
         autoRowName = if (watchNextOn) null
             else on.map { it.third }.distinct().singleOrNull()?.takeUnless { it.equals("Continue Watching", ignoreCase = true) }
         val off = prefs.getStringSet("cw_off", emptySet())!!
-        if (cardsStack()) return stackedCards(watchNext, on, hidden, off)
+        if (cardsSplit()) return stackedCards(watchNext, on, hidden, off)
         val channels = on.flatMap { (id) ->
             readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id").map { (_, p) -> watchSortKey(0, prefs.getLong("t_${p.pkg}", 0)) to p }
         }
@@ -4186,13 +4217,26 @@ class MainActivity : Activity() {
         return true
     }
 
-    /** What the bottom row is called: in "One row per channel" the channel on show, with arrows to where the other rows are. */
+    /** What the bottom row is called: in the two split modes the source on show; by title it shows ‹ › when selected, one per channel arrows to the other rows. */
     private fun cardTitle(): String {
         val cur = cardCurrent
-        if (!cardsStack() || cur == null) return rowName()
+        if (!cardsSplit() || cur == null) return rowName()
         val at = cardSources.indexOfFirst { it.key == cur.key }
-        return if (cardSources.size < 2) cur.title
-            else cur.title + "  " + (if (at > 0) "↑" else "") + (if (at < cardSources.size - 1) "↓" else "")
+        return when {
+            cardSources.size < 2 -> cur.title
+            cardsStack() -> cur.title + "  " + (if (at > 0) "↑" else "") + (if (at < cardSources.size - 1) "↓" else "")
+            watchTitle.isFocused -> "‹  ${cur.title}  ›"
+            else -> cur.title
+        }
+    }
+
+    /** By title: Left or Right on the title shows the next or the previous source, round the list. */
+    private fun cycleSource(d: Int) {
+        val at = cardSources.indexOfFirst { it.key == cardCurrent?.key }
+        if (at < 0 || cardSources.size < 2) return
+        prefs.edit().putString("cards_src", cardSources[((at + d) % cardSources.size + cardSources.size) % cardSources.size].key).apply()
+        watchKey = null
+        refreshWatchNext()
     }
 
     /** Apps last seen publishing, so the settings list includes them even without the permission check. */
@@ -4375,6 +4419,7 @@ class MainActivity : Activity() {
         val focusedAt = watchRow.indexOfChild(currentFocus?.parent as? View)
         watchRow.removeAllViews()
         watchTitle.text = cardTitle()
+        watchTitle.isFocusable = cardsMode() == "title" && cardSources.size > 1
         placeRow(animate = false)
         val dir = pageDir.also { pageDir = 0 }
         if (dir != 0 && watchScroll.visibility == View.VISIBLE) { // the new row slides in from where it was reached
@@ -4822,6 +4867,8 @@ class MainActivity : Activity() {
         const val PER_APP = 3 // Continue Watching items per app ahead of the rest
         /** "Darkening" of a Bing or shows picture in dark mode: Auto, or a percentage of black. */
         val DIMS = linkedMapOf("auto" to R.string.dim_auto, "0" to R.string.dim_none, "20" to R.string.dim_light, "45" to R.string.dim_medium, "65" to R.string.dim_strong)
+        /** "Rows" of the shows row: mixed, switched by its title, or one per channel. */
+        val CARDS_ROWS = linkedMapOf("mixed" to R.string.cards_one, "title" to R.string.cards_title, "stack" to R.string.cards_each)
         const val CARDS_AHEAD = 8 // Continue Watching cards built past the focused one (see addCardsTo)
         val READ_PHOTOS = if (Build.VERSION.SDK_INT >= 33) "android.permission.READ_MEDIA_IMAGES" else "android.permission.READ_EXTERNAL_STORAGE"
         /** Minutes between folder photos. */

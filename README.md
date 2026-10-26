@@ -31,7 +31,7 @@ Plume replaces the cluttered stock home screen with the two things you actually 
 - **Clean apps row.** Monochrome logos (or the same logos in brand colour, or each app's own banner) in a single row, with names on focus, always or never. Rearrange it by holding OK, sort by most used, or hide apps you don't use (they stay in All apps). An optional PIN locks the layout so small hands can't rearrange it.
 - **Sources list.** The Sources icon in the top bar opens the list of the TV inputs. A console or set-top box that names itself over HDMI-CEC (for example "PlayStation 5") shows with its logo, and selecting it switches the TV to that input. A port with no signal says so. Hold OK on an input to put it in the apps row, and again to take it out.
 - **All apps under the row.** The tile at the right end of the row, or the grid icon in the top bar, opens the apps that are not in the row. Hold OK on one to move it, add it to the row or open its app info.
-- **One row per channel.** Each source of the shows row (Watch Next and every channel that is on) can have its own row. Push Down or Up on a card to change the row. Posters load only near the focus, so a long channel costs no extra memory.
+- **Rows of the shows row.** One mixed row; one row you switch by its title (Left or Right on the title); or one row per source (Down or Up on a card). Posters load only near the focus, so a long channel costs no extra memory.
 - **Optional memory clean-up.** Plume can end the Google TV home screen, or other apps you choose, to free memory. See [Free memory](#free-memory).
 - **Languages on demand.** English is built in. Other languages are text files in this repository that Plume downloads when you pick the language. See [Language](#language).
 - **Remote keys.** Change what a button on your remote does, for example the TV, Netflix or Settings button. A key can do one thing on a press and another when you hold it. See [Remote keys](#remote-keys).
@@ -152,9 +152,9 @@ Back, OK, the arrows, Home, Power and the volume keys can't be changed, so the r
 
 Android 14 lets an app end only itself, so Plume does what you would do: it opens each app's page in Settings and taps **Force stop**. A black screen covers this and shows the progress and the memory freed. Push **Back** to cancel. This needs **Plume: Home button** turned on in Accessibility settings. After an update, turn it off and on again once.
 
-### One row per channel
+### Rows of the shows row
 
-**Plume settings → Shows row → Rows → One row per channel** gives each source its own row: Android TV Watch Next and every channel that is on in **Channels**. Push **Down** on a card to see the next row, and **Up** to go back. A row with nothing in it is left out. The title shows the channel and arrows to the other rows.
+**Plume settings → Shows row → Rows** has three choices. **Mixed** puts every source in one row. **By title** keeps one row: select its title and push **Left** or **Right** to change the source. **Per channel** gives each source its own row: Android TV Watch Next and every channel that is on in **Channels**. Push **Down** on a card to see the next row, and **Up** to go back. A row with nothing in it is left out. The title shows the channel and arrows to the other rows.
 
 ### Language
 
