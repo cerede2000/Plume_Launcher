@@ -44,8 +44,8 @@ internal object ShowsWall {
     /** The alpha (0 to 255) of black that brings a picture of mean brightness [mean] down to [TARGET]: none for a picture that is darker already. */
     fun autoDim(mean: Float): Int = ((1f - TARGET / mean.coerceAtLeast(0.01f)).coerceIn(0f, MOST) * 255).toInt()
 
-    private const val FLOOR = 0.16f // a picture darker than this is lifted towards it
-    private const val LIFT_MAX = 0.12f // the most grey the lift adds to the shadows
+    private const val FLOOR = 0.22f // a picture darker than this is lifted towards it
+    private const val LIFT_MAX = 0.2f // the most grey the lift adds to the shadows
 
     /** The grey (0 to 255) screened over a very dark picture of mean brightness [mean], so that its shadows are not lost: none from [FLOOR] up. */
     fun autoLift(mean: Float): Int = (((FLOOR - mean) / (1f - mean)).coerceIn(0f, LIFT_MAX) * 255).toInt()
