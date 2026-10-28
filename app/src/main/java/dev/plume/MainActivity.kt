@@ -540,6 +540,7 @@ class MainActivity : Activity() {
         ui.removeCallbacks(themeTick)
         ui.removeCallbacks(wallpaperTick)
         if (editing) endEdit()
+        if (movingTop != null) endTopMove(false) // Home or an app opened in the middle of a move: the bar goes back as it was
         super.onPause()
     }
 
@@ -908,6 +909,7 @@ class MainActivity : Activity() {
             return donePopup()
         }
         if (editing) endEdit()
+        if (movingTop != null) endTopMove(false)
         if (settingsScrim.visibility == View.VISIBLE) closeLauncherSettings()
         if (allApps.visibility == View.VISIBLE) closeAllApps()
         // Home from an app comes back to the tile it was opened from: focus stayed there. Home on Plume itself starts again at the
@@ -3437,6 +3439,11 @@ class MainActivity : Activity() {
         topBefore = topOrder()
         topLive = keys(TopBar.addAfter(keyList(topBefore), TOP_KEYS.getValue(id), TOP_KEYS.getValue(after.id)))
         applyTopBar(topLive)
+        if (id !in shownTop(topLive)) { // Sources on a TV with no input: nothing on screen to move, so keep it where it goes
+            saveTopOrder(topLive)
+            after.requestFocus()
+            return
+        }
         beginTopMove(findViewById(id))
     }
 
