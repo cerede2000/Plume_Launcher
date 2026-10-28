@@ -475,7 +475,7 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         resumed = true
-        if (hero != null) ui.postDelayed({ foldHero() }, foldDelay()) // back from the app: its panel shrinks into the tile once the app's window is gone
+        if (hidden && openedFrom != null && animationsOn()) zoomBack() // back from an app: the home screen comes back out of the tile it was opened from
         hidden = false
         ensureHomeService()
         homeSetupResumed()
@@ -533,7 +533,6 @@ class MainActivity : Activity() {
 
     override fun onPause() {
         resumed = false
-        ui.removeCallbacks(heroTimeout) // the app is taking over: the panel stays until Plume is back
         ui.removeCallbacks(refreshIfDirty)
         ui.removeCallbacks(weatherTick)
         ui.removeCallbacks(themeTick)
@@ -3648,41 +3647,15 @@ class MainActivity : Activity() {
 
     private fun animationsOn() = prefs.getBoolean("app_anim", true)
 
-    private var hero: AppHero? = null // the panel of the app that was opened, until it folds back into its tile
-    private var heroTile: WeakReference<View>? = null // the tile or card it came from
-    private val heroTimeout = Runnable { if (resumed) foldHero() } // Plume was never paused: the app did not come to the front (a refusal), the panel goes back
+    private var openedFrom: WeakReference<View>? = null // the tile or card the last app was opened from
 
-    /**
-     * Starts an app. With [from] and the animations on, the tile grows into a panel that covers the screen while the app
-     * fades in over it; when the app is left, the panel shrinks back into the tile (see [AppHero]).
-     */
+    /** Starts an app. With [from] and the animations on, the app's window grows out of that tile (see [zoomBack] for the way back). */
     private fun startApp(intent: Intent, from: View?) {
-        val source = from?.takeIf { animationsOn() && it.isAttachedToWindow && it.width > 0 && hero == null }
-        if (source == null) return startActivity(intent)
-        // The panel is made first (it needs the tile as it is), shown once the launch did not fail.
-        val picture = try {
-            Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888).also { source.draw(Canvas(it)) }
-        } catch (e: Exception) {
-            null
-        }
-        startActivity(intent, ActivityOptions.makeCustomAnimation(this, R.anim.app_in, R.anim.app_hold).toBundle())
-        val root = findViewById<ViewGroup>(R.id.root)
-        val screen = RectF(0f, 0f, root.width.toFloat(), root.height.toFloat())
-        val h = AppHero(this, picture, ground, tileRect(source) ?: screen, screen, dp(10).toFloat())
-        root.addView(h, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
-        hero = h
-        heroTile = WeakReference(source)
-        ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 260
-            interpolator = DECELERATE
-            addUpdateListener { h.progress = it.animatedValue as Float }
-        }.start()
-        ui.removeCallbacks(heroTimeout)
-        ui.postDelayed(heroTimeout, 2500)
+        val source = from?.takeIf { animationsOn() && it.isAttachedToWindow && it.width > 0 }
+        val options = source?.let { ActivityOptions.makeScaleUpAnimation(it, 0, 0, it.width, it.height).toBundle() }
+        startActivity(intent, options)
+        openedFrom = source?.let { WeakReference(it) }
     }
-
-    /** How long the app's own window takes to close over us (about 220 ms): the panel shrinks after that, so it is seen. */
-    private fun foldDelay() = (220 * Settings.Global.getFloat(contentResolver, Settings.Global.WINDOW_ANIMATION_SCALE, 1f)).toLong()
 
     /** The tile where it is now on the screen, with its focus lift: null when it is not on screen. */
     private fun tileRect(v: View): RectF? {
@@ -3696,28 +3669,23 @@ class MainActivity : Activity() {
         return RectF(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
     }
 
-    /** The panel shrinks into the tile the app came from, then goes; Plume's own row is under it and shows as it shrinks. */
-    private fun foldHero() {
-        val h = hero ?: return
-        hero = null
-        ui.removeCallbacks(heroTimeout)
-        heroTile?.get()?.let { t -> tileRect(t)?.let { h.retarget(it) } }
-        heroTile = null
-        val root = findViewById<ViewGroup>(R.id.root)
-        ValueAnimator.ofFloat(h.progress, 0f).apply {
-            duration = 340
-            interpolator = android.view.animation.PathInterpolator(0.3f, 0f, 0.1f, 1f)
-            addUpdateListener {
-                val p = it.animatedValue as Float
-                h.progress = p
-                h.alpha = (p / 0.25f).coerceAtMost(1f) // gone as it reaches the tile
-            }
-            addListener(object : android.animation.AnimatorListenerAdapter() {
-                override fun onAnimationEnd(a: android.animation.Animator) {
-                    root.removeView(h)
-                }
-            })
-        }.start()
+    /**
+     * Back from an app, the whole home screen settles out of the tile the app was opened from: a little larger and
+     * faded at first, then to its size, as the app's own window fades away over it. The scaled view is the root, as
+     * big as the screen, so nothing sticks out of its layer and gets cut (a row or a tile alone would lose the corners
+     * of the tile that is lifted by focus at the end of it).
+     */
+    private fun zoomBack() {
+        val root = findViewById<View>(R.id.root)
+        val tile = openedFrom?.get()?.let { tileRect(it) }
+        openedFrom = null
+        root.animate().cancel()
+        root.pivotX = tile?.centerX() ?: (root.width / 2f)
+        root.pivotY = tile?.centerY() ?: (root.height / 2f)
+        root.scaleX = 1.1f
+        root.scaleY = 1.1f
+        root.alpha = 0.15f
+        root.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(240).setInterpolator(DECELERATE).withLayer().start()
     }
 
     // ---------- all apps ----------
