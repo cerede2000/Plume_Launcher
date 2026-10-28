@@ -10,7 +10,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "dev.plume"
+        applicationId = "dev.plume.an"
         minSdk = 26
         targetSdk = 36
         versionCode = 8
