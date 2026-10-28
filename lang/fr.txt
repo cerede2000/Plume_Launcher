@@ -99,8 +99,8 @@ add_icon	Ajouter une icône
 icon_hidden	Masquée. Pour la remettre, maintenez OK sur une icône et choisissez Ajouter une icône.
 shows_with_input	S'affiche quand la TV a une entrée
 top_bar_hint	Maintenez OK sur une icône de la barre du haut pour la déplacer, la masquer ou en ajouter.
-power	Alimentation
 power_needs_home	Activez le bouton Accueil
+power_menu_failed	Ce téléviseur n'ouvre pas le menu d'alimentation.
 move	Déplacer
 remove_from_row	Retirer de la ligne
 removed_from_row	Retirée de la ligne. Elle reste dans Toutes les applis.
