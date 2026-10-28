@@ -2837,7 +2837,10 @@ class MainActivity : Activity() {
                 KeyEvent.KEYCODE_DPAD_DOWN -> apps ?: cards ?: v // the apps row can be empty (all hidden)
                 KeyEvent.KEYCODE_DPAD_UP -> v
                 KeyEvent.KEYCODE_DPAD_LEFT -> if (v.id == R.id.wifi) v else null
-                KeyEvent.KEYCODE_DPAD_RIGHT -> if (v.id == R.id.launcherSettings) v else null
+                KeyEvent.KEYCODE_DPAD_RIGHT -> { // the end of the bar: its last icon on screen (Play comes after Plume settings)
+                    val bar = v.parent as ViewGroup
+                    if (v === (bar.childCount - 1 downTo 0).map { bar.getChildAt(it) }.firstOrNull { it.visibility == View.VISIBLE }) v else null
+                }
                 else -> null
             }
             v.parent === appRow -> when (key) {
