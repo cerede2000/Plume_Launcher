@@ -4300,7 +4300,7 @@ class MainActivity : Activity() {
         }
         add(WATCH_NEXT, getString(R.string.watch_next), newestPerApp(watchNext, PER_APP) { it.group })
         for ((id, p, n) in on.distinctBy { (_, p, n) -> channelKey(p, n) }) {
-            val items = readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id", "weight DESC").map { it.second }
+            val items = readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id").map { it.second }
             add(channelKey(p, n), if (n == label[p]) n else "${label[p] ?: p} · $n", items)
         }
         publishingPkgs = seen
