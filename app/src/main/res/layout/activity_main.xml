@@ -134,6 +134,18 @@
                 android:focusable="true"
                 android:padding="8dp"
                 android:src="@drawable/ic_tune" />
+
+            <!-- Plays the show of the Shows wallpaper. Only there while that wallpaper has a show on screen. -->
+            <ImageView
+                android:id="@+id/playButton"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="8dp"
+                android:contentDescription="@string/play_featured"
+                android:focusable="true"
+                android:padding="8dp"
+                android:src="@drawable/ic_play"
+                android:visibility="gone" />
         </LinearLayout>
 
         <View

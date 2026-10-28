@@ -346,13 +346,14 @@ class MainActivity : Activity() {
             if (top != oldTop || bottom != oldBottom) placeRow(animate = false) // the drop is measured from the layout
         }
 
-        // Top bar: network, All apps, Android settings, launcher settings. Round, lit on focus.
+        // Top bar: network, All apps, Android settings, launcher settings, Play (see updateFeatured). Round, lit on focus.
         for ((id, action) in listOf<Pair<Int, () -> Unit>>(
             R.id.wifi to { unlock { openSettings(Settings.ACTION_WIFI_SETTINGS) } },
             R.id.sourcesButton to { showSources(findViewById(R.id.sourcesButton)) },
             R.id.allAppsButton to { openAllApps() },
             R.id.systemSettings to { unlock { openSettings(Settings.ACTION_SETTINGS) } },
             R.id.launcherSettings to { unlock { openLauncherSettings() } },
+            R.id.playButton to { playFeatured() },
         )) findViewById<ImageView>(id).apply {
             setColorFilter(fg)
             val ring = GradientDrawable().apply { shape = GradientDrawable.OVAL }
@@ -869,7 +870,7 @@ class MainActivity : Activity() {
     private var watchInk = Color.BLACK
     private var iconInk = Color.BLACK
 
-    private fun topIcons() = listOf(R.id.wifi, R.id.sourcesButton, R.id.allAppsButton, R.id.systemSettings, R.id.launcherSettings)
+    private fun topIcons() = listOf(R.id.wifi, R.id.sourcesButton, R.id.allAppsButton, R.id.systemSettings, R.id.launcherSettings, R.id.playButton)
         .map { findViewById<ImageView>(it) }
 
     private fun fitInk() {
@@ -1280,7 +1281,8 @@ class MainActivity : Activity() {
             }
             val edit = prefs.edit().putLong("wp_show_at", System.currentTimeMillis())
             if (chosen != null) {
-                edit.putString("wp_show_key", showKey(chosen)).putString("wp_show_title", chosen.title)
+                edit.putString("wp_show_key", showKey(chosen)).putString("wp_show_title", chosen.title).putString("wp_show_sub", chosen.sub)
+                    .putString("wp_show_intent", chosen.intent).putString("wp_show_pkg", chosen.pkg)
             }
             edit.apply()
             ui.post {
@@ -1312,18 +1314,25 @@ class MainActivity : Activity() {
     private fun dropShowsIfUnused() {
         if (currentWallpaper(false) == ShowsWall.CHOICE || currentWallpaper(true) == ShowsWall.CHOICE) return
         ShowsWall.file(this).delete()
-        prefs.edit().remove("wp_show_key").remove("wp_show_at").remove("wp_show_title").apply()
+        prefs.edit().remove("wp_show_key").remove("wp_show_at").remove("wp_show_title").remove("wp_show_sub").remove("wp_show_intent").remove("wp_show_pkg").apply()
     }
 
     /** The show on screen as the wallpaper, or null when another wallpaper is on or no picture was found yet. */
     private fun featuredTitle() = prefs.getString("wp_show_title", null)?.takeIf { currentWallpaper() == ShowsWall.CHOICE && ShowsWall.file(this).exists() }
 
-    /** "Featured: …" under the weather: the show whose picture is the wallpaper. */
+    /** "Featured: …" under the weather, and the Play icon of the top bar: both only while a show is on screen as the wallpaper. */
     private fun updateFeatured() {
         val title = featuredTitle()
         val v = findViewById<TextView>(R.id.featured)
         v.text = title?.let { getString(R.string.featured_now, it) }.orEmpty()
         v.visibility = if (title == null) View.GONE else View.VISIBLE
+        findViewById<View>(R.id.playButton).visibility = if (title == null) View.GONE else View.VISIBLE
+    }
+
+    /** Starts the featured show with the app's own resume link, as selecting its card does. */
+    private fun playFeatured() {
+        val intent = prefs.getString("wp_show_intent", null) ?: return toast(getString(R.string.nothing_featured))
+        open(Prog(prefs.getString("wp_show_title", "")!!, prefs.getString("wp_show_sub", "")!!, 0, null, intent, prefs.getString("wp_show_pkg", null)))
     }
 
     // ---------- folder wallpapers ----------
@@ -1404,7 +1413,8 @@ class MainActivity : Activity() {
             },
         ) + Remap.MEDIA.map { (k, v) -> row("media:$k", getString(v.second)) } +
             Remap.SYS.map { (k, v) -> row("sys:$k", getString(v.second)) } +
-            Remap.OPEN.map { (k, v) -> row("open:$k", getString(v.second)) }
+            Remap.OPEN.map { (k, v) -> row("open:$k", getString(v.second)) } +
+            row("show", getString(R.string.play_featured))
         showPage(getString(if (hold) R.string.key_long else R.string.key_short), rows) { keyPage(id, if (hold) 1 else 0) }
     }
 

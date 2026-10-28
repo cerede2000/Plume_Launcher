@@ -16,6 +16,7 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 
 ## Unreleased
 
+- **Play the featured show.** While **Shows from your apps** is the wallpaper, a **Play** icon shows at the end of the top bar. Select it to start the featured show. You can also give a remote key the action **Play the featured show**. Select **Plume settings → Remote & Home button → Remote keys**.
 - **Shows wallpaper.** Select **Plume settings → Appearance → Light wallpaper** or **Dark wallpaper**, then **Shows from your apps**. The picture of a show that your apps publish becomes the wallpaper. It comes from Watch Next, or from the channels that you choose in **Wallpaper from**. It changes as often as a folder of photos does. Only wide pictures count. **Featured: …** shows under the weather. Plume fetches nothing until you select it.
 - **Darkening.** In dark mode, Plume lays black over the Bing picture and the Shows picture. Select **Plume settings → Appearance → Darkening**. Choose Auto, None, Light, Medium or Strong. Auto gives a bright picture more black and lifts a very dark one a little. **Medium** is what Plume did before.
 - Continue Watching shows the show you watched last first for apps that use their own channel, such as Nuvio. Before, these apps showed the oldest show first.
