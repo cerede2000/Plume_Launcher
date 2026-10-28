@@ -370,7 +370,7 @@ class MainActivity : Activity() {
         if (!Lang.active) return
         for ((id, str) in listOf(R.id.wifi to R.string.network_settings, R.id.sourcesButton to R.string.sources,
             R.id.allAppsButton to R.string.all_apps, R.id.systemSettings to R.string.settings,
-            R.id.launcherSettings to R.string.plume_settings, R.id.powerButton to R.string.power, R.id.playButton to R.string.play_featured,
+            R.id.launcherSettings to R.string.plume_settings, R.id.powerButton to R.string.act_power, R.id.playButton to R.string.play_featured,
             R.id.batteryButton to R.string.remote_battery)) {
             findViewById<View>(id).contentDescription = getString(str)
         }
