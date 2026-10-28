@@ -38,26 +38,6 @@ class ShowsWallTest {
         assertEquals(emptyList<String>(), ShowsWall.order(emptyList(), "a"))
     }
 
-    @Test fun autoDarkeningLeavesADarkPictureAloneAndTamesABrightOne() {
-        assertEquals(0f, ShowsWall.meanLuma(IntArray(0)), 0f)
-        assertEquals(1f, ShowsWall.meanLuma(intArrayOf(0xFFFFFFFF.toInt())), 0.001f)
-        assertEquals(0f, ShowsWall.meanLuma(intArrayOf(0xFF000000.toInt())), 0.001f)
-        assertEquals(0, ShowsWall.autoDim(0.1f)) // already darker than the target
-        assertEquals(0, ShowsWall.autoDim(0.3f))
-        assertTrue(ShowsWall.autoDim(0.5f) in 90..110) // 40 % of black
-        assertEquals(153, ShowsWall.autoDim(1f)) // never more than 60 %
-        assertTrue(ShowsWall.autoDim(0.6f) > ShowsWall.autoDim(0.5f)) // brighter, more black
-    }
-
-    @Test fun aVeryDarkPictureIsLiftedAndOthersAreNot() {
-        assertEquals(0, ShowsWall.autoLift(0.22f))
-        assertEquals(0, ShowsWall.autoLift(0.4f))
-        assertEquals(51, ShowsWall.autoLift(0.0f)) // the most: 20 % grey
-        assertTrue(ShowsWall.autoLift(0.1f) in 1..50)
-        assertTrue(ShowsWall.autoLift(0.05f) > ShowsWall.autoLift(0.1f)) // darker, more lift
-        for (m in listOf(0f, 0.05f, 0.1f, 0.3f, 0.6f, 1f)) assertTrue(ShowsWall.autoDim(m) == 0 || ShowsWall.autoLift(m) == 0) // never both
-    }
-
     @Test fun aFailedPictureIsLeftAloneUntilItsTime() {
         val failed = mapOf("a" to 1_000L)
         assertTrue(ShowsWall.skipped(failed, "a", 999))

@@ -146,6 +146,19 @@ internal fun watchSortKey(type: Long, engaged: Long): Long {
 }
 
 /**
+ * Sort key of a card from an app's home-screen channel. Channels have no Watch Next type, so every card counts as
+ * "continue". The card's own last-watched time when the app sets one (Nuvio does), else the time the app was last
+ * opened from Plume.
+ */
+internal fun channelSortKey(engaged: Long, opened: Long) = watchSortKey(0, if (engaged > 0) engaged else opened)
+
+/**
+ * Rows as (weight, sort key, item) to (sort key, item), highest weight first. A channel's cards often share one sort
+ * key; the weight is the app's own order for them (Nuvio gives its newest the highest), and [newestPerApp] keeps it.
+ */
+internal fun <T> byWeight(rows: List<Triple<Long, Long, T>>) = rows.sortedByDescending { it.first }.map { it.second to it.third }
+
+/**
  * Newest first across apps (ties keep their order), each app's [perApp] newest ahead of the rest: one app's ten
  * shows can't bury the others. The rest follow, newest first, so an app on its own isn't held to [perApp].
  */
@@ -183,6 +196,8 @@ internal fun hdmiIcon(name: String, named: Boolean): String {
         "xbox" in n -> "xbox"
         "nintendo" in n || "switch" in n -> "nintendoswitch"
         "apple tv" in n || "appletv" in n -> "appletv"
+        "shield" in n -> "nvidia"
+        "chromecast" in n || "google tv" in n -> "chromecast"
         SET_TOP_WORDS.any { it in n } -> "settop"
         named -> "playback"
         else -> "hdmi"
@@ -345,6 +360,7 @@ class MainActivity : Activity() {
     private val net = object : ConnectivityManager.NetworkCallback() {
         override fun onCapabilitiesChanged(n: Network, caps: NetworkCapabilities) {
             ui.post {
+                if (isDestroyed) return@post
                 showNet(caps)
                 // Online again (e.g. Wi-Fi coming up after boot): fetch any posters that failed meanwhile.
                 if (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) retryPosters()
@@ -561,6 +577,7 @@ class MainActivity : Activity() {
         applicationContext.getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(net)
         getSystemService(TvInputManager::class.java)?.unregisterCallback(inputCallback)
         upload?.stop()
+        ui.removeCallbacksAndMessages(null) // the clocks and the posts still queued must not use the pools below
         io.shutdownNow()
         posterIo.shutdownNow()
         super.onDestroy()
@@ -1157,6 +1174,7 @@ class MainActivity : Activity() {
                 }
             }
             ui.post {
+                if (isDestroyed) return@post
                 glass.setBlur(blur)
                 glassSurfaces.forEach { it.get()?.setBlur(glass.blur) } // menus and cards that are open, and the panel
                 if (settingsScrim.visibility == View.VISIBLE) showPanelGlass() // a wallpaper picked from the panel itself
@@ -1191,7 +1209,7 @@ class MainActivity : Activity() {
                 fitWallpaper { file.inputStream() }
             }
         } ?: return null
-        // Bing's pictures are often bright daylight, which fights true black: dim them in dark mode.
+        // Bing's pictures and the shows' are often bright, which fights true black: dim them in dark mode.
         if (dark && (choice == Bing.CHOICE || choice == ShowsWall.CHOICE)) tonePicture(bmp)
         return bmp
     }
@@ -1214,9 +1232,9 @@ class MainActivity : Activity() {
         val small = Bitmap.createScaledBitmap(bmp, 48, 27, true)
         val px = IntArray(48 * 27).also { small.getPixels(it, 0, 48, 0, 0, 48, 27) }
         small.recycle()
-        val mean = ShowsWall.meanLuma(px)
-        val black = ShowsWall.autoDim(mean)
-        val lift = ShowsWall.autoLift(mean)
+        val mean = Dimming.meanLuma(px)
+        val black = Dimming.autoDim(mean)
+        val lift = Dimming.autoLift(mean)
         if (black > 0) Canvas(bmp).drawColor(Color.argb(black, 0, 0, 0))
         if (lift > 0) Canvas(bmp).drawColor(Color.rgb(lift, lift, lift), PorterDuff.Mode.SCREEN)
     }
@@ -1319,8 +1337,8 @@ class MainActivity : Activity() {
 
     private fun programsFor(s: Triple<String, Long?, String>): List<Prog> {
         val hidden = prefs.getStringSet("hidden_watch", emptySet())!!
-        val id = s.second ?: return readPrograms(TvContract.WatchNextPrograms.CONTENT_URI, hidden).sortedByDescending { it.first }.map { it.second }
-        return readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "wp$id", "weight DESC").map { it.second }
+        val id = s.second ?: return readPrograms(TvContract.WatchNextPrograms.CONTENT_URI, hidden).map { it.second }
+        return readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "wp$id").map { it.second }
     }
 
     private fun pickWpSources(focus: Int = 0) {
@@ -1328,6 +1346,7 @@ class MainActivity : Activity() {
             val sources = wpSourceList()
             val counts = sources.map { s -> try { programsFor(s).let { l -> l.count { it.image != null && it.wide } to l.size } } catch (e: Exception) { 0 to 0 } }
             ui.post {
+                if (isDestroyed) return@post
                 showPage(getString(R.string.wp_sources), sources.mapIndexed { i, s ->
                     val state = getString(if (wpSourceOn(s.first)) R.string.on else R.string.off)
                     page(s.third, "$state · ${getString(R.string.wp_usable, counts[i].first, counts[i].second)}") {
@@ -1384,6 +1403,7 @@ class MainActivity : Activity() {
             }
             edit.apply()
             ui.post {
+                if (isDestroyed) return@post
                 if (chosen != null && currentWallpaper() == ShowsWall.CHOICE) loadWallpaper()
                 updateFeatured()
             }
@@ -1392,10 +1412,15 @@ class MainActivity : Activity() {
 
     /** [FETCH_OK] when the picture is on disk now, [FETCH_DEAD] when it will never do (not found, not wide, too big), [FETCH_NETWORK] when it failed this time. */
     private fun fetchShow(p: Prog): Int = try {
-        val bytes = openStream(p.image!!).use { it.readBytes() }
+        val bytes = openStream(p.image!!).use { input -> // stops just past SHOW_MAX: a bigger picture is not read into memory
+            val out = java.io.ByteArrayOutputStream()
+            val buf = ByteArray(64 * 1024)
+            while (out.size() <= SHOW_MAX) { val n = input.read(buf); if (n < 0) break; out.write(buf, 0, n) }
+            out.toByteArray()
+        }
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-        if (bytes.size > 12_000_000 || !ShowsWall.fits(bounds.outWidth, bounds.outHeight)) {
+        if (bytes.size > SHOW_MAX || !ShowsWall.fits(bounds.outWidth, bounds.outHeight)) {
             FETCH_DEAD
         } else {
             val part = File(filesDir, "shows.part")
@@ -1691,6 +1716,7 @@ class MainActivity : Activity() {
             UploadServer((1000..9999).random().toString(), File(cacheDir, "upload.tmp")) { file ->
                 val saved = importWallpaper(file, dir) ?: return@UploadServer null
                 ui.post {
+                    if (isDestroyed) return@post
                     setWallpaper(forDark, "file:${saved.name}")
                     status.text = getString(R.string.photo_added, saved.nameWithoutExtension)
                 }
@@ -1881,9 +1907,10 @@ class MainActivity : Activity() {
                 prefs.edit().putBoolean("app_anim", !animationsOn()).apply()
                 renderSettings(R.string.app_animations)
             },
-            R.string.folder_photo_changes to Triple(getString(R.string.folder_photo_changes), getString(PHOTO_EVERY[photoEvery()]!!)) { pickPhotoEvery() },
             R.string.wp_dim to Triple(getString(R.string.wp_dim), getString(DIMS.getValue(wpDim()))) { steps[R.string.wp_dim]!!(1) },
-            R.string.wp_sources to Triple(getString(R.string.wp_sources), getString(R.string.n_on, wpSourceList().count { wpSourceOn(it.first) })) { pickWpSources() },
+            R.string.folder_photo_changes to Triple(getString(R.string.folder_photo_changes), getString(PHOTO_EVERY[photoEvery()]!!)) { pickPhotoEvery() },
+            R.string.wp_sources to Triple(getString(R.string.wp_sources), // the count queries the channels: only when the Shows wallpaper is on, so the settings do not wait for it
+                if (ShowsWall.CHOICE in listOf(currentWallpaper(false), currentWallpaper(true))) getString(R.string.n_on, wpSourceList().count { wpSourceOn(it.first) }) else "") { pickWpSources() },
             R.string.sort_apps to Triple(getString(R.string.sort_apps), if (sort == "manual") getString(R.string.manual) else getString(R.string.most_used)) {
                 prefs.edit().putString("sort", if (sort == "manual") "usage" else "manual").apply()
                 renderApps()
@@ -1985,7 +2012,7 @@ class MainActivity : Activity() {
         val photo = walls.any { !it.startsWith("res:") && !it.startsWith("plain:") }
         val folder = walls.any { it.startsWith("folder:") }
         val shows = walls.any { it == ShowsWall.CHOICE }
-        val dimmed = shows || walls.any { it == Bing.CHOICE }
+        val dimmed = currentWallpaper(true).let { it == Bing.CHOICE || it == ShowsWall.CHOICE } // the darkening is for the dark Bing or shows picture only
         // In the order things sit on the home screen, top to bottom, then what isn't on it.
         val sections = listOf(
             Triple(R.string.section_appearance, "${rows[R.string.theme]!!.second} · ${wallpaperName(currentWallpaper(dark))}",
@@ -2540,6 +2567,7 @@ class MainActivity : Activity() {
                 null
             }
             if (bmp != null) ui.post {
+                if (isDestroyed) return@post
                 scaleType = ImageView.ScaleType.CENTER_CROP
                 setPadding(0, 0, 0, 0)
                 clearColorFilter()
@@ -2611,6 +2639,7 @@ class MainActivity : Activity() {
             }
             val inputs = hdmiInputs()
             ui.post {
+                if (isDestroyed) return@post
                 if (inputs.isNotEmpty() && !prefs.getBoolean("inputs_moved", false)) moveInputsToSources(inputs)
                 apps = list
                 APPS = list
@@ -3849,6 +3878,7 @@ class MainActivity : Activity() {
                 false
             }
             ui.post {
+                if (isDestroyed) return@post
                 downloading = false
                 if (ok) then() else toast(getString(R.string.paintings_failed), long = true)
                 if (settingsScrim.visibility == View.VISIBLE) renderSettings(R.string.screensaver)
@@ -3891,6 +3921,7 @@ class MainActivity : Activity() {
             }
             if (latest != null) prefs.edit().putString("upd_ver", latest).putLong("upd_time", System.currentTimeMillis()).apply()
             ui.post {
+                if (isDestroyed) return@post
                 checking = false
                 val ver = availableUpdate()
                 if (ver != null && (force || prefs.getString("upd_told", null) != ver)) {
@@ -4007,6 +4038,7 @@ class MainActivity : Activity() {
                 false
             }
             ui.post {
+                if (isDestroyed) return@post
                 if (!ok) {
                     updating = false
                     toast(getString(R.string.update_download_failed), long = true)
@@ -4067,7 +4099,7 @@ class MainActivity : Activity() {
                     .putFloat("wx_temp", now.getDouble("temperature_2m").toFloat())
                     .putInt("wx_code", now.getInt("weather_code"))
                     .putLong("wx_time", System.currentTimeMillis()).apply()
-                ui.post { showWeather() }
+                ui.post { if (!isDestroyed) showWeather() }
             } catch (e: Exception) {
                 android.util.Log.w("TvHome", "weather failed ($e)") // keep the last reading; next tick retries
             }
@@ -4152,6 +4184,7 @@ class MainActivity : Activity() {
                 null
             }
             ui.post {
+                if (isDestroyed) return@post
                 // Only if the page is still open: Back may have left it while the search ran.
                 if (settingsScrim.visibility != View.VISIBLE || findViewById<TextView>(R.id.settingsTitle).text.toString() != getString(R.string.weather_location)) return@post
                 when {
@@ -4208,6 +4241,7 @@ class MainActivity : Activity() {
                 Cards(emptyList(), null, emptyList())
             }
             ui.post {
+                if (isDestroyed) return@post
                 cardSources = cards.sources
                 cardCurrent = cards.current
                 showWatchNext(cards.list)
@@ -4232,8 +4266,8 @@ class MainActivity : Activity() {
      * 1. The system Watch Next list (Netflix etc.), newest engagement first.
      * 2. Apps' own home-screen channels the user switched on (see [channelOn]); ones named "Continue Watching"
      *    are on to start with. Stremio publishes one (with progress and an autoPlay resume link) instead of
-     *    using Watch Next, so signing in to Stremio on the TV is all it takes. Channel rows carry no timestamps,
-     *    so they use the time the app was last opened from Plume, keeping the app's own order among themselves.
+     *    using Watch Next, so signing in to Stremio on the TV is all it takes. Channel rows sort by their own
+     *    last-watched time when the app sets one, else by the time the app was last opened from Plume, see [channelSortKey].
      * Newest first across apps, each app's [PER_APP] newest ahead of the rest, so one app with ten shows can't bury the others.
      */
     private fun queryWatchNext(): Cards {
@@ -4246,7 +4280,7 @@ class MainActivity : Activity() {
         val off = prefs.getStringSet("cw_off", emptySet())!!
         if (cardsSplit()) return stackedCards(watchNext, on, hidden, off)
         val channels = on.flatMap { (id) ->
-            readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id").map { (_, p) -> watchSortKey(0, prefs.getLong("t_${p.pkg}", 0)) to p }
+            readPrograms(TvContract.buildPreviewProgramsUriForChannel(id), hidden, "ch$id")
         }
         val all = watchNext + channels
         publishingPkgs = all.mapNotNull { it.second.pkg }.toSet()
@@ -4399,10 +4433,10 @@ class MainActivity : Activity() {
         }
     }
 
-    /** Pairs of (sort key, item), see [watchSortKey]; channel rows have no time of their own and get the type "continue". */
-    private fun readPrograms(uri: Uri, hidden: Set<String>, group: String? = null, sort: String? = null): List<Pair<Long, Prog>> {
-        val out = ArrayList<Pair<Long, Prog>>()
-        contentResolver.query(uri, null, null, null, sort)?.use { c ->
+    /** Pairs of (sort key, item), see [watchSortKey]; a [group] is a channel, its rows sorted by [channelSortKey] and [byWeight]. */
+    private fun readPrograms(uri: Uri, hidden: Set<String>, group: String? = null): List<Pair<Long, Prog>> {
+        val out = ArrayList<Triple<Long, Long, Prog>>()
+        contentResolver.query(uri, null, null, null, null)?.use { c ->
             fun str(col: String) = c.getColumnIndex(col).let { if (it < 0 || c.isNull(it)) null else c.getString(it) }
             fun num(col: String) = c.getColumnIndex(col).let { if (it < 0 || c.isNull(it)) 0L else c.getLong(it) }
             while (c.moveToNext()) {
@@ -4422,10 +4456,12 @@ class MainActivity : Activity() {
                 val pkg = str("package_name")
                 val wide = ShowsWall.wide(str("thumbnail_uri") != null, num("poster_art_aspect_ratio").toInt())
                 val prog = Prog(title, sub, progress, str("thumbnail_uri") ?: str("poster_art_uri"), str("intent_uri"), pkg, group ?: pkg, wide)
-                out += watchSortKey(num("watch_next_type"), num("last_engagement_time_utc_millis")) to prog
+                val engaged = num("last_engagement_time_utc_millis")
+                out += Triple(num("weight"),
+                    if (group == null) watchSortKey(num("watch_next_type"), engaged) else channelSortKey(engaged, prefs.getLong("t_$pkg", 0)), prog)
             }
         }
-        return out
+        return byWeight(out)
     }
 
     private fun hideKey(pkg: String?, title: String) = "$pkg/$title"
@@ -4711,7 +4747,7 @@ class MainActivity : Activity() {
             }
             posters.put(uri, bmp)
             ui.post {
-                if (v.tag == uri) {
+                if (!isDestroyed && v.tag == uri) {
                     v.scaleType = ImageView.ScaleType.CENTER_CROP
                     v.setImageBitmap(bmp)
                 }
@@ -4928,19 +4964,19 @@ class MainActivity : Activity() {
         const val SLIDER_DP = 96 // a slider's width
         const val SLIDER_VALUE_DP = 72 // width of the value beside a slider
         const val BANNER_DIM = 0.3f // black laid over a colour banner at rest, so the selected one stands out
-        const val DARK_DIM = 115 // alpha of the black laid over the Bing picture in dark mode (45%)
+        const val FETCH_OK = 0
+        const val FETCH_DEAD = 1
+        const val FETCH_NETWORK = 2
+        const val SHOW_MAX = 12_000_000 // bytes: a bigger show picture is left out
+        /** "Darkening" of a Bing or shows picture in dark mode: Auto, or a percentage of black. Medium is what Plume always did for Bing. */
+        val DIMS = linkedMapOf("auto" to R.string.dim_auto, "0" to R.string.dim_none, "20" to R.string.dim_light, "45" to R.string.dim_medium, "65" to R.string.dim_strong)
         const val PIN_TRIES = 5 // wrong PINs before a 30 s wait
         const val UNLOCKED_MS = 5 * 60_000L
         const val MEDIA_REQUEST = 3
         const val BLUETOOTH_REQUEST = 4
         const val PER_APP = 3 // Continue Watching items per app ahead of the rest
-        /** "Darkening" of a Bing or shows picture in dark mode: Auto, or a percentage of black. */
-        val DIMS = linkedMapOf("auto" to R.string.dim_auto, "0" to R.string.dim_none, "20" to R.string.dim_light, "45" to R.string.dim_medium, "65" to R.string.dim_strong)
         /** "Rows" of the shows row: mixed, switched by its title, or one per channel. */
         val CARDS_ROWS = linkedMapOf("mixed" to R.string.cards_one, "title" to R.string.cards_title, "stack" to R.string.cards_each)
-        const val FETCH_OK = 0
-        const val FETCH_DEAD = 1
-        const val FETCH_NETWORK = 2
         const val CARDS_AHEAD = 8 // Continue Watching cards built past the focused one (see addCardsTo)
         val READ_PHOTOS = if (Build.VERSION.SDK_INT >= 33) "android.permission.READ_MEDIA_IMAGES" else "android.permission.READ_EXTERNAL_STORAGE"
         /** Minutes between folder photos. */
@@ -5020,6 +5056,8 @@ class MainActivity : Activity() {
             "xbox" to R.drawable.logo_xbox,
             "nintendoswitch" to R.drawable.logo_nintendoswitch,
             "appletv" to R.drawable.logo_appletv,
+            "nvidia" to R.drawable.logo_nvidia,
+            "chromecast" to R.drawable.logo_chromecast,
             "settop" to R.drawable.ic_settop,
             "playback" to R.drawable.ic_playback,
             "hdmi" to R.drawable.ic_hdmi,
