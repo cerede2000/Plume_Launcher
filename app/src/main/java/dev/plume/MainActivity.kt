@@ -201,7 +201,7 @@ internal fun <T> newestPerApp(items: List<Pair<Long, T>>, perApp: Int, app: (T) 
  * the order the channel lists them in. Turned-off apps and repeats are left out, and no more than [limit] stay.
  */
 internal fun <T> sourceCards(items: List<Pair<Long, T>>, perApp: Int, limit: Int, app: (T) -> String?, off: (T) -> Boolean, same: (T) -> String): List<T> =
-    newestPerApp(items, perApp, app).filter { !off(it) }.distinctBy(same).take(limit)
+    items.map { it.second }.filter { !off(it) }.distinctBy(same).take(limit)
 
 /**
  * Whether an app's home-screen channel feeds Continue Watching. Channels named "Continue Watching" (Stremio's) start

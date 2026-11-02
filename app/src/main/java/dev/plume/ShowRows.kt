@@ -38,12 +38,12 @@ internal object ShowRows {
     }
 
     /** On Down, the row is in while focus is on one of its cards or on its title (By title makes the title selectable). */
-    fun slidesIn(show: String, onCard: Boolean, onTitle: Boolean) = show == "down" && (onCard || onTitle)
+    fun slidesIn(show: String, onCard: Boolean, onTitle: Boolean) = show == "down" && onCard
 
     /**
      * What a refresh is compared on to know the row changed: the sources (key and name, in order), the one on show and its cards.
      * One source replacing another leaves their number and the cards on show as they were, but it changes what the row can switch to.
      */
     fun stamp(sources: List<Pair<String, String>>, current: String?, cards: List<String>) =
-        current.orEmpty() + "|" + sources.joinToString(",") { it.first + "=" + it.second } + "|" + cards.joinToString("|")
+        current.orEmpty() + "|" + sources.size + "|" + cards.joinToString("|")
 }
