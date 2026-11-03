@@ -14,6 +14,12 @@ Write every entry in ASD-STE100 Simplified Technical English:
 
 Put changes that are not released under `## Unreleased`. Rename that heading to the version number when you release.
 
+## Unreleased
+
+- **Rows of the shows row.** Select **Plume settings → Shows row → Rows**, then select **Mixed** (the default), **By title** or **Per channel**. The page says what each choice does and which buttons to press. By title and Per channel show one source at a time: Watch Next, or one channel that an app adds. The cards stay in place and change their picture, title and progress.
+- **Remote battery.** Hold OK on a top-bar icon, select **Add icon**, then **Remote battery** to see the battery level of your Bluetooth remote. The icon turns red and a message shows once a day at 20 % or less; hold OK on the icon to change this.
+- **Fire TV: Plume shows sooner after Home.** Android holds an app's start for 5 seconds after Home. While **Plume: Home button** is on, Plume starts with an alarm. The system sends the alarm, so the wait does not apply. Plume sets the Android setting `min_futurity` to 0 for this. Plume puts the old value back when you turn the Home button off. This needs the `WRITE_SECURE_SETTINGS` grant.
+
 ## 1.7.1
 
 - **Photo of the day fix.** Plume no longer closes when you select **Photo of the day** before the photo downloads.
@@ -43,13 +49,11 @@ Put changes that are not released under `## Unreleased`. Rename that heading to 
 - A video wallpaper shows its own first frame while it starts.
 - With **Large** or **Largest** apps, the apps row no longer covers the Continue watching title.
 - Glass rows no longer show a grey edge after the last tile.
-- **Rows of the shows row.** Select **Plume settings → Shows row → Rows**, then select **Mixed** (the default), **By title** or **Per channel**. The page says what each choice does and which buttons to press. By title and Per channel show one source at a time: Watch Next, or one channel that an app adds. The cards stay in place and change their picture, title and progress.
 - Continue watching shows the show you watched last first in apps such as Nuvio.
 - On Fire TV, Plume comes back when you press Home on the Plume home screen or in the Plume settings.
 - On Google TV, a notice or a sign-in screen no longer brings Plume to the front.
 - On some CVTE TVs, the Home button returns to Plume from HDMI or Live TV.
 - On Xiaomi TVs, **Plume settings → Updates → Install** opens the TV's installer. Before, Plume closed.
-- **Remote battery.** Hold OK on a top-bar icon, select **Add icon**, then **Remote battery** to see the battery level of your Bluetooth remote. The icon turns red and a message shows once a day at 20 % or less; hold OK on the icon to change this.
 - On debloated Google TVs, the **Finish setup** card does not come back after a restart. Folder wallpapers load after a restart.
 - Plume no longer closes when the theme changes while a picture loads, or when the screensaver ends.
 - Old wallpapers no longer ship in the app. An old selection shows a plain colour until you select another wallpaper.
