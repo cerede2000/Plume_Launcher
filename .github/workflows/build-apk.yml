@@ -16,17 +16,46 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
 
       - uses: gradle/actions/setup-gradle@v5
 
+      - name: Restore the established release signing key
+        env:
+          KS: ${{ secrets.PLUME_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.PLUME_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KS" ] || [ -z "$KS_PASS" ]; then
+            echo "::error::The Plume release signing secrets are missing"
+            exit 1
+          fi
+          echo "$KS" | base64 --decode > "$RUNNER_TEMP/plume.p12"
+          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=plume\nkeyPassword=%s\n' \
+            "$RUNNER_TEMP/plume.p12" "$KS_PASS" "$KS_PASS" > keystore.properties
+
       - name: Unit tests, lint and release build
-        run: ./gradlew testDebugUnitTest lintDebug assembleRelease
+        run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleRelease
+
+      - name: Verify the release signer and prepare the APK
+        env:
+          EXPECTED_CERT_SHA256: 6bf20c5a152042928b98f754d05f0d8d121df6c201b4879ac912166ea8f1aa58
+        run: |
+          BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          APK=app/build/outputs/apk/release/app-release.apk
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$APK"
+          ACTUAL_CERT_SHA256="$("$BUILD_TOOLS/apksigner" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          if [ "$ACTUAL_CERT_SHA256" != "$EXPECTED_CERT_SHA256" ]; then
+            echo "::error::Unexpected APK signing certificate: $ACTUAL_CERT_SHA256"
+            exit 1
+          fi
+          VERSION="$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts)"
+          mkdir -p dist
+          cp "$APK" "dist/plume-${VERSION}-${GITHUB_SHA::7}.apk"
 
       - name: Upload release APK
         uses: actions/upload-artifact@v5
         with:
           name: Plume-main-APK
-          path: app/build/outputs/apk/release/app-release.apk
+          path: dist/*.apk
           if-no-files-found: error
 
